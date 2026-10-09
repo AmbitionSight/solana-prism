@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   VERIFICATION,
   isFilled,
@@ -43,6 +43,31 @@ function Row({ label, value, href }: RowProps) {
 export default function VerifyPanel() {
   const [open, setOpen] = useState(false);
   const [videoBroken, setVideoBroken] = useState(false);
+  /**
+   * Whether the recording exists yet. `preload="none"` means the <video>'s own
+   * error event does not fire until someone presses play, so without probing we
+   * would show an empty black box until Phase 4 drops the file in.
+   */
+  const [videoAvailable, setVideoAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    fetch(VIDEO_SRC, { method: 'HEAD' })
+      .then((response) => {
+        // Guard against an SPA fallback answering 200 with HTML.
+        const type = response.headers.get('content-type') ?? '';
+        if (!cancelled) setVideoAvailable(response.ok && type.startsWith('video/'));
+      })
+      .catch(() => {
+        if (!cancelled) setVideoAvailable(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const { vulnerableProgramId, fixedProgramId, attackTxSignature, attackTxError } = VERIFICATION;
 
@@ -85,18 +110,18 @@ export default function VerifyPanel() {
             <Row label="Same call, fixed build" value={attackTxError} />
           </dl>
 
-          {videoBroken ? (
-            <p className="verify__pending verify__video-fallback">
-              Recorded walkthrough (demo-verify.mp4) is added in Phase 4.
-            </p>
-          ) : (
+          {videoAvailable && !videoBroken ? (
             <video
               className="verify__video"
               src={VIDEO_SRC}
               controls
-              preload="none"
+              preload="metadata"
               onError={() => setVideoBroken(true)}
             />
+          ) : videoAvailable === null ? null : (
+            <p className="verify__pending verify__video-fallback">
+              Recorded walkthrough (demo-verify.mp4) is added in Phase 4.
+            </p>
           )}
         </div>
       )}
