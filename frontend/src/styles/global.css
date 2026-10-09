@@ -1,0 +1,95 @@
+/* ==========================================================================
+   Solana Contract X-Ray — Design Tokens & Reset
+   Single source of truth for color, type, motion, elevation.
+   Every pixel value in animation CSS must come from lib/geometry.ts,
+   never from this file.
+   ========================================================================== */
+
+:root {
+  /* ---------- Typography ---------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI',
+    'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', 'Cascadia Code', Consolas,
+    'Courier New', monospace;
+
+  /* ---------- Surfaces & text ---------- */
+  --color-bg: #ffffff;
+  --color-bg-code: #fbfbfd;
+  --color-border: #e5e5ea;
+  --color-text: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-tertiary: #a1a1a6;
+
+  /* ---------- Syntax (hand-written highlighting, no library) ---------- */
+  --color-syntax-keyword: #d70015;
+  --color-syntax-type: #0071e3;
+  --color-syntax-comment: #86868b;
+
+  /* ---------- Semantic ---------- */
+  --color-danger: #d1242f;
+  --color-danger-bg: #fff0f0;
+  --color-success: #1d8348;
+  --color-success-bg: #f0fff4;
+
+  /* ---------- Motion — one Apple easing for the whole site ---------- */
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 400ms;
+  --duration-slow: 800ms;
+
+  /* ---------- Elevation & shape ---------- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --radius-card: 12px;
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+code {
+  font-family: var(--font-mono);
+}
+
+/* Respect users who ask for less motion: collapse all animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
