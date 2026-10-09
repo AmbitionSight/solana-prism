@@ -43,7 +43,11 @@ const TARGET_URL = process.argv[2] ?? 'http://localhost:5199/';
 const OUT_DIR = resolve(process.argv[3] ?? '.shots');
 /** Offset by pid so two harnesses in one session cannot adopt each other's browser. */
 const PORT = 9300 + (process.pid % 500);
-const VIEWPORT = { width: 1280, height: 820 };
+/** Override to check the demo at a presentation resolution, e.g. 1920x1080. */
+const VIEWPORT = {
+  width: Number(process.env.SHOOT_WIDTH ?? 1280),
+  height: Number(process.env.SHOOT_HEIGHT ?? 820),
+};
 const COMMAND_TIMEOUT_MS = 15000;
 const WAIT_TIMEOUT_MS = 20000;
 
