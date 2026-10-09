@@ -47,7 +47,8 @@ replaced.
    is present while the admin's **signature** is absent. Then the dot drops:
    through stage ③ (*Attack Successful*), or stopped at it
    (*Transaction Rejected*).
-6. **Verify** — the on-chain evidence behind the animation.
+6. **Verify** — the evidence behind the animation. With nothing deployed yet,
+   this step says so instead of showing a link that goes nowhere.
 
 Press **Replay** to run the whole thing again without reloading.
 
@@ -94,7 +95,7 @@ highlighter and both attack animations are ours.
 cd frontend
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 74 tests
+npm test         # 93 tests
 npm run build    # tsc -b && vite build
 ```
 
@@ -118,10 +119,15 @@ frontend/src/
   i18n/messages.ts    every user-visible string, both languages
   i18n/language.ts    the language context + useLanguage()
   config/layers.ts    the five layers — the demo is generated from this array
-  config/verification.ts  on-chain evidence (placeholders until Phase 4)
+  config/verification.ts  on-chain evidence — all PENDING, nothing is deployed
   components/         Step1Title, Step2Code, ContractLayers, LayerCard, TxCard,
                       AttackDot, FixToggle, AttackResult, VerifyPanel, LanguageToggle
   styles/             global.css (tokens) · app.css · animations.css
+
+contract/               the Anchor programs the step-2 listing is taken from
+  programs/xray_vulnerable   authority declared as AccountInfo — the bug
+  programs/xray_fixed        authority declared as Signer — the one-line fix
+  tests/xray.ts              the attack, as assertions
 ```
 
 Two rules hold this together. Both are checked mechanically, at the level that
@@ -162,7 +168,8 @@ no check at all. Two of them originally could not.
 ## Verification
 
 `npm test` covers geometry, the step machine, the keyframe generator, the
-tokenizer, the verification URLs, and the no-hand-written-coordinates guard.
+tokenizer, the verification config and its deployed/undeployed states, and the
+no-hand-written-coordinates guard.
 
 For the visuals there is a real-time screenshot harness:
 
@@ -198,10 +205,43 @@ rate rather than replayed at whatever rate they happened to arrive.
 
 ## Status
 
-Phase 0–2 (front end) is complete and demonstrable with no chain dependency.
-`config/verification.ts` still holds `TBD` placeholders; Phase 3–4 add the Anchor
-programs, deploy the vulnerable build to Devnet, and fill in the real program id
-and attack transaction signature.
+**The front end is finished. The contract is written but has never been built or
+deployed.**
+
+Phase 0–2 is complete: the six-step demo runs end to end, needs no chain, and is
+demonstrable as it stands. The Anchor programs in `contract/` are the source the
+step-2 listing is taken from, and `tests/xray.ts` states the attack as
+assertions — but **neither has ever been compiled**, because producing Solana
+bytecode needs `cargo-build-sbf` and platform-tools, which are published for
+Linux and macOS only. There is no Windows build. So there is no `.so`, no program
+id, no transaction signature, and nothing on Devnet.
+
+`config/verification.ts` is therefore not "waiting to be filled in" — it is
+accurate. Every field is `PENDING` because nothing exists to put there.
+
+### What that means for step 6
+
+The verify panel does not claim otherwise. It asks `isDeployed()`, which is
+derived from the data rather than stored as a flag, and with nothing deployed it
+says plainly that the animation is faithful to the source in this repository and
+that there is no program id or transaction behind it. The moment real values are
+filled in, the wording switches by itself.
+
+That is guarded, because it is the one sentence here that must not be wrong:
+
+- `isDeployed()` is tested in both states, not just the one this repo is in.
+- A test scans `VerifyPanel.tsx` and fails if the deployed claim ever appears
+  outside the `deployed ?` branch.
+- Both guards were falsified on introduction — the claim was un-gated on purpose
+  and the suite went red, naming the offending line.
+
+### To finish it
+
+On any Linux or macOS machine, a Linux container, or Solana Playground:
+`anchor build`, then `anchor test --skip-local-validator --provider.cluster devnet`,
+then paste the two program ids and the attack signature into
+`config/verification.ts`. See [`contract/README.md`](contract/README.md) — including
+a bytecode-version check worth reading before you trust a deployment.
 
 The full plan is in [`docs/solana-xray-plan.md`](docs/solana-xray-plan.md); the
 front-end execution plan and its decisions are in

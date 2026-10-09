@@ -309,6 +309,14 @@ Buffer                                        1.5h
 
 ## F. Phase 3 — 合约 TDD + Devnet 取证(5.5h)
 
+> **⚠️ 实际执行情况(回填)**: 本 Phase **代码已完成, 但从未编译、从未部署**。
+> - 已完成: 任务 3.1(工作区结构)、3.3(漏洞版 lib.rs)、3.4(修复版 lib.rs) 的**源码**, 以及 3.2 的**测试文件**。均在 `contract/` 下
+> - 未完成: 任务 3.5 取证, 以及 3.1/3.2/3.3/3.4 各自的**验证步骤** — `anchor build` 与 `anchor test` 一次都没跑过
+> - **RED→GREEN 未成立**: 计划要求"RED 任务真见过红"。测试从未运行, 所以既没红过也没绿过。这是本 Phase 与 H 节评审协议最大的偏离
+> - **原因**: 生成 SBF 字节码需要 `cargo-build-sbf` + platform-tools(定制 LLVM 后端), 只发布 Linux/macOS 版本, 无 Windows 版。用户明确要求不为此引入 Linux 机器/WSL2
+> - **补完路径**: 任意 Linux/macOS 机器、Linux 容器, 或 Solana Playground(浏览器内, 零安装)。详见 `contract/README.md`, 其中含 SBPFv3 字节码版本检查 — 旧的 v0/v1/v2 在 SIMD-0500 激活后会被 Devnet 拒绝部署
+> - 注: 两个 program 的 `declare_id!` 均为占位, `anchor keys sync` 会回填真实地址
+
 > **v4.1 调整(用户确认): 全程 Devnet, 不跑本地 validator**。
 > - 测试靶子即 Devnet: 所有 `anchor test` 替换为 `anchor test --skip-local-validator --provider.cluster devnet`。测试文件与 RED→GREEN 流程不变
 > - **先囤水**: 本 Phase 第一件事 — 分多次 `solana airdrop 2` + faucet.solana.com, 囤够 5-8 SOL(部署租金 + 反复测试手续费)
@@ -383,13 +391,20 @@ Buffer                                        1.5h
 - 录 30s 屏(攻击交易在 Solscan 上的 Success 页面 + 终端日志)存 `frontend/public/demo-verify.mp4`
 - **验证**: SIG_A 在 `https://solscan.io/tx/<SIG_A>?cluster=devnet` 状态 Success → 提交
 
-### ✅ CHECKPOINT 3
+### ⛔ CHECKPOINT 3 — 未达成
 - [ ] Devnet 上攻击测试全绿(漏洞被记录 + 修复被拒绝, 或默认方案: 仅漏洞版攻击成功)
 - [ ] 漏洞版 Program ID 可查, SIG_A Solscan 可见
+- **未通过原因**: 无 SBF 工具链, 合约未编译, 故无部署、无 Program ID、无 SIG_A。见 F 节顶部回填说明
 
 ---
 
 ## G. Phase 4 — 汇合与收尾(2.5h)
+
+> **⚠️ 实际执行情况(回填)**: 部分完成。
+> - 4.1 填证据: **做不到** — 没有部署就没有 Program ID / SIG_A。作为替代, `verification.ts` 与 VerifyPanel 已改造为**如实呈现未部署状态**: `isDeployed()` 从数据推导(非手工开关), 未部署时面板明确说明"动画忠实于仓库源码, 但背后没有程序 ID 和交易", 而不是显示一个点不开的链接。配套守卫测试已做并已证伪
+> - 4.2 完整验证: **四项证据中只有一项成立** — `npm test` 绿(93 项); `anchor test` 未跑; VerifyPanel 无真数据。按原标准**不算完成**
+> - 4.3 部署 + 录屏: `npm run build` 通过; Vercel 部署、60s 全流程录屏、平台提交、分支合并与 tag **均未执行**
+> - README 已按实际状态重写 Status 段, 不再声称"已部署"
 
 ### 任务 4.1: 填证据
 - 把 Program ID / SIG_A / ERR_B 填入 `frontend/src/config/verification.ts`
@@ -421,9 +436,16 @@ Buffer                                        1.5h
 
 ## J. 交付清单
 
-- [ ] `npm test` 绿 + `anchor test` 绿 + 流程两遍跑通
-- [ ] Vercel URL 可演示
-- [ ] Devnet Program ID(至少漏洞版) + SIG_A Solscan 链接
-- [ ] demo.mp4(60s) + demo-verify.mp4(30s)
-- [ ] README + 平台提交(赛道 Public Goods / Infrastructure)
+- [x] `npm test` 绿 — **93 项全绿**
+- [ ] `anchor test` 绿 — **未跑**(无 SBF 工具链)
+- [ ] 流程两遍跑通 — 前端流程可跑; 链上环节无
+- [ ] Vercel URL 可演示 — 未部署
+- [ ] Devnet Program ID(至少漏洞版) + SIG_A Solscan 链接 — **无**
+- [ ] demo.mp4(60s) + demo-verify.mp4(30s) — 未录
+- [x] README — 已按实际状态重写, 未声称已部署
+- [ ] 平台提交(赛道 Public Goods / Infrastructure)
 - [ ] 分支合并 + tag
+
+**净结果**: 前端���一个完整、可演示、测试齐全的交付物; 链上证据为零。
+两者的落差已写进 README 与证据面板本身, 而非留作 `TBD` 让人误读。
+把合约编译并部署一次(见 `contract/README.md`)即可补上剩余全部条目。

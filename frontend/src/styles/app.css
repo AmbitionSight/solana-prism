@@ -424,6 +424,12 @@
   font-size: 14px;
 }
 
+/* With nothing deployed this sentence is a caveat about the repository, not a
+   claim about a chain, so it must not read like the evidence below it. */
+.verify__claim--unproven {
+  color: var(--color-text-secondary);
+}
+
 .verify__rows {
   margin: 0;
   display: flex;

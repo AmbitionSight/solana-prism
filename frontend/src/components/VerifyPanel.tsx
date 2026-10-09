@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
+  PENDING,
   VERIFICATION,
+  isDeployed,
   isFilled,
   solscanAccountUrl,
   solscanTxUrl,
@@ -41,8 +43,14 @@ function Row({ labelKey, value, href }: RowProps) {
 
 /**
  * Step 6 — the on-chain evidence, collapsed behind a button so it never
- * interrupts the animation. Until Phase 4 fills in real Devnet values every
- * row reads as pending rather than as a link that goes nowhere.
+ * interrupts the animation.
+ *
+ * The panel has two voices and picks between them by asking `isDeployed()`, not
+ * by being told. With nothing deployed there is no program id, no signature and
+ * no balance to show, so it says exactly that: the walkthrough is faithful to
+ * the source in this repository, and there is nothing on a chain behind it.
+ * Claiming otherwise would make the one sentence this demo cannot afford to get
+ * wrong — "this is real" — the only false one.
  */
 export default function VerifyPanel() {
   const { t } = useLanguage();
@@ -75,6 +83,7 @@ export default function VerifyPanel() {
   }, [open]);
 
   const { vulnerableProgramId, fixedProgramId, attackTxSignature, attackTxError } = VERIFICATION;
+  const deployed = isDeployed();
 
   return (
     <div className="verify">
@@ -97,7 +106,9 @@ export default function VerifyPanel() {
           role="region"
           aria-label={t.ariaVerifyRegion}
         >
-          <p className="verify__claim">{t.verifyClaim}</p>
+          <p className={`verify__claim${deployed ? '' : ' verify__claim--unproven'}`}>
+            {deployed ? t.verifyClaimDeployed : t.verifyClaimNotDeployed}
+          </p>
 
           <dl className="verify__rows">
             <Row
@@ -110,9 +121,14 @@ export default function VerifyPanel() {
               value={attackTxSignature}
               href={solscanTxUrl(attackTxSignature)}
             />
+            {/* The balance is a number the contract is written to produce, not
+                one anyone has read off a chain. With nothing deployed it is
+                pending like everything else here. */}
             <Row
               labelKey="verifyVaultBalance"
-              value={`${VERIFICATION.vaultBefore} → ${VERIFICATION.vaultAfter}`}
+              value={
+                deployed ? `${VERIFICATION.vaultBefore} → ${VERIFICATION.vaultAfter}` : PENDING
+              }
             />
             <Row
               labelKey="verifyFixedProgram"

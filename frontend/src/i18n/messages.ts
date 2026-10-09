@@ -59,9 +59,11 @@ export interface Messages {
   resultRejectedTitle: string;
   resultRejectedBody: string;
 
-  /* Verify panel */
+  /* Verify panel — two different claims, because the deployed one is a lie
+     until a program id and a signature actually exist */
   verifyToggle: string;
-  verifyClaim: string;
+  verifyClaimDeployed: string;
+  verifyClaimNotDeployed: string;
   verifyVulnerableProgram: string;
   verifyAttackTx: string;
   verifyVaultBalance: string;
@@ -119,15 +121,17 @@ export const MESSAGES: Record<Language, Messages> = {
     resultRejectedBody: 'Missing signer. Access denied.',
 
     verifyToggle: 'Verify on-chain',
-    verifyClaim:
+    verifyClaimDeployed:
       'This is not an animation. The exploit is real, deployed, and reproducible on Devnet.',
+    verifyClaimNotDeployed:
+      'Nothing here has been deployed yet. The animation is a faithful walkthrough of the contract source in this repository — but until those programs are built and deployed, there is no program id or transaction behind it.',
     verifyVulnerableProgram: 'Vulnerable program',
     verifyAttackTx: 'Attack transaction',
     verifyVaultBalance: 'Vault balance',
     verifyFixedProgram: 'Fixed program',
     verifySameCall: 'Same call, fixed build',
-    verifyPending: 'awaiting Phase 4',
-    verifyVideoNote: 'Recorded walkthrough (demo-verify.mp4) is added in Phase 4.',
+    verifyPending: 'not deployed yet',
+    verifyVideoNote: 'Recorded walkthrough (demo-verify.mp4) is added once there is something real to record.',
     ariaVerifyRegion: 'On-chain verification',
   },
 
@@ -167,14 +171,16 @@ export const MESSAGES: Record<Language, Messages> = {
     resultRejectedBody: '缺少签名者。访问被拒绝。',
 
     verifyToggle: '链上验证',
-    verifyClaim: '这不是动画。这个漏洞是真实的、已部署的，可以在 Devnet 上复现。',
+    verifyClaimDeployed: '这不是动画。这个漏洞是真实的、已部署的，可以在 Devnet 上复现。',
+    verifyClaimNotDeployed:
+      '这里还没有任何东西被部署。动画忠实还原了本仓库中的合约源码，但在程序完成编译与部署之前，它没有对应的程序 ID 和交易。',
     verifyVulnerableProgram: '漏洞版程序',
     verifyAttackTx: '攻击交易',
     verifyVaultBalance: '金库余额',
     verifyFixedProgram: '修复版程序',
     verifySameCall: '同一调用，修复版',
-    verifyPending: 'Phase 4 补上',
-    verifyVideoNote: '录屏（demo-verify.mp4）将在 Phase 4 补上。',
+    verifyPending: '尚未部署',
+    verifyVideoNote: '录屏（demo-verify.mp4）要等真的跑通之后才有东西可录。',
     ariaVerifyRegion: '链上验证',
   },
 };
