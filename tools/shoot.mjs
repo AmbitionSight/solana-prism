@@ -122,7 +122,19 @@ const PLAN = [
     shot: 'step5-result-rejected',
   },
   { wait: `__xray.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
-  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 500, shot: 'step5-verify-panel' },
+  {
+    wait: `__xray.has('${SQL.verifyPanel}')`,
+    after: 600,
+    // Durable invariant: the panel must show either the recording or the
+    // "added in Phase 4" note — never an empty black <video> box. Note that a
+    // static host's SPA fallback answers 200 text/html for a missing .mp4, so
+    // this also guards the content-type check in VerifyPanel.
+    expect: {
+      expression: `(__xray.has('.verify__panel video') || __xray.has('.verify__video-fallback')) ? 'neither-empty-nor-video' : 'EMPTY-VIDEO-BOX'`,
+      contains: 'neither-empty-nor-video',
+    },
+    shot: 'step5-verify-panel',
+  },
 
   // --- pass 2: the whole 1->6 journey again in the same page session, which is
   // what CHECKPOINT 2 means by "runs twice with no refresh"
