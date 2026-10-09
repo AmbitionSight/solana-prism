@@ -19,8 +19,9 @@ export function layerMidY(index: number): number {
   return layerTopY(index) + LAYER_HEIGHT / 2;
 }
 
-/** Total rendered height of a stack of `count` layers. */
+/** Total rendered height of a stack of `count` layers. Zero layers occupy none. */
 export function stackHeight(count: number): number {
+  if (count <= 0) return 0;
   return count * LAYER_HEIGHT + (count - 1) * LAYER_GAP;
 }
 
@@ -38,8 +39,30 @@ export function stackedOffsetY(index: number, count: number): number {
   return layerMidY(index) - stackHeight(count) / 2;
 }
 
-/** y where the attack dot comes to rest after being blocked by layer `index`
- *  (8px clearance above that layer's top edge). */
+/**
+ * Clearance the dot keeps above a layer that refused it.
+ *
+ * Deliberately its own constant rather than a reuse of LAYER_GAP: both are 8
+ * today, but they mean different things, and tying them together would silently
+ * change how far the dot bounces if the visual gap were ever retuned.
+ */
+export const BLOCK_CLEARANCE = 8;
+
+/**
+ * y where the attack dot comes to rest after being refused by layer `index`.
+ * The dot's centre sits BLOCK_CLEARANCE above that layer's top edge, so it
+ * reads as resting on the layer rather than having entered it.
+ *
+ * Requires `index >= 1`: the topmost layer has no room above it inside the stack.
+ */
 export function blockedY(index: number): number {
-  return layerTopY(index) - 8;
+  return layerTopY(index) - BLOCK_CLEARANCE;
+}
+
+/**
+ * y the attack dot drops in from — one layer height above the top of the stack,
+ * so it always enters from outside the visible stack.
+ */
+export function dropStartY(): number {
+  return layerTopY(0) - LAYER_HEIGHT;
 }
