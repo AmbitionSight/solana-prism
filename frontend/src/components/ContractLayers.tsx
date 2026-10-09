@@ -17,6 +17,8 @@ export type LayersMode = 'hidden' | 'seeded' | 'decomposed' | 'stacked';
 const COUNT = VAULT_LAYERS.length;
 /** Each card leaves the centre a beat after the one above it. */
 const SCATTER_STAGGER_MS = 150;
+/** ...and settles into the stack a shorter beat after the one above it. */
+const SETTLE_STAGGER_MS = 70;
 
 interface ContractLayersProps {
   mode: LayersMode;
@@ -138,7 +140,13 @@ export default function ContractLayers({
                     ? stackedOffsetY(index, COUNT)
                     : 0
             }
-            transitionDelayMs={scattered ? index * SCATTER_STAGGER_MS : 0}
+            transitionDelayMs={
+              scattered
+                ? index * SCATTER_STAGGER_MS
+                : activeMode === 'stacked'
+                  ? index * SETTLE_STAGGER_MS
+                  : 0
+            }
           />
         ))}
 

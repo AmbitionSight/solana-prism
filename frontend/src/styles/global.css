@@ -46,8 +46,16 @@
 
   /* ---------- Motion — one Apple easing for the whole site ---------- */
   --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* A little overshoot, for things that settle into place rather than travel. */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --duration-fast: 200ms;
   --duration-normal: 400ms;
+
+  /* ---------- Impact ---------- */
+  /* Sideways nudge for the stunned card. Applied with the standalone `translate`
+     property, which composes with `transform` instead of fighting it for the
+     positioning. */
+  --shake: 3px;
 
   /* ---------- Micro-motion ----------
      Small entrance nudges on NON-stack elements only. Layer and attack

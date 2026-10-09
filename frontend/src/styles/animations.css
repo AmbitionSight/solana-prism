@@ -67,6 +67,10 @@
 .layers-container.stacked .layer-card {
   --scale: 1;
   opacity: 1;
+  /* A touch of overshoot so the cards settle rather than stop dead. The timing
+     function is read when the transition starts, so this applies to the
+     convergence and not to anything after it. */
+  transition-timing-function: var(--ease-spring);
 }
 
 /* ---------- The security layer ---------- */

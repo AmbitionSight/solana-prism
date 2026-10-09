@@ -163,8 +163,13 @@ export function fixedKeyframes(): string {
     at(4, 'opacity:1'),
     descentFrames(dropStartY(), IMPACT_Y, FIXED_FROM, FIXED_HIT_PCT / 100),
     at(FIXED_HIT_PCT, moveTo(IMPACT_Y)),
+    // Squash on contact, then recover: the dot flattens against what stopped it.
+    at(FIXED_HIT_PCT + 2, `${moveTo(IMPACT_Y)} scale(1.32, 0.68)`),
+    at(FIXED_HIT_PCT + 4.5, `${moveTo(IMPACT_Y)} scale(1, 1)`),
     at(FIXED_BOUNCE1_PCT, moveTo(bounce1)),
     at(FIXED_HIT2_PCT, moveTo(IMPACT_Y)),
+    at(FIXED_HIT2_PCT + 2, `${moveTo(IMPACT_Y)} scale(1.32, 0.68)`),
+    at(FIXED_HIT2_PCT + 4.5, `${moveTo(IMPACT_Y)} scale(1, 1)`),
     // opacity:1 is restated here on purpose. CSS interpolates opacity between
     // the frames that declare it, so without this the fade would start at 4%
     // and the dot would reach both impacts as a ghost — exactly the two bounces
@@ -175,30 +180,44 @@ export function fixedKeyframes(): string {
   ].join('');
 }
 
-/** The declaration stage's flash when the dot passes straight through it. */
+/** A damped sideways nudge, applied with the standalone `translate` property. */
+const SHAKE = (direction: number, rest = ''): string =>
+  `${rest}${rest ? ';' : ''}translate:calc(var(--shake) * ${direction}) 0`;
+
+const SHAKE_REST = 'translate:0 0';
+
+/** The declaration stage's flash, and the flinch, as the dot passes through it. */
 export function dangerPulseKeyframes(): string {
+  const rest = `box-shadow:var(--shadow-card);${SHAKE_REST}`;
+
   return [
     `@keyframes ${DANGER_PULSE_ANIMATION}{`,
-    at(0, 'box-shadow:var(--shadow-card)'),
-    at(VULNERABLE_HIT_PCT - 10, 'box-shadow:var(--shadow-card)'),
-    at(VULNERABLE_HIT_PCT, RING_DANGER),
-    at(100, 'box-shadow:var(--shadow-card)'),
+    at(0, rest),
+    at(VULNERABLE_HIT_PCT - 10, rest),
+    at(VULNERABLE_HIT_PCT, `${RING_DANGER};${SHAKE(1)}`),
+    at(VULNERABLE_HIT_PCT + 2.5, `box-shadow:var(--shadow-card);${SHAKE(-1)}`),
+    at(VULNERABLE_HIT_PCT + 5, rest),
+    at(100, rest),
     '}',
   ].join('');
 }
 
-/** The declaration stage's flash on each of the two impacts that refuse the dot. */
+/** The declaration stage's flash and flinch on each of the two impacts. */
 export function successPulseKeyframes(): string {
-  const rest = 'box-shadow:var(--shadow-card)';
+  const rest = `box-shadow:var(--shadow-card);${SHAKE_REST}`;
+  const hit = (direction: number) => `${RING_SUCCESS};${SHAKE(direction)}`;
 
   return [
     `@keyframes ${SUCCESS_PULSE_ANIMATION}{`,
     at(0, rest),
-    at(FIXED_HIT_PCT - 10, rest),
-    at(FIXED_HIT_PCT, RING_SUCCESS),
-    at(FIXED_HIT_PCT + 6, rest),
-    at(FIXED_HIT2_PCT - 10, rest),
-    at(FIXED_HIT2_PCT, RING_SUCCESS),
+    at(FIXED_HIT_PCT - 8, rest),
+    at(FIXED_HIT_PCT, hit(1)),
+    at(FIXED_HIT_PCT + 2.5, `box-shadow:var(--shadow-card);${SHAKE(-1)}`),
+    at(FIXED_HIT_PCT + 5, rest),
+    at(FIXED_HIT2_PCT - 8, rest),
+    at(FIXED_HIT2_PCT, hit(1)),
+    at(FIXED_HIT2_PCT + 2.5, `box-shadow:var(--shadow-card);${SHAKE(-1)}`),
+    at(FIXED_HIT2_PCT + 5, rest),
     at(100, rest),
     '}',
   ].join('');

@@ -601,4 +601,23 @@
   color: var(--color-danger);
 }
 
+/* The absent signature leaves first: it drops out of the card just before the
+   card itself is dismissed, which is what the falling dot takes the place of.
+   Timed off the same hold the orchestration uses, so the two cannot drift. */
+.txcard__item--missing {
+  animation: tx-missing-drop var(--tx-hold, 1200ms) var(--ease-apple) both;
+}
+
+@keyframes tx-missing-drop {
+  0%,
+  72% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(var(--nudge-enter));
+  }
+}
+
 

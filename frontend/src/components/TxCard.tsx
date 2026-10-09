@@ -1,5 +1,7 @@
 import { useLanguage } from '../i18n/language';
 import type { MessageKey } from '../i18n/messages';
+import { TX_CARD_MS } from '../lib/steps';
+import type { CSSProperties } from 'react';
 
 /**
  * TxCard — the transaction payload, shown before the dot drops.
@@ -45,8 +47,12 @@ const SIGNATURES: SignatureRow[] = [
 export default function TxCard() {
   const { t } = useLanguage();
 
+  // The card's hold is the same constant the orchestration uses, so the absent
+  // signature's exit is timed to land exactly as the card is dismissed.
+  const style = { '--tx-hold': `${TX_CARD_MS}ms` } as CSSProperties;
+
   return (
-    <div className="txcard-overlay" data-testid="tx-card">
+    <div className="txcard-overlay" data-testid="tx-card" style={style}>
       <section className="txcard" aria-label={t.txTitle}>
         <header className="txcard__header">{t.txTitle}</header>
 

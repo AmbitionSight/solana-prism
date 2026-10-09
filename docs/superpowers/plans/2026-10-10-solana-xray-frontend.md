@@ -412,6 +412,21 @@ step 2 的五个代码框位置由 `getBoundingClientRect()` 在 `Step2Code` 的
 
 **顺带调整的守卫**: 因为下落值现在是插值而非固定集合，`keyframes.test.ts` 里"每个 translateY 都在 geometry 取值集合内"的断言已改为三条更有意义的性质：**圆点不离开 geometry 定义的轨道**、**geometry 的每个锚点精确出现**、**下落单调向下不回头**。真正的"无手写像素"由 `no-hardcoded-pixels.test.ts` 在**源码层**保证（禁止 `keyframes.ts` 出现任何 `px` 字面量），比原来的值集合断言更严。
 
+### 5b-3. 动画增强 C+E+F
+
+| | 做法 | 实测 |
+|---|---|---|
+| **C 撞击反馈** | 圆点在修复版两次撞击处 squash（`scale(1.32, 0.68)` 再回正）；S3 被撞时左右抖一下 | 圆点高度 20px → **15.8px**；S3 的 `translate` 峰值 **2.98px**（`--shake: 3px`） |
+| **E 错峰落位** | 收拢时每张卡延迟 `index × 70ms`，并把 timing 换成带过冲的 `--ease-spring` | 计算值 **0 / 70 / 140 / 210 / 280ms**，easing `cubic-bezier(0.34, 1.4, 0.64, 1)` |
+| **F 签名坠落** | TxCard 里 `ADMIN ✗` 那一行在卡片关闭前约 1/3 处下落淡出，圆点随即从上方落下 | 该行 opacity **1.00 → 0.11** |
+
+**C 的关键实现**: 卡片抖动**不能用 `transform`** —— 那个属性被定位占用了（`translate(-50%,-50%) translate(var(--x),var(--y)) scale(var(--scale))`），动画 `transform` 会把定位整个覆盖掉。改用**独立的 `translate` 属性**，它与 `transform` 是两个互不干扰的属性，可以各自动画。抖动幅度走 `--shake` 令牌，所以源码层守卫仍然通过。
+
+**F 的关键实现**: 该行的动画时长用 `--tx-hold`，值直接来自 `steps.ts` 的 `TX_CARD_MS` —— **和编排用的是同一个常量**，所以"签名落下"和"卡片关闭"不可能对不上。
+
+**又一次被 HMR 骗**: E 改完后实测计算出的 `transition-delay` 全是 `0s`，源码却明确写着 `index × 70`。重启 dev server 后立刻变成 `0 / 70 / 140 / 210 / 280ms` —— 是 **HMR 没把改动应用上去**。
+> **工具纪律**: 以后 harness 与探针**一律先重启 dev server 再跑**。这是第二次在 HMR 上浪费时间（第一次是误判，那次其实是真 bug；这次是真的 stale module）。stale 与真实回归在表面上完全一样，靠猜是分不出来的，重启是一次 5 秒的确定性排除。
+
 ---
 
 ## 5. 追加需求：中英双语（原计划未包含）
