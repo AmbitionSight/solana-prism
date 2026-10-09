@@ -28,13 +28,13 @@ const VIEWPORT = { width: 1280, height: 820 };
 const PLAN = [
   { at: 1600, shot: 'step1-title' },
   { at: 5600, shot: 'step2-code' },
-  { at: 9800, shot: 'step3-scatter' },
-  { at: 14800, shot: 'step4-stacked' },
+  { at: 9800, probe: 'tagCards', shot: 'step3-scatter' },
+  { at: 14800, probe: 'checkCards', shot: 'step4-stacked' },
   { at: 17600, shot: 'step5-ready' },
   { at: 18000, click: '[data-testid="execute-btn"]' },
   { at: 18700, shot: 'step5-txcard' },
   { at: 20500, shot: 'step5-attack-dot' },
-  { at: 22800, shot: 'step5-result-success' },
+  { at: 22800, probe: 'checkCards', shot: 'step5-result-success' },
   { at: 23200, click: '[data-testid="fix-toggle-fixed"]' },
   { at: 23600, click: '[data-testid="execute-btn"]' },
   { at: 24200, shot: 'step5-txcard-fixed' },
@@ -48,13 +48,40 @@ const PLAN = [
   { at: 30000, click: '.replay-btn' },
   { at: 31000, shot: 'pass2-step1-title' },
   { at: 34500, shot: 'pass2-step2-code' },
-  { at: 40000, shot: 'pass2-step3-scatter' },
-  { at: 45000, shot: 'pass2-step4-stacked' },
+  { at: 40000, probe: 'tagCards', shot: 'pass2-step3-scatter' },
+  { at: 45000, probe: 'checkCards', shot: 'pass2-step4-stacked' },
   { at: 47500, click: '[data-testid="execute-btn"]' },
   { at: 48200, shot: 'pass2-step5-txcard' },
   { at: 49500, shot: 'pass2-step5-attack-dot' },
   { at: 52200, shot: 'pass2-step5-result-success' },
 ];
+
+/**
+ * Iron rule 1: steps 3, 4 and 5 must reuse the same DOM nodes. If the cards are
+ * re-created when the layout changes, the CSS transition is destroyed and they
+ * jump instead of travelling — and reading the source cannot prove that they
+ * are not. So tag the live nodes and check the tags survive each layout change:
+ * a remount drops expando properties and breaks node identity.
+ */
+const PROBES = {
+  tagCards: `(() => {
+    const cards = [...document.querySelectorAll('.layer-card')];
+    cards.forEach((el, i) => { el.__xrayTag = 'card-' + i; });
+    window.__xrayCards = cards;
+    return cards.length + ' tagged';
+  })()`,
+
+  checkCards: `(() => {
+    const cards = [...document.querySelectorAll('.layer-card')];
+    const recalled = window.__xrayCards ?? [];
+    const tagged = cards.filter((el, i) => el.__xrayTag === 'card-' + i).length;
+    const sameNodes = cards.length > 0
+      && cards.length === recalled.length
+      && cards.every((el, i) => el === recalled[i]);
+    return cards.length + ' cards, ' + tagged + ' kept tag, '
+      + (sameNodes ? 'IDENTICAL NODES' : 'REMOUNTED');
+  })()`,
+};
 
 function connect(ws) {
   let nextId = 0;
@@ -156,6 +183,21 @@ async function main() {
         if (result.value !== 'OK') failures.push(`click ${action.click} -> ${result.value}`);
       }
 
+      if (action.probe) {
+        const { result } = await evaluate(PROBES[action.probe]);
+        const value = String(result.value);
+        console.log(`probe ${action.probe.padEnd(11)} t=${String(action.at).padStart(6)}ms  ${value}`);
+        if (action.probe === 'checkCards') {
+          if (value.includes('REMOUNTED')) {
+            failures.push(`IRON RULE 1 VIOLATED at ${action.at}ms: layer cards were remounted (${value})`);
+          }
+          const [count, tagged] = value.split(' cards, ');
+          if (count !== tagged.split(' ')[0]) {
+            failures.push(`IRON RULE 1 VIOLATED at ${action.at}ms: only ${tagged} (${value})`);
+          }
+        }
+      }
+
       if (action.shot) {
         const { data } = await send('Page.captureScreenshot', { format: 'png' });
         const file = join(OUT_DIR, `${action.shot}.png`);
@@ -175,6 +217,7 @@ async function main() {
       process.exitCode = 1;
     } else {
       console.log('\nAll steps captured, no missing selectors.');
+      console.log('Iron rule 1 held: layer cards were the same DOM nodes at every probe.');
     }
   } finally {
     ws?.close();
