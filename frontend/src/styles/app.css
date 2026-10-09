@@ -62,3 +62,105 @@
   font-family: var(--font-mono);
   color: var(--color-text-tertiary);
 }
+
+/* ---------- Step 1: title ---------- */
+
+.step1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.step1__title {
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-align: center;
+  animation: title-in-out var(--step-duration, 3000ms) var(--ease-apple) both;
+}
+
+@keyframes title-in-out {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  22%,
+  74% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* ---------- Step 2: code card ---------- */
+
+.step2 {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.code-card {
+  margin: 0;
+  width: 100%;
+  max-width: 720px;
+  padding: 24px;
+  background: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-x: auto;
+  animation: code-card-out var(--step-duration, 4000ms) var(--ease-apple) both;
+}
+
+/* The card dissolves just before step 3 breaks it into layers. */
+@keyframes code-card-out {
+  0%,
+  88% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.code-card__line {
+  display: block;
+  opacity: 0;
+  animation: code-line-in 320ms var(--ease-apple) forwards;
+}
+
+@keyframes code-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tok--keyword {
+  color: var(--color-syntax-keyword);
+}
+
+.tok--type {
+  color: var(--color-syntax-type);
+}
+
+.tok--comment {
+  color: var(--color-syntax-comment);
+  font-style: italic;
+}
+

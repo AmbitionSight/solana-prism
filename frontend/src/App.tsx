@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AUTO_ADVANCE_MS, nextStep, type Step } from './lib/steps';
+import Step1Title from './components/Step1Title';
+import Step2Code from './components/Step2Code';
 import './styles/app.css';
 
 const TOTAL_STEPS = 5;
@@ -37,9 +39,13 @@ export default function App() {
       </button>
 
       <main className="stage">
-        <div className="placeholder" data-testid="step-content">
-          Step {step}
-        </div>
+        {step === 1 && <Step1Title />}
+        {step === 2 && <Step2Code />}
+        {step >= 3 && (
+          <div className="placeholder" data-testid="step-content">
+            Step {step}
+          </div>
+        )}
       </main>
     </div>
   );
