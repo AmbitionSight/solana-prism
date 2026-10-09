@@ -270,6 +270,26 @@ harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 har
 
 生产构建（`vite preview`，带 SPA fallback 的静态托管）与 dev server 均跑通全流程：选择器零缺失、console 干净、铁律 1 全部成立。
 
+**交付完整性**: 从零克隆（`git clone` → `npm ci` → `npm test` → `npm run build` → 跑 harness）43 个文件、48 测试、25 步全流程通过，证明交付物自包含、不依赖任何未提交状态。
+
+### CHECKPOINT 2 复审(first FAIL)与二次复审(仍 FAIL 1 条，已修)
+
+第一次复审 `FAIL (2 critical)` —— C1/C2/M1/M2 修复后，第二次复审确认 **C1、C2、M1、M2、M3、M4、M5 全部 VERIFIED**（并用 CDP 实测：修复版两次撞击点 opacity 均为 **1.0000**，此前是 0.207；降级动画下 11 行代码全部 opacity 1；不可满足的谓词会 53s 内失败而非挂死）。
+
+但第二次复审抓到**一个我自己引入的 Critical**，且正是本次评审存在的意义：
+
+| 问题 | 真相 | 修复 |
+|---|---|---|
+| **M6 的 CSS 一半是"不可能失败"的检查** | Vitest 默认 `css: false` 会把 `import.meta.glob('*.css', {query:'?raw'})` 解析成**空字符串**。守卫拿到了 3 个 key、内容全是空的，于是读了个寂寞还照样通过——把 `translateY(40px)` 写进样式表也 PASS。而"非空转"断言只数 key 个数，同样被骗过 | `vite.config.ts` 加 `test: { css: true }`；并把断言从"数 key"改成**校验内容**（每个文件长度 > 0、总长 > 1000、必须含 `.layer-card`、生成器必须含 `@keyframes`）。**已证伪：注入 `translateY(40px)` → 守卫 FAIL 并打印 `"../animations.css -> transform(… 40px …)"`；撤回后 48 绿** |
+| verify-panel 不变量靠 sleep 成立 | 点击后约 20ms 内面板存在但两个子元素都没有——正是它该拒绝的状态，却因为它有 600ms 的 `after` 而通过 | 把"或"条件本身写成 `wait` 谓词，`after` 只作为截图前的稳定延时 |
+| 降级动画仍保留 `transition-delay` | 只覆盖了 duration，150ms×index 的散开仍逐个显形（300ms 时 3/5 可见） | 补 `transition-delay: 0ms !important`。**实测 120ms 时 5 张卡 opacity 全为 1.00** |
+| `node tools/shoot.mjs` 在 PATH Node 20.10 上崩 | 全局 `WebSocket` 需要 Node ≥ 22；`engines` 允许 20.10，README 只写了 harness 要 22 | 脚本开头显式检测并打印可操作提示（应用只要 20.10，只有该 harness 要 22） |
+| 门禁会把 harness 自己注入的 helper 异常当成应用错误 | `Runtime.exceptionThrown` 无法区分来源 | `PAGE_HELPERS` 整体包 try/catch，helper 自己永不抛出（helper 缺失时下面的 wait 会大声失败，而不是伪装成应用报错） |
+
+同时更正了 `opacityAt()` 注释里的过度声明：它只理解 `at()` 产出的 `N%{prop:value}` 形状，**不是** CSS 语义模型（看不见 `to{}` 关键字帧、忽略 `opacity: 0` 带空格/`.5`、且假定首帧前 opacity 为 1）。渲染结果的把关交给 harness 的浏览器实测，而不是这个纯函数。
+
+**教训（值得记住）**: 这轮里"加一个守卫"本身引入了两次假绿——先是一个永远为真的断言，后是一个读空文件的守卫。**新增任何检查后，必须先让它失败一次**，否则不知道它是否真的在检查。
+
 ---
 
 ## 4. 风险
