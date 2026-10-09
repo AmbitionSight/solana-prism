@@ -36,9 +36,24 @@ function transformArguments(css: string): string[] {
 }
 
 describe('iron rule 2 — 手写坐标守卫(源码级)', () => {
-  it('确实读到了样式表与生成器源码, 守卫不是空转', () => {
-    expect(Object.keys(cssSources).length).toBeGreaterThanOrEqual(3);
-    expect(Object.keys(generatorSources)).toHaveLength(1);
+  it('读到的是真实 CSS 内容, 不是空模块', () => {
+    const files = Object.entries(cssSources);
+    expect(files.length).toBeGreaterThanOrEqual(3);
+
+    // Counting keys is NOT enough. With Vitest's default `css: false`, a `?raw`
+    // CSS import yields the right number of keys holding EMPTY strings — which
+    // is precisely how this guard once passed while reading nothing at all.
+    // Hence: assert on content, not just on the key set.
+    const empty = files.filter(([, css]) => css.length === 0).map(([path]) => path);
+    expect(empty).toEqual([]);
+
+    const combined = files.map(([, css]) => css).join('');
+    expect(combined.length).toBeGreaterThan(1000);
+    expect(combined).toContain('.layer-card'); // a selector we know exists
+
+    const generator = Object.values(generatorSources)[0];
+    expect(generator.length).toBeGreaterThan(500);
+    expect(generator).toContain('@keyframes');
   });
 
   it('transform 的参数里不出现 px 字面量', () => {

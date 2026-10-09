@@ -119,6 +119,10 @@ code {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /* The delays matter as much as the durations: leaving them in means the
+       scatter still reveals the cards one at a time, 150ms apart, which is
+       motion by another name. */
+    transition-delay: 0ms !important;
   }
 
   /* Collapsing a duration is not enough for animations that END on opacity 0:

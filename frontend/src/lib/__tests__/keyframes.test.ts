@@ -39,10 +39,17 @@ function frames(css: string): Frame[] {
 }
 
 /**
- * The opacity actually in force at `pct`, with CSS's own interpolation between
- * the frames that declare it — NOT simply the last declared value. The
- * difference matters: a frame list that only declares opacity at 6% and 100%
- * fades continuously in between, which is exactly the bug this guards.
+ * The opacity in force at `pct`, interpolating between the frames that declare
+ * it — NOT simply the last declared value. A frame list that declares opacity
+ * only at 6% and 100% fades continuously in between, which is exactly the bug
+ * this guards.
+ *
+ * LIMITS (measured, so nobody over-trusts it): this understands only the frame
+ * shape `at()` emits — `N%{prop:value}`. It cannot see keyword frames (`to{}`),
+ * ignores `opacity: 0` with a space or `.5`, and assumes a base opacity of 1
+ * before the first declaring frame. It is a guard on this generator, not a CSS
+ * engine. The browser-measured checks in tools/shoot.mjs are what cover the
+ * rendered result.
  */
 function opacityAt(css: string, pct: number): number {
   const declared = frames(css)
