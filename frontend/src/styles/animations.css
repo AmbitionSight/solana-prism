@@ -80,7 +80,33 @@
    already visible while they are still scattered in step 3. */
 .layers-container.stacked .layer-card.security-broken {
   background: var(--color-danger-bg);
+  /* The visible border comes from the pseudo-element below, which draws itself.
+     Keeping the real border transparent preserves the box's metrics, so nothing
+     shifts by a pixel when the crack appears. */
+  border-color: transparent;
+}
+
+/* The crack is drawn rather than switched on: a dashed frame revealed by a
+   left-to-right wipe reads as a line travelling around the card, and needs no
+   SVG and no hand-computed perimeter. */
+.layers-container.stacked .layer-card.security-broken::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
   border: 1px dashed var(--color-danger);
+  border-radius: var(--radius-card);
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  animation: crack-draw var(--crack-draw) var(--ease-apple) var(--crack-delay) forwards;
+}
+
+@keyframes crack-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 .layers-container.stacked .layer-card.security-fixed {

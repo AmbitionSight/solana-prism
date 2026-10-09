@@ -51,6 +51,10 @@
   --duration-fast: 200ms;
   --duration-normal: 400ms;
 
+  /* The declaration stage's crack drawing itself once the stack settles. */
+  --crack-draw: 700ms;
+  --crack-delay: 320ms;
+
   /* ---------- Impact ---------- */
   /* Sideways nudge for the stunned card. Applied with the standalone `translate`
      property, which composes with `transform` instead of fighting it for the
