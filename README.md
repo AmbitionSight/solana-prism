@@ -22,6 +22,8 @@ The attack lands on layer **L3**, so that is the layer the dot passes through.
 
 Press **Replay** to run the whole thing again without reloading.
 
+![The six steps](docs/screenshots/contact-sheet.png)
+
 ## Stack
 
 Vite + React 18 + TypeScript, plain CSS with custom properties, CSS transitions
