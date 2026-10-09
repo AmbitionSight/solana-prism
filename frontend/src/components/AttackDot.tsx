@@ -20,11 +20,6 @@ export default function AttackDot({ isFixed, onDone }: AttackDotProps) {
   } as CSSProperties;
 
   return (
-    <div
-      className={`attack-dot ${isFixed ? 'attack-dot--fixed' : 'attack-dot--vulnerable'}`}
-      data-testid="attack-dot"
-      style={style}
-      onAnimationEnd={onDone}
-    />
+    <div className="attack-dot" data-testid="attack-dot" style={style} onAnimationEnd={onDone} />
   );
 }

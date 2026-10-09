@@ -51,7 +51,7 @@ const DESCENT_LAST_PCT = 75;
 const DESCENT_STEP_PCT = (DESCENT_LAST_PCT - DESCENT_FIRST_PCT) / (COUNT - 1);
 
 /** When the dot reaches layer `index` on its way down. */
-export function descentPct(index: number): number {
+function descentPct(index: number): number {
   return DESCENT_FIRST_PCT + DESCENT_STEP_PCT * index;
 }
 
@@ -65,6 +65,10 @@ export const FIXED_HIT2_PCT = 78;
 function at(percentage: number, body: string): string {
   return `${percentage}%{${body}}`;
 }
+
+/** Ring colours and spread live in global.css, so this file holds no px at all. */
+const RING_DANGER = 'box-shadow:0 0 0 var(--ring-spread) var(--ring-danger)';
+const RING_SUCCESS = 'box-shadow:0 0 0 var(--ring-spread) var(--ring-success)';
 
 function moveTo(y: number, extra = ''): string {
   return `transform:translateY(${y}px)${extra}`;
@@ -102,7 +106,11 @@ export function fixedKeyframes(): string {
     at(FIXED_HIT_PCT, moveTo(IMPACT_Y)),
     at(64, moveTo(bounce1)),
     at(FIXED_HIT2_PCT, moveTo(IMPACT_Y)),
-    at(88, moveTo(bounce2)),
+    // opacity:1 is restated here on purpose. CSS interpolates opacity between
+    // the frames that declare it, so without this the fade would start at 6%
+    // and the dot would reach both impacts as a ghost — exactly the two bounces
+    // the fixed path exists to show.
+    at(88, `${moveTo(bounce2)};opacity:1`),
     at(100, `${moveTo(bounce2)};opacity:0`),
     '}',
   ].join('');
@@ -114,7 +122,7 @@ export function dangerPulseKeyframes(): string {
     `@keyframes ${DANGER_PULSE_ANIMATION}{`,
     at(0, 'box-shadow:var(--shadow-card)'),
     at(VULNERABLE_HIT_PCT - 10, 'box-shadow:var(--shadow-card)'),
-    at(VULNERABLE_HIT_PCT, 'box-shadow:0 0 0 6px var(--ring-danger)'),
+    at(VULNERABLE_HIT_PCT, RING_DANGER),
     at(100, 'box-shadow:var(--shadow-card)'),
     '}',
   ].join('');
@@ -122,17 +130,16 @@ export function dangerPulseKeyframes(): string {
 
 /** The security-layer flash on each of the two impacts that refuse the dot. */
 export function successPulseKeyframes(): string {
-  const ring = 'box-shadow:0 0 0 6px var(--ring-success)';
   const rest = 'box-shadow:var(--shadow-card)';
 
   return [
     `@keyframes ${SUCCESS_PULSE_ANIMATION}{`,
     at(0, rest),
     at(FIXED_HIT_PCT - 10, rest),
-    at(FIXED_HIT_PCT, ring),
+    at(FIXED_HIT_PCT, RING_SUCCESS),
     at(FIXED_HIT_PCT + 6, rest),
     at(FIXED_HIT2_PCT - 10, rest),
-    at(FIXED_HIT2_PCT, ring),
+    at(FIXED_HIT2_PCT, RING_SUCCESS),
     at(100, rest),
     '}',
   ].join('');

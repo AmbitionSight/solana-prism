@@ -8,6 +8,9 @@
 
 export type Step = 1 | 2 | 3 | 4 | 5;
 
+/** The terminal step. The demo stops here and waits for the user. */
+export const FINAL_STEP: Step = 5;
+
 /** Attack sub-state within step 5. */
 export type AttackState = 'idle' | 'showing-tx' | 'running' | 'done';
 
@@ -26,7 +29,7 @@ export const AUTO_ADVANCE_MS: Partial<Record<Step, number>> = {
 
 /** The next step, or null when the narration has run out (step 5 is terminal). */
 export function nextStep(step: Step): Step | null {
-  return step < 5 ? ((step + 1) as Step) : null;
+  return step < FINAL_STEP ? ((step + 1) as Step) : null;
 }
 
 /** Whether an attack against this build of the contract gets through. */

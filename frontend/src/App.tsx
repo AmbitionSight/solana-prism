@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   AUTO_ADVANCE_MS,
+  FINAL_STEP,
   TX_CARD_MS,
   nextStep,
   type AttackState,
@@ -15,8 +16,6 @@ import TxCard from './components/TxCard';
 import VerifyPanel from './components/VerifyPanel';
 import './styles/app.css';
 import './styles/animations.css';
-
-const TOTAL_STEPS = 5;
 
 export default function App() {
   const [step, setStep] = useState<Step>(1);
@@ -65,7 +64,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="step-indicator" data-testid="step-indicator">
-        {String(step).padStart(2, '0')} / {String(TOTAL_STEPS).padStart(2, '0')}
+        {String(step).padStart(2, '0')} / {String(FINAL_STEP).padStart(2, '0')}
       </div>
 
       <button type="button" className="replay-btn" onClick={replay}>
@@ -98,7 +97,7 @@ export default function App() {
                     type="button"
                     className="execute-btn"
                     data-testid="execute-btn"
-                    disabled={attackState !== 'idle'}
+                    disabled={attackState === 'showing-tx' || attackState === 'running'}
                     onClick={handleExecute}
                   >
                     Execute

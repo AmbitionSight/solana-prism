@@ -53,13 +53,14 @@ export default function VerifyPanel() {
         className={`verify__toggle${open ? ' is-open' : ''}`}
         data-testid="verify-toggle"
         aria-expanded={open}
+        aria-controls="verify-panel"
         onClick={() => setOpen((value) => !value)}
       >
         Verify on-chain <span aria-hidden="true">→</span>
       </button>
 
       {open && (
-        <div className="verify__panel" data-testid="verify-panel">
+        <div className="verify__panel" id="verify-panel" data-testid="verify-panel" role="region" aria-label="On-chain verification">
           <p className="verify__claim">
             This is not an animation. The exploit is real, deployed, and reproducible on Devnet.
           </p>

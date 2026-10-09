@@ -43,7 +43,6 @@ export default function Step2Code() {
                   {token.text}
                 </span>
               ))}
-              {'\n'}
             </span>
           ))}
         </code>
