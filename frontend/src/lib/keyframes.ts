@@ -6,8 +6,12 @@
  * is what makes that rule enforceable: the accompanying test asserts that every
  * `translateY` value produced here is one geometry can also produce.
  *
- * Both paths share the descent waypoints so the fixed run reads as the same
- * fall, stopped early.
+ * GRAVITY. A falling object covers equal distance in ever-shorter time, so evenly
+ * spaced waypoints read as a lift descending on rails. The obvious fix —
+ * `animation-timing-function: ease-in` — does not work: that function restarts
+ * between every pair of keyframes, so the dot would visibly stutter. Instead the
+ * waypoints are spaced by the *square root of distance travelled* and the timing
+ * function is linear, which lets the spacing alone produce the acceleration.
  */
 
 import { LAYER_GAP, blockedY, dropStartY, layerMidY, stackHeight } from './geometry';
@@ -23,18 +27,18 @@ export const ATTACK_MS = 2400;
 
 const COUNT = VAULT_LAYERS.length;
 
-/** Index of the access-control layer, derived from the data rather than assumed. */
+/** Index of the account-declaration stage, derived from the data rather than assumed. */
 export const SECURITY_INDEX = VAULT_LAYERS.findIndex(
   (layer) => layer.isSecurityLayer && layer.broken,
 );
 
 /**
- * Where the dot's centre comes to rest when the security layer refuses it.
+ * Where the dot's centre comes to rest when the account declaration refuses it.
  *
  * Note this is the contact point itself — deliberately NOT `blockedY + LAYER_HEIGHT`,
- * which would put the dot's centre 56px *inside* the security layer and read as
- * though the attack had got through. The topmost layer has no room above it, so
- * this path requires the security layer to be at index >= 1.
+ * which would put the dot's centre 56px *inside* the declaration and read as
+ * though the attack had got through. The topmost stage has no room above it, so
+ * this path requires the security stage to be at index >= 1.
  */
 export const IMPACT_Y = blockedY(SECURITY_INDEX);
 
@@ -45,45 +49,104 @@ export const SECOND_BOUNCE_PX = 8;
 /** y just past the bottom of the stack — where the dot leaves having got through. */
 export const EXIT_Y = stackHeight(COUNT) + LAYER_GAP;
 
-/** Percentage of the drop at which the dot reaches each layer's centre. */
-const DESCENT_FIRST_PCT = 15;
-const DESCENT_LAST_PCT = 75;
-const DESCENT_STEP_PCT = (DESCENT_LAST_PCT - DESCENT_FIRST_PCT) / (COUNT - 1);
+/* The descent occupies a slice of each animation, leaving room for the entry
+   fade and the exit. Declared up here because VULNERABLE_HIT_PCT is computed at
+   module load and would otherwise hit the temporal dead zone. */
 
-/** When the dot reaches layer `index` on its way down. */
-function descentPct(index: number): number {
-  return DESCENT_FIRST_PCT + DESCENT_STEP_PCT * index;
+/** The path that gets through. */
+const VULNERABLE_FROM = 0.16;
+const VULNERABLE_TO = 0.8;
+
+/** The path that is refused. */
+const FIXED_FROM = 0.05;
+export const FIXED_HIT_PCT = 62;
+export const FIXED_HIT2_PCT = 82;
+const FIXED_BOUNCE1_PCT = 72;
+const FIXED_BOUNCE2_PCT = 90;
+
+/** Fraction of the drop a falling object has covered after travelling `travelled`. */
+function fallFraction(travelled: number, total: number): number {
+  return Math.sqrt(Math.max(0, travelled) / total);
 }
 
-/** When the dot reaches the security layer on the path that gets through. */
-export const VULNERABLE_HIT_PCT = descentPct(SECURITY_INDEX);
+/** How many slices the descent is cut into, so the curve is smooth not piecewise. */
+const DESCENT_SLICES = 24;
 
-/** When it strikes — and is refused by — the security layer on the fixed path. */
-export const FIXED_HIT_PCT = 52;
-export const FIXED_HIT2_PCT = 78;
+/**
+ * The descent as keyframes: sampled evenly in *distance*, then placed at
+ * √distance, which is what turns a set of waypoints into a fall.
+ *
+ * Sampling only at the stage centres is not enough — the hop from the drop point
+ * to the first stage is one long linear segment, which reads as the dot hanging
+ * still before it suddenly drops. The stage centres are always kept exactly,
+ * because the layer pulse syncs to those percentages.
+ */
+function descentFrames(fromY: number, toY: number, fromPct: number, toPct: number): string {
+  const total = toY - fromY;
+  const layerYs = VAULT_LAYERS.map((_, index) => layerMidY(index));
+  const isLayerY = new Set(layerYs);
+  const byPct = new Map<number, { y: number; isLayer: boolean }>();
+
+  const add = (y: number) => {
+    if (y < fromY || y > toY) return;
+    const t = fallFraction(y - fromY, total);
+    const pct = round((fromPct + (toPct - fromPct) * t) * 100);
+    const isLayer = isLayerY.has(y);
+    const existing = byPct.get(pct);
+    // A stage centre wins any tie: the pulse has to land on the same percentage.
+    if (!existing || (isLayer && !existing.isLayer)) byPct.set(pct, { y, isLayer });
+  };
+
+  add(fromY);
+  add(toY);
+  for (let i = 1; i < DESCENT_SLICES; i++) add(fromY + (total * i) / DESCENT_SLICES);
+  for (const y of layerYs) add(y);
+
+  return [...byPct.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([pct, entry]) => at(pct, moveTo(entry.y)))
+    .join('');
+}
+
+/** When the dot reaches stage `index` on the path that gets through. */
+export function vulnerableHitPct(): number {
+  const start = dropStartY();
+  const total = EXIT_Y - start;
+  const t = fallFraction(layerMidY(SECURITY_INDEX) - start, total);
+  return round((VULNERABLE_FROM + (VULNERABLE_TO - VULNERABLE_FROM) * t) * 100);
+}
+
+/**
+ * When the dot reaches the declaration stage on the path that gets through.
+ *
+ * Rounded to match what `at()` writes into the CSS — the tests compare this
+ * against the generated text, so an unrounded value here would never match.
+ */
+export const VULNERABLE_HIT_PCT = vulnerableHitPct();
 
 function at(percentage: number, body: string): string {
-  return `${percentage}%{${body}}`;
+  return `${round(percentage)}%{${body}}`;
+}
+
+/** Two decimals is plenty, and keeps the generated CSS readable. */
+function round(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function moveTo(y: number, extra = ''): string {
+  return `transform:translateY(${y}px)${extra}`;
 }
 
 /** Ring colours and spread live in global.css, so this file holds no px at all. */
 const RING_DANGER = 'box-shadow:0 0 0 var(--ring-spread) var(--ring-danger)';
 const RING_SUCCESS = 'box-shadow:0 0 0 var(--ring-spread) var(--ring-success)';
 
-function moveTo(y: number, extra = ''): string {
-  return `transform:translateY(${y}px)${extra}`;
-}
-
 export function vulnerableKeyframes(): string {
-  const descent = VAULT_LAYERS.map((_, index) =>
-    at(descentPct(index), moveTo(layerMidY(index))),
-  ).join('');
-
   return [
     `@keyframes ${VULNERABLE_ANIMATION}{`,
     at(0, `${moveTo(dropStartY())};opacity:0`),
     at(5, 'opacity:1'),
-    descent,
+    descentFrames(dropStartY(), EXIT_Y, VULNERABLE_FROM, VULNERABLE_TO),
     at(85, moveTo(EXIT_Y, ' scale(1.5)')),
     at(100, moveTo(EXIT_Y, ' scale(3)')),
     '}',
@@ -91,32 +154,28 @@ export function vulnerableKeyframes(): string {
 }
 
 export function fixedKeyframes(): string {
-  const approach = VAULT_LAYERS.slice(0, SECURITY_INDEX)
-    .map((_, index) => at(descentPct(index), moveTo(layerMidY(index))))
-    .join('');
-
   const bounce1 = IMPACT_Y - BOUNCE_PX;
   const bounce2 = IMPACT_Y - SECOND_BOUNCE_PX;
 
   return [
     `@keyframes ${FIXED_ANIMATION}{`,
     at(0, `${moveTo(dropStartY())};opacity:0`),
-    at(6, 'opacity:1'),
-    approach,
+    at(4, 'opacity:1'),
+    descentFrames(dropStartY(), IMPACT_Y, FIXED_FROM, FIXED_HIT_PCT / 100),
     at(FIXED_HIT_PCT, moveTo(IMPACT_Y)),
-    at(64, moveTo(bounce1)),
+    at(FIXED_BOUNCE1_PCT, moveTo(bounce1)),
     at(FIXED_HIT2_PCT, moveTo(IMPACT_Y)),
     // opacity:1 is restated here on purpose. CSS interpolates opacity between
-    // the frames that declare it, so without this the fade would start at 6%
+    // the frames that declare it, so without this the fade would start at 4%
     // and the dot would reach both impacts as a ghost — exactly the two bounces
     // the fixed path exists to show.
-    at(88, `${moveTo(bounce2)};opacity:1`),
+    at(FIXED_BOUNCE2_PCT, `${moveTo(bounce2)};opacity:1`),
     at(100, `${moveTo(bounce2)};opacity:0`),
     '}',
   ].join('');
 }
 
-/** The security-layer flash when the dot passes straight through it. */
+/** The declaration stage's flash when the dot passes straight through it. */
 export function dangerPulseKeyframes(): string {
   return [
     `@keyframes ${DANGER_PULSE_ANIMATION}{`,
@@ -128,7 +187,7 @@ export function dangerPulseKeyframes(): string {
   ].join('');
 }
 
-/** The security-layer flash on each of the two impacts that refuse the dot. */
+/** The declaration stage's flash on each of the two impacts that refuse the dot. */
 export function successPulseKeyframes(): string {
   const rest = 'box-shadow:var(--shadow-card)';
 

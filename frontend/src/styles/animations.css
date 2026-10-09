@@ -46,6 +46,19 @@
   opacity: 0;
 }
 
+/* Before the decompose: the cards sit exactly where the step-2 code boxes were,
+   at the same scale they will have when scattered, so the only motion is the
+   translation outward.
+   `transition: none` is load-bearing. Without it the cards *animate* from the
+   centre to the box positions, and because the scatter starts two frames later
+   they never get there — the flip would be from the centre after all. Jumping
+   to the start position instantly is the "invert" half of the technique. */
+.layers-container.seeded .layer-card {
+  --scale: 0.85;
+  opacity: 1;
+  transition: none;
+}
+
 .layers-container.decomposed .layer-card {
   --scale: 0.85;
   opacity: 1;
@@ -181,6 +194,9 @@
   box-shadow: 0 0 14px rgba(209, 36, 47, 0.55);
   z-index: 5;
   animation-duration: var(--attack-duration);
-  animation-timing-function: var(--ease-apple);
+  /* Linear on purpose: the acceleration comes from how the keyframe waypoints
+     are spaced (see lib/keyframes.ts), not from an easing curve. An ease-in
+     curve would restart between every pair of waypoints and stutter. */
+  animation-timing-function: linear;
   animation-fill-mode: both;
 }

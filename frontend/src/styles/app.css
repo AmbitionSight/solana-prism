@@ -145,10 +145,11 @@
   animation: code-card-out var(--step-duration, 9000ms) var(--ease-apple) both;
 }
 
-/* The card dissolves just before step 3 breaks it into layers. */
+/* The card dissolves right at the end of step 2, so the boxes are still crisp
+   when step 3 starts and the cards fly out from exactly those positions. */
 @keyframes code-card-out {
   0%,
-  88% {
+  96% {
     opacity: 1;
     transform: translateY(0);
   }

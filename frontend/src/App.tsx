@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AUTO_ADVANCE_MS,
   TX_CARD_MS,
@@ -61,6 +61,9 @@ export default function App() {
     setRunId((id) => id + 1);
   }, []);
 
+  /** Where step 2's stage boxes sat, handed to step 3 so the cards start there. */
+  const regionRects = useRef<Record<string, DOMRect>>({});
+
   const layersMode: LayersMode = step >= 4 ? 'stacked' : step === 3 ? 'decomposed' : 'hidden';
 
   return (
@@ -77,7 +80,13 @@ export default function App() {
 
       <main className="stage">
         {step === 1 && <Step1Title />}
-        {step === 2 && <Step2Code />}
+        {step === 2 && (
+          <Step2Code
+            onRegionRects={(rects) => {
+              regionRects.current = rects;
+            }}
+          />
+        )}
 
         {step >= 3 && (
           <>
@@ -87,6 +96,7 @@ export default function App() {
                 isFixed={isFixed}
                 attackState={attackState}
                 onAttackEnd={handleAttackEnd}
+                originRects={regionRects.current}
               />
               {attackState === 'showing-tx' && <TxCard />}
             </div>

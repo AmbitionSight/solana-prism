@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { LAYER_HEIGHT, stackHeight, stackedOffsetY } from '../lib/geometry';
 import {
   ATTACK_MS,
@@ -12,7 +12,7 @@ import type { AttackState } from '../lib/steps';
 import AttackDot from './AttackDot';
 import LayerCard from './LayerCard';
 
-export type LayersMode = 'hidden' | 'decomposed' | 'stacked';
+export type LayersMode = 'hidden' | 'seeded' | 'decomposed' | 'stacked';
 
 const COUNT = VAULT_LAYERS.length;
 /** Each card leaves the centre a beat after the one above it. */
@@ -23,6 +23,12 @@ interface ContractLayersProps {
   isFixed: boolean;
   attackState: AttackState;
   onAttackEnd: () => void;
+  /**
+   * Where each stage's box sat in step 2, in viewport coordinates. When present,
+   * the cards start from those positions rather than from the centre, so the
+   * decomposition reads as the boxes flying apart instead of a scene change.
+   */
+  originRects?: Record<string, DOMRect>;
 }
 
 /**
@@ -38,8 +44,36 @@ export default function ContractLayers({
   isFixed,
   attackState,
   onAttackEnd,
+  originRects,
 }: ContractLayersProps) {
-  // The cards must paint once in the collapsed layout before being sent to their
+  const containerRef = useRef<HTMLDivElement>(null);
+  /** Per-card start offsets, derived from where the code boxes were. */
+  const [origins, setOrigins] = useState<Record<string, { x: number; y: number }> | null>(null);
+
+  // Measure before paint so the very first painted frame already has the cards
+  // sitting on the code boxes — otherwise they would flash at the centre first.
+  useLayoutEffect(() => {
+    const element = containerRef.current;
+    if (!element || !originRects) return;
+
+    const entries = Object.entries(originRects);
+    if (entries.length === 0) return;
+
+    const box = element.getBoundingClientRect();
+    const centreX = box.left + box.width / 2;
+    const centreY = box.top + box.height / 2;
+
+    const next: Record<string, { x: number; y: number }> = {};
+    for (const [id, rect] of entries) {
+      next[id] = {
+        x: rect.left + rect.width / 2 - centreX,
+        y: rect.top + rect.height / 2 - centreY,
+      };
+    }
+    setOrigins(next);
+  }, [originRects]);
+
+  // The cards must paint once in the starting layout before being sent to their
   // scattered offsets — with no starting value there is nothing to transition
   // from, and they would simply appear already scattered. Two frames guarantee
   // the browser has painted.
@@ -55,9 +89,12 @@ export default function ContractLayers({
     };
   }, []);
 
-  const activeMode: LayersMode = entered ? mode : 'hidden';
+  // Prefer the code boxes as the starting layout; fall back to the centre when
+  // there are none (a replay that skipped ahead, or a deep link).
+  const activeMode: LayersMode = entered ? mode : origins ? 'seeded' : 'hidden';
   const attacking = attackState === 'running';
   const scattered = activeMode === 'decomposed';
+  const seeded = activeMode === 'seeded';
 
   const containerStyle = {
     '--stack-height': `${stackHeight(COUNT)}px`,
@@ -79,6 +116,7 @@ export default function ContractLayers({
       <style>{keyframes}</style>
 
       <div
+        ref={containerRef}
         className={`layers-container ${activeMode}${attacking ? ' attacking' : ''}`}
         style={containerStyle}
         data-testid="layers-container"
@@ -90,13 +128,15 @@ export default function ContractLayers({
             layer={layer}
             isFixed={isFixed}
             attacking={attacking}
-            offsetX={scattered ? layer.scatter.x : 0}
+            offsetX={scattered ? layer.scatter.x : seeded ? (origins?.[layer.id]?.x ?? 0) : 0}
             offsetY={
               scattered
                 ? layer.scatter.y
-                : activeMode === 'stacked'
-                  ? stackedOffsetY(index, COUNT)
-                  : 0
+                : seeded
+                  ? (origins?.[layer.id]?.y ?? 0)
+                  : activeMode === 'stacked'
+                    ? stackedOffsetY(index, COUNT)
+                    : 0
             }
             transitionDelayMs={scattered ? index * SCATTER_STAGGER_MS : 0}
           />

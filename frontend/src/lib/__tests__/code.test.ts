@@ -116,13 +116,13 @@ describe('code blocks — 代码到阶段的映射', () => {
     }
   });
 
-  it('最后一个标注在卡片开始淡出(88%)之前就出现完了', () => {
+  it('最后一个标注在卡片开始淡出之前就出现完了', () => {
     const duration = AUTO_ADVANCE_MS[2] ?? 0;
     const revealed = codeBlocks('en').filter((block) => block.revealAt !== undefined);
     const last = revealed[revealed.length - 1];
     // Reveal delay + the label's own animation, against the point the card
-    // starts dissolving (code-card-out fades from 88%).
+    // starts dissolving (code-card-out holds until 96%).
     const doneAtMs = (last?.revealAt ?? 0) * duration + 400;
-    expect(doneAtMs).toBeLessThan(0.88 * duration);
+    expect(doneAtMs).toBeLessThan(0.96 * duration);
   });
 });

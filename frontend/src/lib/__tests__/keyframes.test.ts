@@ -83,19 +83,46 @@ describe('keyframes — 数据来源', () => {
   });
 });
 
-describe('keyframes — 所有坐标都来自 geometry(无手写像素)', () => {
-  it('translateY 的每个数值都在 geometry 的取值集合内', () => {
-    const allowed = new Set<number>([
-      dropStartY(),
-      ...VAULT_LAYERS.map((_, index) => layerMidY(index)),
-      EXIT_Y,
-      IMPACT_Y,
-      IMPACT_Y - BOUNCE_PX,
-      IMPACT_Y - SECOND_BOUNCE_PX,
-    ]);
+describe('keyframes — 所有坐标都由 geometry 派生', () => {
+  /**
+   * The descent is now sampled between the anchors and placed on a √distance
+   * curve, so the values are interpolations rather than a fixed set. Three
+   * properties still make hand-written coordinates impossible:
+   *
+   *   1. every value stays on the track geometry defines;
+   *   2. every anchor geometry defines appears exactly;
+   *   3. the dot only ever moves downward during the descent.
+   *
+   * Provenance itself is enforced separately and more strictly by
+   * no-hardcoded-pixels.test.ts, which rejects any `px` literal in this
+   * module's source.
+   */
+  const anchors = (): number[] => [
+    dropStartY(),
+    ...VAULT_LAYERS.map((_, index) => layerMidY(index)),
+    EXIT_Y,
+    IMPACT_Y,
+    IMPACT_Y - BOUNCE_PX,
+    IMPACT_Y - SECOND_BOUNCE_PX,
+  ];
 
+  it('圆点从不离开 geometry 定义的轨道', () => {
     for (const y of translateYs(vulnerableKeyframes() + fixedKeyframes())) {
-      expect(allowed.has(y)).toBe(true);
+      expect(y).toBeGreaterThanOrEqual(dropStartY());
+      expect(y).toBeLessThanOrEqual(EXIT_Y);
+    }
+  });
+
+  it('geometry 定义的每个锚点都精确出现在关键帧里', () => {
+    const produced = new Set(translateYs(vulnerableKeyframes() + fixedKeyframes()));
+    const missing = anchors().filter((y) => !produced.has(y));
+    expect(missing).toEqual([]);
+  });
+
+  it('下落过程单调向下, 不回头', () => {
+    const ys = translateYs(vulnerableKeyframes()).filter((y) => y >= 0);
+    for (let i = 1; i < ys.length; i++) {
+      expect(ys[i]).toBeGreaterThanOrEqual(ys[i - 1]);
     }
   });
 });
