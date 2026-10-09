@@ -26,7 +26,9 @@
   font-size: 12px;
   letter-spacing: 0.12em;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-tertiary);
+  /* Secondary, not tertiary: tertiary is ~2.5:1 on white and this text carries
+     the actual step number. */
+  color: var(--color-text-secondary);
 }
 
 .replay-btn {
@@ -61,11 +63,6 @@
   gap: 24px;
 }
 
-.placeholder {
-  font-family: var(--font-mono);
-  color: var(--color-text-tertiary);
-}
-
 /* ---------- Step 1: title ---------- */
 
 .step1 {
@@ -87,7 +84,7 @@
 @keyframes title-in-out {
   0% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(var(--nudge-enter));
   }
   22%,
   74% {
@@ -96,7 +93,7 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(calc(var(--nudge-enter) * -1));
   }
 }
 
@@ -133,7 +130,7 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(calc(var(--nudge-exit) * -1));
   }
 }
 
@@ -146,7 +143,7 @@
 @keyframes code-line-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(var(--nudge-line));
   }
   to {
     opacity: 1;
@@ -176,11 +173,11 @@
   justify-content: center;
 }
 
-/* Reserved from step 3 so the stack never shifts while the attack plays —
-   a layout jump mid-animation reads as a glitch rather than as motion. */
+/* Tall enough to hold the controls *and* the result, so the stack never shifts
+   while the attack plays — a layout jump mid-animation reads as a glitch. */
 .footer-slot {
   width: 100%;
-  min-height: 140px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -190,7 +187,7 @@
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(var(--nudge-rise));
   }
   to {
     opacity: 1;
@@ -248,7 +245,7 @@
 }
 
 .execute-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(var(--nudge-hover));
 }
 
 .execute-btn:disabled {
@@ -413,7 +410,7 @@
 @keyframes txcard-rise {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(var(--nudge-enter)) scale(var(--scale-enter));
   }
   to {
     opacity: 1;
@@ -428,7 +425,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .txcard__group {
@@ -480,11 +477,13 @@
   color: var(--color-danger);
 }
 
+/* These notes carry the demo's actual argument — "admin address present",
+   "signature absent" — so they must stay legible, unlike decorative tertiary. */
 .txcard__note {
   margin-left: auto;
   font-family: var(--font-sans);
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .txcard__item--emphasis .txcard__field,

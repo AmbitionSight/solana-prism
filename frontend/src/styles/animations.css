@@ -31,7 +31,7 @@
   box-shadow: var(--shadow-card);
   font-family: var(--font-mono);
   font-size: 14px;
-  transform: translate(-50%, -50%) translate(var(--x, 0px), var(--y, 0px)) scale(var(--scale, 1));
+  transform: translate(-50%, -50%) translate(var(--x, 0), var(--y, 0)) scale(var(--scale, 1));
   transition:
     transform var(--duration-normal) var(--ease-apple),
     opacity var(--duration-normal) var(--ease-apple),
@@ -73,8 +73,8 @@
 
 /* animation-name is set from lib/keyframes.ts at the moment of the attack; the
    rest of the shorthand is shared so the pulse and the drop stay in step. */
-.layer-card.security-broken,
-.layer-card.security-fixed {
+.layers-container.attacking .layer-card.security-broken,
+.layers-container.attacking .layer-card.security-fixed {
   animation-duration: var(--attack-duration);
   animation-timing-function: var(--ease-apple);
   animation-fill-mode: both;
@@ -88,7 +88,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
   border-radius: 4px;
 }
