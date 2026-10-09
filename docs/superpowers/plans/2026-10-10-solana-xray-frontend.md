@@ -239,7 +239,10 @@ feat(config): verification placeholders with tests                <- RED 已见
 | M6 | 铁律 2 **未被机器校验**（评审用变异测试证明：硬编码但数值正确可通过）| 新增 `no-hardcoded-pixels.test.ts`：读取 CSS 与 `keyframes.ts` 源码，transform 内出现 px 字面量即失败。该守卫当场抓出 `box-shadow` 的 `6px` 扩散半径 → 提为 `--ring-spread` |
 | m1-m9 | 死类 `.attacking`/`.attack-dot--*`、死令牌 `--duration-slow`、死类 `.placeholder`、多余 export、`TOTAL_STEPS` 重复、footer 预留不足 19px、`{'\n'}` 冗余、`aria-controls` 缺失、无 favicon、对比度 | 逐条修掉；`--color-text-tertiary`(2.57:1) 只留给装饰性文字并在令牌处写明，`--color-syntax-comment` 提到 #6E6E73 (5.1:1) |
 
-harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 harness 互相劫持对方浏览器）、等待进程树退出后再删 profile（原先 8 个临时目录泄漏）、CDP 每条命令加超时。
+harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 harness 互相劫持对方浏览器）、CDP 每条命令加超时。
+
+> **更正（第二轮自查）**: 关于 profile 泄漏，第一版"修复"是**不成立的**。原写法只做 `chrome.kill()`（仅对根进程发信号，渲染子进程仍占着 profile 目录），`taskkill /T /F` 虽被调用却**没有 await** —— 删除循环在 2.5s 内重试 5 次全部失败后放弃，而 taskkill 要到 +4s 才真正杀掉进程树。因为时序相关，多数运行"看起来正常"，直到一次干净克隆验证时又漏出一个 `xray-shoot-*` 目录才暴露。
+> 现改为：**先 await `taskkill /T /F` 杀整棵树 → 再等 exit → 再删除（10 次重试）**，失败时打印警告而不是静默吞掉。已连跑两次 harness，profiles 0 / chrome 进程 0。
 
 **修复后的独立行为验证（CDP 实测，8/8 通过）** —— 前一轮评审只能靠读代码判断的几条，这里改成实测：
 

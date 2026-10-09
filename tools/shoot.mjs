@@ -220,26 +220,43 @@ async function waitForDevTools() {
   throw new Error('Chrome DevTools endpoint never came up');
 }
 
-/** Kill the whole process tree, then wait for the profile directory to unlock. */
+function runToCompletion(command, args) {
+  return new Promise((done) => {
+    const child = spawn(command, args, { stdio: 'ignore' });
+    child.once('exit', done);
+    child.once('error', done);
+  });
+}
+
+/**
+ * Kill the whole browser tree and wait for the profile directory to unlock.
+ *
+ * `chrome.kill()` alone is not enough: it signals only the root process, and the
+ * renderer children keep the profile directory locked. `taskkill /T /F` must be
+ * AWAITED too — spawning it and immediately starting the removal loop means the
+ * loop gives up while the tree is still dying, which is exactly how this leaked
+ * profile directories before.
+ */
 async function shutDownChrome(chrome, profile) {
-  if (chrome.exitCode === null) {
-    await new Promise((done) => {
-      chrome.once('exit', done);
-      chrome.kill();
-      setTimeout(() => {
-        spawn('taskkill', ['/pid', String(chrome.pid), '/T', '/F'], { stdio: 'ignore' });
-        done();
-      }, 4000);
-    });
-  }
-  for (let attempt = 0; attempt < 5; attempt++) {
+  await runToCompletion('taskkill', ['/pid', String(chrome.pid), '/T', '/F']);
+
+  await new Promise((done) => {
+    if (chrome.exitCode !== null || chrome.signalCode !== null) return done();
+    chrome.once('exit', done);
+    setTimeout(done, 5000);
+  });
+
+  for (let attempt = 0; attempt < 10; attempt++) {
     try {
       await rm(profile, { recursive: true, force: true });
-      return;
+      return true;
     } catch {
       await sleep(500);
     }
   }
+
+  console.warn(`  warning: could not remove ${profile}`);
+  return false;
 }
 
 async function main() {
