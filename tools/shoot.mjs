@@ -1,13 +1,21 @@
 /**
- * shoot.mjs — real-time screenshot harness for the demo.
+ * shoot.mjs — real-time verification harness for the demo.
  *
- * Why this exists: Chrome's `--virtual-time-budget` fast-forwards setTimeout
- * but leaves CSS animations on the real clock, so the captured frame does not
- * correspond to the state the app believes it is in. This drives headless
- * Chrome over the DevTools Protocol instead, waiting in real time and clicking
- * real elements, so each frame is a genuine frame of the demo.
+ * Two things this deliberately does NOT do, both learned the hard way:
  *
- * Requires Node >= 22 (global WebSocket + fetch). Run with the bundled Node:
+ * 1. It does not use Chrome's `--virtual-time-budget`. That fast-forwards
+ *    setTimeout while leaving CSS animations on the real clock, so the captured
+ *    frame does not correspond to the state the app believes it is in.
+ * 2. It does not sleep for a guessed number of milliseconds and hope. Every step
+ *    waits for a *predicate on the live page*; timeouts are only a failure
+ *    bound. Guessed sleeps produced both false failures ("execute-btn MISSING")
+ *    and false passes (a shot named step5-result-success capturing step 4).
+ *
+ * It also asserts on the console: Runtime.consoleAPICalled, Runtime.exceptionThrown
+ * and Log.entryAdded are collected from the moment the page loads, so a step
+ * cannot quietly log an error.
+ *
+ * Requires Node >= 22 (global WebSocket + fetch).
  *   node tools/shoot.mjs [url] [outDir]
  */
 
@@ -21,47 +29,34 @@ const CHROME =
   process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const TARGET_URL = process.argv[2] ?? 'http://localhost:5199/';
 const OUT_DIR = resolve(process.argv[3] ?? '.shots');
-const PORT = 9333;
+/** Offset by pid so two harnesses in one session cannot adopt each other's browser. */
+const PORT = 9300 + (process.pid % 500);
 const VIEWPORT = { width: 1280, height: 820 };
+const COMMAND_TIMEOUT_MS = 15000;
+const WAIT_TIMEOUT_MS = 20000;
 
-/** Actions are absolute times in ms from just after navigation. */
-const PLAN = [
-  { at: 1600, shot: 'step1-title' },
-  { at: 5600, shot: 'step2-code' },
-  { at: 9800, probe: 'tagCards', shot: 'step3-scatter' },
-  { at: 14800, probe: 'checkCards', shot: 'step4-stacked' },
-  { at: 17600, shot: 'step5-ready' },
-  { at: 18000, click: '[data-testid="execute-btn"]' },
-  { at: 18700, shot: 'step5-txcard' },
-  { at: 20500, shot: 'step5-attack-dot' },
-  { at: 22800, probe: 'checkCards', shot: 'step5-result-success' },
-  { at: 23200, click: '[data-testid="fix-toggle-fixed"]' },
-  { at: 23600, click: '[data-testid="execute-btn"]' },
-  { at: 24200, shot: 'step5-txcard-fixed' },
-  { at: 25600, shot: 'step5-attack-blocked' },
-  { at: 27600, shot: 'step5-result-rejected' },
-  { at: 28000, click: '[data-testid="verify-toggle"]' },
-  { at: 29200, shot: 'step5-verify-panel' },
-
-  // Second pass over the whole 1->6 journey in the same page session, which is
-  // what CHECKPOINT 2 means by "runs twice with no refresh".
-  { at: 30000, click: '.replay-btn' },
-  { at: 31000, shot: 'pass2-step1-title' },
-  { at: 34500, shot: 'pass2-step2-code' },
-  { at: 40000, probe: 'tagCards', shot: 'pass2-step3-scatter' },
-  { at: 45000, probe: 'checkCards', shot: 'pass2-step4-stacked' },
-  { at: 47500, click: '[data-testid="execute-btn"]' },
-  { at: 48200, shot: 'pass2-step5-txcard' },
-  { at: 49500, shot: 'pass2-step5-attack-dot' },
-  { at: 52200, shot: 'pass2-step5-result-success' },
-];
+/** Predicates the plan below is written against. Installed before navigation. */
+const PAGE_HELPERS = `
+window.__xray = {
+  step: () => {
+    const el = document.querySelector('[data-testid="step-indicator"]');
+    const n = el ? parseInt(el.textContent.trim(), 10) : NaN;
+    return Number.isNaN(n) ? -1 : n;
+  },
+  mode: () => {
+    const el = document.querySelector('[data-testid="layers-container"]');
+    return el ? el.dataset.mode : null;
+  },
+  has: (sel) => !!document.querySelector(sel),
+  text: (sel) => (document.querySelector(sel)?.textContent ?? '').trim(),
+};
+`;
 
 /**
  * Iron rule 1: steps 3, 4 and 5 must reuse the same DOM nodes. If the cards are
- * re-created when the layout changes, the CSS transition is destroyed and they
- * jump instead of travelling — and reading the source cannot prove that they
- * are not. So tag the live nodes and check the tags survive each layout change:
- * a remount drops expando properties and breaks node identity.
+ * re-created when the layout changes the CSS transition is destroyed and they
+ * jump instead of travelling — and reading the source cannot prove they are not.
+ * Tag the live nodes and check the tags survive; a remount drops expandos.
  */
 const PROBES = {
   tagCards: `(() => {
@@ -83,12 +78,93 @@ const PROBES = {
   })()`,
 };
 
-function connect(ws) {
+const SQL = {
+  execute: '[data-testid="execute-btn"]',
+  fixToggleFixed: '[data-testid="fix-toggle-fixed"]',
+  verifyToggle: '[data-testid="verify-toggle"]',
+  verifyPanel: '[data-testid="verify-panel"]',
+  txCard: '[data-testid="tx-card"]',
+  dot: '[data-testid="attack-dot"]',
+  result: '[data-testid="attack-result"]',
+  replay: '.replay-btn',
+};
+
+const PLAN = [
+  // --- pass 1: the narrated steps, each waiting for the state it claims to show
+  { wait: `__xray.step() === 1`, after: 1300, shot: 'step1-title' },
+  { wait: `__xray.step() === 2`, after: 2400, shot: 'step2-code' },
+  { wait: `__xray.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'step3-scatter' },
+  { wait: `__xray.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'step4-stacked' },
+  { wait: `__xray.step() === 5 && __xray.has('${SQL.execute}')`, shot: 'step5-ready' },
+
+  // --- pass 1: vulnerable path
+  { wait: `__xray.has('${SQL.execute}')`, click: SQL.execute },
+  { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard' },
+  { wait: `__xray.has('${SQL.dot}')`, after: 900, shot: 'step5-attack-dot' },
+  {
+    wait: `__xray.has('${SQL.result}')`,
+    after: 700,
+    probe: 'checkCards',
+    expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Attack Successful' },
+    shot: 'step5-result-success',
+  },
+
+  // --- pass 1: fixed path
+  { wait: `__xray.has('${SQL.fixToggleFixed}')`, click: SQL.fixToggleFixed },
+  { wait: `!__xray.has('${SQL.result}')`, click: SQL.execute },
+  { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard-fixed' },
+  { wait: `__xray.has('${SQL.dot}')`, after: 1450, shot: 'step5-attack-blocked' },
+  {
+    wait: `__xray.has('${SQL.result}')`,
+    after: 700,
+    probe: 'checkCards',
+    expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Transaction Rejected' },
+    shot: 'step5-result-rejected',
+  },
+  { wait: `__xray.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
+  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 500, shot: 'step5-verify-panel' },
+
+  // --- pass 2: the whole 1->6 journey again in the same page session, which is
+  // what CHECKPOINT 2 means by "runs twice with no refresh"
+  { wait: `__xray.has('${SQL.replay}')`, click: SQL.replay },
+  { wait: `__xray.step() === 1 && !__xray.has('${SQL.result}')`, after: 1300, shot: 'pass2-step1-title' },
+  { wait: `__xray.step() === 2`, after: 2400, shot: 'pass2-step2-code' },
+  { wait: `__xray.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'pass2-step3-scatter' },
+  { wait: `__xray.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'pass2-step4-stacked' },
+  { wait: `__xray.has('${SQL.execute}')`, click: SQL.execute },
+  { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'pass2-step5-txcard' },
+  { wait: `__xray.has('${SQL.dot}')`, after: 900, shot: 'pass2-step5-attack-dot' },
+  {
+    wait: `__xray.has('${SQL.result}')`,
+    after: 700,
+    expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Attack Successful' },
+    shot: 'pass2-step5-result-success',
+  },
+];
+
+function connect(ws, consoleErrors) {
   let nextId = 0;
   const pending = new Map();
 
   ws.addEventListener('message', (event) => {
     const msg = JSON.parse(event.data);
+
+    if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') {
+      consoleErrors.push(
+        'console.error: ' +
+          msg.params.args.map((a) => a.value ?? a.description ?? a.type).join(' '),
+      );
+    }
+    if (msg.method === 'Runtime.exceptionThrown') {
+      const details = msg.params.exceptionDetails ?? {};
+      consoleErrors.push(
+        'uncaught: ' + (details.exception?.description ?? details.text ?? 'unknown'),
+      );
+    }
+    if (msg.method === 'Log.entryAdded' && msg.params.entry.level === 'error') {
+      consoleErrors.push('log: ' + msg.params.entry.text);
+    }
+
     if (msg.id === undefined) return;
     const entry = pending.get(msg.id);
     if (!entry) return;
@@ -100,7 +176,21 @@ function connect(ws) {
   return (method, params = {}) =>
     new Promise((resolve_, reject) => {
       const id = ++nextId;
-      pending.set(id, { resolve: resolve_, reject, method });
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`${method} timed out after ${COMMAND_TIMEOUT_MS}ms`));
+      }, COMMAND_TIMEOUT_MS);
+      pending.set(id, {
+        method,
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve_(value);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      });
       ws.send(JSON.stringify({ id, method, params }));
     });
 }
@@ -116,6 +206,28 @@ async function waitForDevTools() {
     await sleep(250);
   }
   throw new Error('Chrome DevTools endpoint never came up');
+}
+
+/** Kill the whole process tree, then wait for the profile directory to unlock. */
+async function shutDownChrome(chrome, profile) {
+  if (chrome.exitCode === null) {
+    await new Promise((done) => {
+      chrome.once('exit', done);
+      chrome.kill();
+      setTimeout(() => {
+        spawn('taskkill', ['/pid', String(chrome.pid), '/T', '/F'], { stdio: 'ignore' });
+        done();
+      }, 4000);
+    });
+  }
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await rm(profile, { recursive: true, force: true });
+      return;
+    } catch {
+      await sleep(500);
+    }
+  }
 }
 
 async function main() {
@@ -140,6 +252,9 @@ async function main() {
   );
 
   let ws;
+  const failures = [];
+  const consoleErrors = [];
+
   try {
     await waitForDevTools();
 
@@ -153,76 +268,103 @@ async function main() {
       ws.addEventListener('error', rej, { once: true });
     });
 
-    const send = connect(ws);
+    const send = connect(ws, consoleErrors);
     await send('Page.enable');
     await send('Runtime.enable');
+    await send('Log.enable');
     await send('Emulation.setDeviceMetricsOverride', {
       ...VIEWPORT,
       deviceScaleFactor: 1,
       mobile: false,
     });
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: PAGE_HELPERS });
     await send('Page.navigate', { url: TARGET_URL });
 
-    const evaluate = (expression) =>
-      send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-
-    const failures = [];
-    const started = Date.now();
-    const elapsed = () => Date.now() - started;
+    const evaluate = async (expression) =>
+      (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }))
+        .result.value;
 
     for (const action of PLAN) {
-      const wait = action.at - elapsed();
-      if (wait > 0) await sleep(wait);
+      const label = action.shot ?? action.click ?? action.probe ?? 'step';
+      const deadline = Date.now() + (action.timeoutMs ?? WAIT_TIMEOUT_MS);
+
+      if (action.wait) {
+        let satisfied = false;
+        while (Date.now() < deadline) {
+          if ((await evaluate(action.wait)) === true) {
+            satisfied = true;
+            break;
+          }
+          await sleep(50);
+        }
+        if (!satisfied) {
+          failures.push(`waitFor timed out (${action.wait}) before ${label}`);
+          continue;
+        }
+      }
+
+      if (action.after) await sleep(action.after);
 
       if (action.click) {
-        const { result } = await evaluate(
+        const clicked = await evaluate(
           `(() => { const el = document.querySelector(${JSON.stringify(action.click)});
-             if (!el) return 'MISSING';
-             el.click(); return 'OK'; })()`,
+             if (!el) return false; el.click(); return true; })()`,
         );
-        if (result.value !== 'OK') failures.push(`click ${action.click} -> ${result.value}`);
+        if (clicked !== true) failures.push(`click ${action.click} -> element missing`);
       }
 
       if (action.probe) {
-        const { result } = await evaluate(PROBES[action.probe]);
-        const value = String(result.value);
-        console.log(`probe ${action.probe.padEnd(11)} t=${String(action.at).padStart(6)}ms  ${value}`);
+        const value = String(await evaluate(PROBES[action.probe]));
+        console.log(`probe ${action.probe.padEnd(11)} ${value}`);
         if (action.probe === 'checkCards') {
-          if (value.includes('REMOUNTED')) {
-            failures.push(`IRON RULE 1 VIOLATED at ${action.at}ms: layer cards were remounted (${value})`);
+          if (value.includes('REMOUNTED') || !value.includes('kept tag')) {
+            failures.push(`IRON RULE 1 VIOLATED (${label}): ${value}`);
           }
-          const [count, tagged] = value.split(' cards, ');
-          if (count !== tagged.split(' ')[0]) {
-            failures.push(`IRON RULE 1 VIOLATED at ${action.at}ms: only ${tagged} (${value})`);
+          const [count, rest] = value.split(' cards, ');
+          if (rest.split(' ')[0] !== count) {
+            failures.push(`IRON RULE 1 VIOLATED (${label}): ${value}`);
           }
         }
       }
 
+      if (action.expect) {
+        const actual = String(await evaluate(action.expect.expression));
+        if (action.expect.contains && !actual.includes(action.expect.contains)) {
+          failures.push(
+            `expected ${JSON.stringify(action.expect.contains)} at ${label}, got ${JSON.stringify(actual)}`,
+          );
+        }
+      }
+
       if (action.shot) {
+        const where = `step ${await evaluate('__xray.step()')} / mode ${await evaluate('__xray.mode()')}`;
         const { data } = await send('Page.captureScreenshot', { format: 'png' });
-        const file = join(OUT_DIR, `${action.shot}.png`);
-        await writeFile(file, Buffer.from(data, 'base64'));
-        console.log(`shot ${action.shot.padEnd(24)} t=${String(action.at).padStart(6)}ms`);
+        await writeFile(join(OUT_DIR, `${action.shot}.png`), Buffer.from(data, 'base64'));
+        console.log(`shot  ${action.shot.padEnd(26)} ${where}`);
       }
     }
 
-    // Fail loudly on any console error the demo produced.
-    const { result: errors } = await evaluate(
-      `JSON.stringify(window.__xrayErrors ?? [])`,
-    );
-    if (errors.value && errors.value !== '[]') failures.push(`console errors: ${errors.value}`);
+    if (consoleErrors.length) {
+      const counts = new Map();
+      for (const message of consoleErrors) {
+        counts.set(message, (counts.get(message) ?? 0) + 1);
+      }
+      failures.push(
+        `console errors:\n    ` +
+          [...counts].map(([message, n]) => `x${n} ${message}`).join('\n    '),
+      );
+    }
 
     if (failures.length) {
       console.error('\nFAILURES:\n' + failures.map((f) => ` - ${f}`).join('\n'));
       process.exitCode = 1;
     } else {
-      console.log('\nAll steps captured, no missing selectors.');
+      console.log('\nAll steps reached, selectors present, console clean.');
       console.log('Iron rule 1 held: layer cards were the same DOM nodes at every probe.');
     }
   } finally {
     ws?.close();
-    chrome.kill();
-    await rm(profile, { recursive: true, force: true }).catch(() => {});
+    await shutDownChrome(chrome, profile);
   }
 }
 
