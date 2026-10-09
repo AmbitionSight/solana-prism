@@ -19,9 +19,9 @@
   --color-border: #e5e5ea;
   --color-text: #1d1d1f; /* 16.8:1 on white */
   --color-text-secondary: #6e6e73; /* 5.1:1 — the lightest tone allowed for copy */
-  /* 2.6:1 — FAILS WCAG AA. Decorative only: never use for text that carries
-     meaning. Currently limited to the dev placeholder and the "awaiting
-     Phase 4" stand-in. */
+  /* 2.6:1 — FAILS WCAG AA. Decorative only. Its one text use is the
+     "awaiting Phase 4" stand-in in the verify panel; everywhere else it is a
+     hover border. Do not use it for copy that carries meaning. */
   --color-text-tertiary: #a1a1a6;
 
   /* Syntax (hand-written highlighting, no library) */
