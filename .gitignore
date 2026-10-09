@@ -29,6 +29,9 @@ npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# ---------- Local verification artifacts ----------
+.shots/
+
 # ---------- Editors / OS ----------
 .vscode/*
 !.vscode/extensions.json
