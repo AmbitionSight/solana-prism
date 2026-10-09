@@ -241,6 +241,32 @@ feat(config): verification placeholders with tests                <- RED 已见
 
 harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 harness 互相劫持对方浏览器）、等待进程树退出后再删 profile（原先 8 个临时目录泄漏）、CDP 每条命令加超时。
 
+**修复后的独立行为验证（CDP 实测，8/8 通过）** —— 前一轮评审只能靠读代码判断的几条，这里改成实测：
+
+| 检查 | 实测结果 |
+|---|---|
+| Execute 在交易卡片停留期间禁用 | `disabled=true` ✅ |
+| **M5** 攻击结束后 Execute 自动恢复（不切 toggle、不 Replay） | `disabled=false` ✅ |
+| **m4** 结果与 Verify 按钮出现时层叠不位移 | `.layers-container` top **83 → 83** ✅（180px 预留修掉了原先的 19px 跳动） |
+| 再次按 Execute 能真的发起第二次攻击 | 交易卡片重新出现 ✅ |
+| **M2 回归** 降级动画下仍能走到第 5 步 | ✅ |
+| **M2 回归** 降级动画下攻击仍会**结束**（0.01ms 时 `onAnimationEnd` 是否还触发） | 点击后 **1235ms** 出结果（1200ms 停留 + 瞬时动画），未卡死 ✅ |
+| **M2 回归** 降级动画下结论文案正确 | "Attack Successful" ✅ |
+| **M2 回归** 降级动画下圆点被清理 | ✅ |
+
+**对修复本身的证伪（防止"修了个假绿"）:**
+
+| 守卫 | 证伪手段 | 结果 |
+|---|---|---|
+| 控制台错误门禁 (C1) | 故意 `console.error` 后再跑 harness | 门禁 FAIL，退出码 1 ✅ |
+| 淡出断言 (C2) | 删掉 88% 帧的 `;opacity:1` | 断言 FAIL，算出 0.5106 ✅ |
+| 源码级坐标守卫 (M6) | 往 CSS / `keyframes.ts` 写死 `translateY(40px)` 类数值 | 当场抓出（真实抓到 `box-shadow` 的 `6px`）✅ |
+| harness 的 `expect` 机制 | 把期望串改成 `'Attack SuccessfuX'` | FAIL 并打印实际文本，退出码 1 ✅ |
+| 铁律 1 探针 | 用 `cloneNode` 替换一个层卡片节点 | 探针报 `REMOUNTED` ✅ |
+| 视频空盒不变量 | **`vite preview` 对缺失的 .mp4 返回 `200 text/html`（SPA fallback）** | 仅用 `response.ok` 会误判为"文件存在"，故加 `content-type: video/*` 判定 ✅ |
+
+生产构建（`vite preview`，带 SPA fallback 的静态托管）与 dev server 均跑通全流程：选择器零缺失、console 干净、铁律 1 全部成立。
+
 ---
 
 ## 4. 风险
