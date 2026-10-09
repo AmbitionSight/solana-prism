@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { codeLines } from '../code';
+import { codeBlocks, codeLines } from '../code';
+import { AUTO_ADVANCE_MS } from '../steps';
 
 /**
  * The listing as this project pins it. The two comment lines carry the lesson,
@@ -73,5 +74,55 @@ describe('code listing', () => {
     for (const line of [...codeLines('en'), ...codeLines('zh')]) {
       expect(line).not.toMatch(/\s+$/);
     }
+  });
+});
+
+describe('code blocks — 代码到阶段的映射', () => {
+  it('每一行都恰好归属一个块, 顺序不变', () => {
+    for (const language of ['en', 'zh'] as const) {
+      expect(codeBlocks(language).flatMap((block) => block.lines)).toEqual(codeLines(language));
+    }
+  });
+
+  it('五个阶段都被映射到了代码行', () => {
+    const stages = codeBlocks('en')
+      .map((block) => block.stageId)
+      .filter((id): id is string => id !== null);
+    expect([...stages].sort()).toEqual(['S1', 'S2', 'S3', 'S4', 'S5']);
+  });
+
+  it('区块之间不重叠', () => {
+    const blocks = codeBlocks('en');
+    let expectedFrom = 0;
+    for (const block of blocks) {
+      expect(block.from).toBe(expectedFrom);
+      expectedFrom += block.lines.length;
+    }
+  });
+
+  it('两种语言的区块结构完全一致', () => {
+    const shape = (language: 'en' | 'zh') =>
+      codeBlocks(language).map((block) => [block.stageId, block.from, block.lines.length]);
+    expect(shape('zh')).toEqual(shape('en'));
+  });
+
+  it('标注按源码顺序从上往下依次出现', () => {
+    const reveals = codeBlocks('en')
+      .filter((block) => block.revealAt !== undefined)
+      .map((block) => block.revealAt as number);
+    expect(reveals).toHaveLength(5);
+    for (let i = 1; i < reveals.length; i++) {
+      expect(reveals[i]).toBeGreaterThan(reveals[i - 1]);
+    }
+  });
+
+  it('最后一个标注在卡片开始淡出(88%)之前就出现完了', () => {
+    const duration = AUTO_ADVANCE_MS[2] ?? 0;
+    const revealed = codeBlocks('en').filter((block) => block.revealAt !== undefined);
+    const last = revealed[revealed.length - 1];
+    // Reveal delay + the label's own animation, against the point the card
+    // starts dissolving (code-card-out fades from 88%).
+    const doneAtMs = (last?.revealAt ?? 0) * duration + 400;
+    expect(doneAtMs).toBeLessThan(0.88 * duration);
   });
 });

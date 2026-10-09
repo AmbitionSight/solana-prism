@@ -22,7 +22,9 @@ export const TX_CARD_MS = 1200;
 /** Auto-advance delays for the narrated steps. Step 5 is absent: it is manual. */
 export const AUTO_ADVANCE_MS: Partial<Record<Step, number>> = {
   1: 3000,
-  2: 4000,
+  // Long on purpose: the listing arrives first, then each region is boxed and
+  // labelled with the stage it becomes, before the cards decompose.
+  2: 9000,
   3: 5000,
   4: 5000,
 };

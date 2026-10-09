@@ -155,6 +155,24 @@ const PLAN = [
   { wait: `__xray.step() === 1`, after: 1300, shot: 'step1-title' },
   { wait: `__xray.step() === 2`, after: 2400, shot: 'step2-code' },
 
+  // The code-to-stage mapping: each region boxed and labelled in turn.
+  // NOTE: the labels exist in the DOM from the start and are animated up from
+  // opacity 0, so "does the element exist" is true immediately and proves
+  // nothing — the condition has to be *visibility*.
+  {
+    wait: `(() => {
+      const el = document.querySelector('[data-testid="code-label-S5"]');
+      return el ? Number(getComputedStyle(el).opacity) > 0.9 : false;
+    })()`,
+    after: 500,
+    expect: {
+      expression: `[...document.querySelectorAll('.code-block__label')]
+        .filter((el) => Number(getComputedStyle(el).opacity) > 0.9).length + '/5 visible'`,
+      contains: '5/5 visible',
+    },
+    shot: 'step2-mapping',
+  },
+
   // The headline of the bilingual feature: the Rust is identical, only the
   // comments change. Checked in the browser rather than only in the unit test.
   { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },

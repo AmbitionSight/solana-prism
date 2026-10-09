@@ -24,10 +24,14 @@
      hover border. Do not use it for copy that carries meaning. */
   --color-text-tertiary: #a1a1a6;
 
-  /* Syntax (hand-written highlighting, no library) */
+  /* ---------- Syntax (hand-written highlighting, no library) ---------- */
   --color-syntax-keyword: #d70015;
   --color-syntax-type: #0071e3;
   --color-syntax-comment: #6e6e73; /* 5.1:1 — comments carry the lesson here */
+
+  /* ---------- Step 2's code-to-stage mapping ---------- */
+  --color-map-border: rgba(0, 113, 227, 0.45);
+  --color-map-bg: rgba(0, 113, 227, 0.055);
 
   /* ---------- Semantic ---------- */
   --color-danger: #d1242f;

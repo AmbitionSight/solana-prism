@@ -78,7 +78,9 @@
 .stage {
   position: relative;
   width: 100%;
-  max-width: 980px;
+  /* Wide enough for the step-2 stage labels, which sit to the right of the code
+     card and are absolutely positioned, so they do not widen the stage. */
+  max-width: 1100px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -139,8 +141,8 @@
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.75;
-  overflow-x: auto;
-  animation: code-card-out var(--step-duration, 4000ms) var(--ease-apple) both;
+  /* No overflow clipping: the stage labels sit outside this box, to the right. */
+  animation: code-card-out var(--step-duration, 9000ms) var(--ease-apple) both;
 }
 
 /* The card dissolves just before step 3 breaks it into layers. */
@@ -160,6 +162,82 @@
   display: block;
   opacity: 0;
   animation: code-line-in 320ms var(--ease-apple) forwards;
+}
+
+/* ---------- Step 2's mapping: box a region, label the stage it becomes ---------- */
+
+.code-block {
+  display: block;
+  position: relative;
+  /* Uniform padding on every block, mapped or not, so that boxing a region can
+     never shift its code sideways relative to the unboxed lines. */
+  margin: 0 -10px;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.code-block--mapped {
+  animation: code-block-in var(--duration-normal) var(--ease-apple) both;
+  animation-delay: calc(var(--step-duration, 9000ms) * var(--reveal-at, 0));
+}
+
+@keyframes code-block-in {
+  from {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  to {
+    border-color: var(--color-map-border);
+    background-color: var(--color-map-bg);
+  }
+}
+
+.code-block__label {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  opacity: 0;
+  animation: code-block-label-in var(--duration-normal) var(--ease-apple) both;
+  animation-delay: calc(var(--step-duration, 9000ms) * var(--reveal-at, 0));
+}
+
+@keyframes code-block-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(calc(var(--nudge-exit) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.code-block__id {
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-syntax-type);
+  border: 1px solid var(--color-map-border);
+  border-radius: 4px;
+}
+
+.code-block__name {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.code-block__name-latin {
+  font-weight: 400;
+  color: var(--color-text-tertiary);
 }
 
 @keyframes code-line-in {
