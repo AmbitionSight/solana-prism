@@ -35,8 +35,11 @@ replaced.
 
 1. **Title** — "What is a smart contract?" fades in and out.
 2. **Code** — the contract, highlighted by our own tokenizer. It leads with
-   `#[derive(Accounts)]`, because that declaration *is* the subject.
-3. **Decompose** — the instruction breaks into the five stages and fans out.
+   `#[derive(Accounts)]`, because that declaration *is* the subject. Then each
+   region is boxed and labelled with the stage it becomes, sweeping down the
+   listing in source order — so the labels read **2, 3, 1, 4, 5**, and the jump
+   from source order to execution order is visible on the code itself.
+3. **Decompose** — those boxes become the five stages and fan out.
 4. **Stack** — the stages converge into execution order; stage ③ cracks (red
    dashed, *No signature required*).
 5. **Attack** — pick *Vulnerable* or *Fixed* and press Execute. The transaction
