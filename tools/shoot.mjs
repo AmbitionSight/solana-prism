@@ -42,6 +42,18 @@ const PLAN = [
   { at: 27600, shot: 'step5-result-rejected' },
   { at: 28000, click: '[data-testid="verify-toggle"]' },
   { at: 29200, shot: 'step5-verify-panel' },
+
+  // Second pass over the whole 1->6 journey in the same page session, which is
+  // what CHECKPOINT 2 means by "runs twice with no refresh".
+  { at: 30000, click: '.replay-btn' },
+  { at: 31000, shot: 'pass2-step1-title' },
+  { at: 34500, shot: 'pass2-step2-code' },
+  { at: 40000, shot: 'pass2-step3-scatter' },
+  { at: 45000, shot: 'pass2-step4-stacked' },
+  { at: 47500, click: '[data-testid="execute-btn"]' },
+  { at: 48200, shot: 'pass2-step5-txcard' },
+  { at: 49500, shot: 'pass2-step5-attack-dot' },
+  { at: 52200, shot: 'pass2-step5-result-success' },
 ];
 
 function connect(ws) {
