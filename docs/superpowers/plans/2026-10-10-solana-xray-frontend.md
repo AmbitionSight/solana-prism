@@ -322,6 +322,58 @@ harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 har
 
 ---
 
+## 5b. 结构重构：从"抽象五层"改为"一条指令的执行顺序"
+
+**触发**: 用户质疑"这个五层结构是不是没那么好"。复查后确认不是"不够好"，而是**把漏洞画错了地方**。
+
+### 原五层的四个硬伤
+
+1. **五个层不是同一类东西。** Instruction 是代码结构、Account State 是数据、Access Control 与 Business Logic 是**关注点**、Runtime 是平台。TCP/IP 成立是因为每层都是同一类对象；这里是五个范畴被并排摞起来。
+2. **顺序不对应执行顺序。** `ctx.accounts.vault` 是入参、先进来；`require!` 再查；然后才改余额。但圆点按 L5→L4→L3→L2→L1 掉，而 L1（Runtime）根本不是被穿透的东西，它是容器。
+3. **最严重：裂缝画在 L3，修的地方在 L1。** 主计划 3.4 的修复是 `Withdraw.authority: Signer<'info>` —— 改的是**账户声明**，也就是旧模型里的 L1。模型说"错在检查"，实际"错在声明"。在 Solana 上 `Signer<'info>` vs `AccountInfo<'info>` 就是漏洞本身。
+4. **TxCard 已经用了对的模型。** 那张 accounts/signatures 表里 `ADMIN ✗` 是真实字段；页面上同时存在两套互相打架的说法。
+
+### 参考的主流做法
+
+- [Surya / Slither / sol2uml](https://tryethernal.com/blog/smart-contract-visualization-tools-audit)：调用图、继承图、状态变量图——画的是**真实拓扑**。原文："the bug does not live in any single line. It lives in the topology."
+- [Tenderly](https://docs.tenderly.co/debugger/execution-overview)：执行概览/调用树，**按执行顺序**。
+- [sec3 X-Ray](https://github.com/sec3-product/x-ray)：Solana 静态分析，输出账户与约束。
+- **Solana Explorer / SolanaFM**：一个 instruction 的展示就是"指令 + 账户表"，`signer?` / `writable?` 是**列**。
+
+结论：Solana 生态最通用的可视化本身就是"带 signer 列的表"，不是层叠。
+
+### 新结构（用户选择"A+B 融合"）
+
+| id | 名称 | 代码（漏洞版） | 角色 |
+|---|---|---|---|
+| S1 | Instruction / 指令 | `withdraw(ctx, amount: 500)` | 调了什么 |
+| S2 | Accounts / 账户 | `vault · authority` | 交给了谁 |
+| S3 | **Account Declaration / 账户声明** | `authority: AccountInfo<'info>` | 声明要求什么 ★漏洞 |
+| S4 | Manual Check / 手工校验 | `require!(vault.authority == authority.key())` | 代码自己查什么 |
+| S5 | State Change / 状态变更 | `vault.balance -= amount` | 写了什么 |
+
+- **裂缝从 S4 移到 S3**：修复版 `S3` 的代码行变成 `authority: Signer<'info>`，badge 由 `⚠️ 未要求签名` 变 `🔒 要求签名`（新增 `codeWhenFixed` 字段支持同一张卡按版本换代码）。
+- **修复版在 S3 就被拦下**，S4/S5 根本不执行 —— 这正是 Anchor 的真实行为：账户校验发生在 handler 之前。
+- **S3 与 S4 构成"声明式 vs 命令式"的对照**，这是 Solana 最该教也最容易讲错的一点。
+- **step 2 代码列表补上 `#[derive(Accounts)]`**（18 行）。原列表只有 handler body，**把漏洞所在的那一行藏起来了**。新增回归测试断言列表必须包含账户声明且位于 `#[program]` 之前。
+- `SECURITY_INDEX` 仍为 2，`geometry.ts` 与动画管线完全未改（仍是 5 张等高卡、同一套散开/层叠/关键帧）。
+
+### 顺带修掉的 harness 缺陷
+
+重构后 harness 报 `IRON RULE 1 VIOLATED ... REMOUNTED`，实为**误报**，暴露了两个真问题：
+
+1. 我在第 2 步的等待谓词里写死了**旧的英文注释文本**；文本改了之后该 wait 超时 20s，而超时后会 `continue` 跳过动作——于是 `tagCards` 从未执行。
+2. `checkCards` 在 `window.__xrayCards` 未定义时，把"从未打过标记"误报成"节点被重建"。**两者含义完全不同**：前者证明不了任何事。
+
+已修：`checkCards` 先判断基线是否存在，缺失时单独报 `NO TAG -- tagCards never ran`，harness 把它归为"基线缺失"而非"铁律违反"。另更新了所有写死的旧文案断言。
+
+### 尚未覆盖
+
+- 中英对照的层名断言已更新为 `账户声明 Account Declaration`，但**中文模式下 step 1 标题**仍无端到端断言（终态时该屏已卸载）。
+- 录屏脚本的语法段仍以英文注释文案为等待条件，已同步更新为 `This is the bug`。
+
+---
+
 ## 5. 追加需求：中英双语（原计划未包含）
 
 **需求（用户 2026-10-10 追加）**: 初始英语；右上角可切换中英；英语版英文注释、中文版中文注释；层名中英对照；链上标识符保持英文原样；**并删除 `01 / 05` 步进指示器**。

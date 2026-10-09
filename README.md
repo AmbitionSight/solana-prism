@@ -1,23 +1,49 @@
 # Solana Contract X-Ray
 
-An Apple-style interactive web demo that takes an Anchor program apart into five
-layers — Instruction, Account State, **Access Control**, Business Logic, Runtime —
-and shows, at the layer where it belongs, why a missing signer check lets an
-attacker drain a vault without ever holding the admin's key.
+An Apple-style interactive web demo that takes one Solana instruction apart into
+the five stages it actually executes, and shows — at the stage where it belongs —
+why a missing signer check lets an attacker drain a vault without ever holding the
+admin's key.
 
-The attack lands on layer **L3**, so that is the layer the dot passes through.
+## The execution order it teaches
+
+```
+① Instruction          withdraw(ctx, amount: 500)          what was called
+② Accounts             vault · authority                   who was handed over
+③ Account Declaration  authority: AccountInfo<'info>       what the program demands  ← the flaw
+④ Manual Check         require!(vault.authority == ...)    what the handler checks itself
+⑤ State Change         vault.balance -= amount             what gets written
+```
+
+Stage ③ is where this bug lives — **not** stage ④.
+
+On Solana you *declare* what an account must be and the runtime enforces it
+**before your handler runs**. Declaring `AccountInfo<'info>` asks for nothing, so
+the attacker passes the admin's address and it is accepted; declaring
+`Signer<'info>` demands a signature, and the same call is refused before stage ④
+or ⑤ ever execute. That contrast — declared constraints are enforced for free,
+hand-written checks only if you remember to write them — is the lesson.
+
+An earlier version of this demo stacked five abstract "layers" (Instruction /
+Account State / Access Control / Business Logic / Runtime). That model mixed a
+code construct, some data, two concerns and a platform as if they were peers, put
+them in an order that matched no execution path, and painted the crack on the
+`require!` line while the actual repair is the account declaration. It has been
+replaced.
 
 ## The six steps
 
 1. **Title** — "What is a smart contract?" fades in and out.
-2. **Code** — the `withdraw` path, highlighted by our own tokenizer.
-3. **Decompose** — the code breaks into five cards and fans out.
-4. **Stack** — the cards converge into a stack; L3 cracks (red dashed,
-   *Missing Signer Check*).
+2. **Code** — the contract, highlighted by our own tokenizer. It leads with
+   `#[derive(Accounts)]`, because that declaration *is* the subject.
+3. **Decompose** — the instruction breaks into the five stages and fans out.
+4. **Stack** — the stages converge into execution order; stage ③ cracks (red
+   dashed, *No signature required*).
 5. **Attack** — pick *Vulnerable* or *Fixed* and press Execute. The transaction
    payload appears first, because the whole point is that the admin's **address**
    is present while the admin's **signature** is absent. Then the dot drops:
-   through L3 (*Attack Successful*), or bounced off it (*Transaction Rejected*).
+   through stage ③ (*Attack Successful*), or stopped at it
+   (*Transaction Rejected*).
 6. **Verify** — the on-chain evidence behind the animation.
 
 Press **Replay** to run the whole thing again without reloading.
