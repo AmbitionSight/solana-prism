@@ -88,7 +88,7 @@ const MUST_BE_TRANSLATED = [
   'Fixed',
   'Verify on-chain',
   'Attack Successful',
-  'Missing Signer Check',
+  'No signature required',
   'Vulnerable program',
   'Attack transaction',
   'Vault balance',
@@ -103,11 +103,11 @@ const MUST_APPEAR_IN_CHINESE = [
   '执行攻击',
   '漏洞版',
   '攻击成功',
-  '缺少签名校验',
+  '未要求签名',
   '链上验证',
   '金库余额',
-  '运行时',
-  '业务逻辑',
+  '账户声明',
+  '状态变更',
 ];
 
 /**
@@ -125,8 +125,9 @@ const PROBES = {
   })()`,
 
   checkCards: `(() => {
+    if (!Array.isArray(window.__xrayCards)) return 'NO TAG -- tagCards never ran';
     const cards = [...document.querySelectorAll('.layer-card')];
-    const recalled = window.__xrayCards ?? [];
+    const recalled = window.__xrayCards;
     const tagged = cards.filter((el, i) => el.__xrayTag === 'card-' + i).length;
     const sameNodes = cards.length > 0
       && cards.length === recalled.length
@@ -154,20 +155,26 @@ const PLAN = [
   { wait: `__xray.step() === 1`, after: 1300, shot: 'step1-title' },
   { wait: `__xray.step() === 2`, after: 2400, shot: 'step2-code' },
 
-  // The headline of the bilingual feature: the Rust is identical, only the two
+  // The headline of the bilingual feature: the Rust is identical, only the
   // comments change. Checked in the browser rather than only in the unit test.
   { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
   {
-    wait: `document.body.innerText.includes('没有检查签名')`,
+    wait: `document.body.innerText.includes('漏洞就在这里')`,
     after: 500,
-    expect: { expression: `__xray.text('.code-card')`, contains: '检查 authority 地址是否匹配' },
+    expect: {
+      expression: `__xray.text('.code-card')`,
+      contains: '只查地址，不要求签名',
+    },
     shot: 'zh-step2-code',
   },
   { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
   {
-    wait: `document.body.innerText.includes('no signature check')`,
+    wait: `document.body.innerText.includes('This is the bug')`,
     after: 400,
-    expect: { expression: `__xray.text('.code-card')`, contains: 'check the authority address matches' },
+    expect: {
+      expression: `__xray.text('.code-card')`,
+      contains: 'no signature required',
+    },
   },
 
   { wait: `__xray.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'step3-scatter' },
@@ -258,8 +265,8 @@ const PLAN = [
     shot: 'zh-step5-state',
   },
   {
-    // Layer names are bilingual by design, so the English term must survive.
-    expect: { expression: `__xray.text('.layers-container')`, contains: '运行时 Runtime' },
+    // Stage names are bilingual by design, so the English term must survive.
+    expect: { expression: `__xray.text('.layers-container')`, contains: '账户声明 Account Declaration' },
   },
   { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
   {
@@ -472,12 +479,17 @@ async function main() {
         const value = String(await evaluate(PROBES[action.probe]));
         console.log(`probe ${action.probe.padEnd(11)} ${value}`);
         if (action.probe === 'checkCards') {
-          if (value.includes('REMOUNTED') || !value.includes('kept tag')) {
+          if (value.startsWith('NO TAG')) {
+            // Distinct from a remount: the baseline was never established, so
+            // this probe proves nothing either way.
+            failures.push(`probe baseline missing (${label}): ${value}`);
+          } else if (value.includes('REMOUNTED') || !value.includes('kept tag')) {
             failures.push(`IRON RULE 1 VIOLATED (${label}): ${value}`);
-          }
-          const [count, rest] = value.split(' cards, ');
-          if (rest.split(' ')[0] !== count) {
-            failures.push(`IRON RULE 1 VIOLATED (${label}): ${value}`);
+          } else {
+            const [count, rest] = value.split(' cards, ');
+            if (rest.split(' ')[0] !== count) {
+              failures.push(`IRON RULE 1 VIOLATED (${label}): ${value}`);
+            }
           }
         }
       }

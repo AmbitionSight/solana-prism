@@ -1,73 +1,90 @@
 /**
- * layers.ts — data-driven decomposition of an Anchor program.
+ * layers.ts — the anatomy of one instruction, in the order it actually executes.
  *
- * The whole demo is generated from this array: the number of cards, their
- * content, which one is the security layer, and where each one flies to during
- * the decompose animation. Adding a different contract later means adding a
- * different array — no component changes.
+ * This replaced an earlier five-"layer" model (Instruction / Account State /
+ * Access Control / Business Logic / Runtime) that mixed categories — a code
+ * construct, some data, two concerns and a platform, stacked as if they were
+ * peers — and, worse, put the flaw in the wrong place. The old model painted the
+ * crack on the body's `require!` line, but the repair is a change to the accounts
+ * struct: `AccountInfo<'info>` becomes `Signer<'info>`.
+ *
+ * On Solana you *declare* what an account must be and the runtime enforces it
+ * before your handler runs. That declaration is where this bug lives, so it is
+ * where the crack belongs:
+ *
+ *   (1) Instruction          what was called
+ *   (2) Accounts             which accounts were handed over
+ *   (3) Account Declaration  what the program demands of them   <- the flaw
+ *   (4) Manual Check         what the handler checks itself
+ *   (5) State Change         what gets written
+ *
+ * Stage 3 versus stage 4 is the lesson: declared constraints are enforced for
+ * free, hand-written checks are enforced only if you remember to write them.
  *
  * `scatter` values are offsets from the centre of the stage, in px.
- *
- * The display name is a message key rather than a literal, because it is
- * language-dependent; `code` stays a literal because Rust reads the same in
- * every language.
  */
 
 import type { LayerNameKey } from '../i18n/messages';
 
 export interface ContractLayer {
-  /** Display id, e.g. 'L3'. Also the React key — must be stable. */
+  /** Display id, e.g. 'S3'. Also the React key — must be stable. */
   id: string;
-  /** Catalogue key for the layer name, resolved per language at render time. */
+  /** Catalogue key for the stage name, resolved per language at render time. */
   nameKey: LayerNameKey;
-  /** The line of contract code this layer abstracts. */
+  /** The code this stage abstracts, as it reads in the vulnerable build. */
   code: string;
-  /** True for the layer that carries the access-control check. */
+  /**
+   * What this line reads as once the contract is fixed. Only stage 3 differs:
+   * the whole fix is that one declaration.
+   */
+  codeWhenFixed?: string;
+  /** True for the stage that carries the flaw. */
   isSecurityLayer: boolean;
-  /** True when this build of the contract has the flaw in this layer. */
+  /** True when this build of the contract has the flaw in this stage. */
   broken: boolean;
   /** Offset from stage centre used by the decompose animation. */
   scatter: { x: number; y: number };
 }
 
-/** The vulnerable `xray_vault` withdraw path, top layer first. */
+/** The vulnerable `xray_vault` withdraw path, top stage first. */
 export const VAULT_LAYERS: ContractLayer[] = [
   {
-    id: 'L5',
-    nameKey: 'layerInstruction',
-    code: 'pub fn withdraw(ctx, amount) -> Result<()>',
+    id: 'S1',
+    nameKey: 'stageInstruction',
+    code: 'withdraw(ctx, amount: 500)',
     isSecurityLayer: false,
     broken: false,
     scatter: { x: -220, y: -110 },
   },
   {
-    id: 'L4',
-    nameKey: 'layerAccountState',
-    code: 'struct Vault { authority, balance }',
+    id: 'S2',
+    nameKey: 'stageAccounts',
+    code: 'vault · authority',
     isSecurityLayer: false,
     broken: false,
     scatter: { x: 220, y: -90 },
   },
   {
-    id: 'L3',
-    nameKey: 'layerAccessControl',
-    code: 'require!(vault.authority == authority.key())',
+    id: 'S3',
+    nameKey: 'stageDeclaration',
+    code: "authority: AccountInfo<'info>",
+    codeWhenFixed: "authority: Signer<'info>",
     isSecurityLayer: true,
     broken: true,
     scatter: { x: -200, y: 70 },
   },
   {
-    id: 'L2',
-    nameKey: 'layerBusinessLogic',
-    code: 'vault.balance -= amount',
+    id: 'S4',
+    nameKey: 'stageManualCheck',
+    code: 'require!(vault.authority == authority.key())',
     isSecurityLayer: false,
     broken: false,
     scatter: { x: 210, y: 90 },
   },
   {
-    id: 'L1',
-    nameKey: 'layerRuntime',
-    code: '#[derive(Accounts)] struct Withdraw',
+    id: 'S5',
+    nameKey: 'stageStateChange',
+    code: 'vault.balance -= amount',
     isSecurityLayer: false,
     broken: false,
     scatter: { x: 0, y: 160 },

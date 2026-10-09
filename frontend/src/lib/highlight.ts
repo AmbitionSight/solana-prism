@@ -35,6 +35,7 @@ const TYPES = new Set([
   'Withdraw',
   'Account',
   'Signer',
+  'AccountInfo',
   'Pubkey',
   'u64',
   'Ok',

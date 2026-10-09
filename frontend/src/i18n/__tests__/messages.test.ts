@@ -50,23 +50,23 @@ describe('messages — 完整性', () => {
 
 describe('messages — 层名中英对照', () => {
   it('英文模式只给主名', () => {
-    expect(bilingualName('en', 'layerAccessControl')).toEqual({ primary: 'Access Control' });
+    expect(bilingualName('en', 'stageDeclaration')).toEqual({ primary: 'Account Declaration' });
   });
 
   it('中文模式给出中文主名 + 英文副名', () => {
-    expect(bilingualName('zh', 'layerAccessControl')).toEqual({
-      primary: '访问控制',
-      secondary: 'Access Control',
+    expect(bilingualName('zh', 'stageDeclaration')).toEqual({
+      primary: '账户声明',
+      secondary: 'Account Declaration',
     });
   });
 
-  it('五个层名都有中英两份', () => {
+  it('五个阶段都有中英两份', () => {
     const keys = [
-      'layerInstruction',
-      'layerAccountState',
-      'layerAccessControl',
-      'layerBusinessLogic',
-      'layerRuntime',
+      'stageInstruction',
+      'stageAccounts',
+      'stageDeclaration',
+      'stageManualCheck',
+      'stageStateChange',
     ] as const;
     for (const key of keys) {
       const zh = bilingualName('zh', key);

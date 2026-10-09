@@ -73,9 +73,12 @@ function opacityAt(css: string, pct: number): number {
 }
 
 describe('keyframes — 数据来源', () => {
-  it('安全层是 L3, 且不在最顶层', () => {
-    expect(VAULT_LAYERS[SECURITY_INDEX].id).toBe('L3');
-    // blockedY(0) would be off-canvas, so the fixed path needs a layer above.
+  it('安全阶段是账户声明(S3), 且不在最顶层', () => {
+    const stage = VAULT_LAYERS[SECURITY_INDEX];
+    expect(stage.id).toBe('S3');
+    // The flaw lives on the declaration, not on the hand-written check below it.
+    expect(stage.nameKey).toBe('stageDeclaration');
+    // blockedY(0) would be off-canvas, so the fixed path needs a stage above.
     expect(SECURITY_INDEX).toBeGreaterThanOrEqual(1);
   });
 });

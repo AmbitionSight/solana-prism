@@ -21,19 +21,20 @@ export interface Messages {
   step1Title: string;
 
   /* Code card — the Rust itself is language-independent, only comments differ */
-  codeCommentAuthority: string;
-  codeCommentNoSigner: string;
+  codeCommentBug: string;
+  codeCommentAddressOnly: string;
 
-  /* Layer names. In Chinese these render as "中文 English" — see bilingualName. */
-  layerInstruction: string;
-  layerAccountState: string;
-  layerAccessControl: string;
-  layerBusinessLogic: string;
-  layerRuntime: string;
+  /* The five stages of one instruction, in execution order.
+     In Chinese these render as "中文 English" — see bilingualName. */
+  stageInstruction: string;
+  stageAccounts: string;
+  stageDeclaration: string;
+  stageManualCheck: string;
+  stageStateChange: string;
 
-  /* Security-layer badge */
-  badgeMissingSigner: string;
-  badgeSignerVerified: string;
+  /* Stage 3's badge — the flaw, stated plainly */
+  badgeNoSignerRequired: string;
+  badgeSignerRequired: string;
 
   /* Controls */
   replay: string;
@@ -73,29 +74,29 @@ export interface Messages {
 
 export type MessageKey = keyof Messages;
 
-/** The five layer names, so `bilingualName` can be typed narrowly. */
+/** The five stage names, so `bilingualName` can be typed narrowly. */
 export type LayerNameKey =
-  | 'layerInstruction'
-  | 'layerAccountState'
-  | 'layerAccessControl'
-  | 'layerBusinessLogic'
-  | 'layerRuntime';
+  | 'stageInstruction'
+  | 'stageAccounts'
+  | 'stageDeclaration'
+  | 'stageManualCheck'
+  | 'stageStateChange';
 
 export const MESSAGES: Record<Language, Messages> = {
   en: {
     step1Title: 'What is a smart contract?',
 
-    codeCommentAuthority: 'check the authority address matches',
-    codeCommentNoSigner: 'but... there is no signature check!',
+    codeCommentBug: 'CHECK: address only — no signature required. This is the bug.',
+    codeCommentAddressOnly: 'the address matches — but who signed was never checked',
 
-    layerInstruction: 'Instruction',
-    layerAccountState: 'Account State',
-    layerAccessControl: 'Access Control',
-    layerBusinessLogic: 'Business Logic',
-    layerRuntime: 'Runtime',
+    stageInstruction: 'Instruction',
+    stageAccounts: 'Accounts',
+    stageDeclaration: 'Account Declaration',
+    stageManualCheck: 'Manual Check',
+    stageStateChange: 'State Change',
 
-    badgeMissingSigner: '⚠️ Missing Signer Check',
-    badgeSignerVerified: '🔒 Signer Verified',
+    badgeNoSignerRequired: '⚠️ No signature required',
+    badgeSignerRequired: '🔒 Signature required',
 
     replay: 'Replay',
     execute: 'Execute',
@@ -133,17 +134,17 @@ export const MESSAGES: Record<Language, Messages> = {
   zh: {
     step1Title: '什么是智能合约？',
 
-    codeCommentAuthority: '检查 authority 地址是否匹配',
-    codeCommentNoSigner: '但... 没有检查签名!',
+    codeCommentBug: 'CHECK: 只查地址，不要求签名 —— 漏洞就在这里',
+    codeCommentAddressOnly: '地址对得上就放行 —— 但从没验过是谁签的名',
 
-    layerInstruction: '指令层',
-    layerAccountState: '账户状态',
-    layerAccessControl: '访问控制',
-    layerBusinessLogic: '业务逻辑',
-    layerRuntime: '运行时',
+    stageInstruction: '指令',
+    stageAccounts: '账户',
+    stageDeclaration: '账户声明',
+    stageManualCheck: '手工校验',
+    stageStateChange: '状态变更',
 
-    badgeMissingSigner: '⚠️ 缺少签名校验',
-    badgeSignerVerified: '🔒 签名已验证',
+    badgeNoSignerRequired: '⚠️ 未要求签名',
+    badgeSignerRequired: '🔒 要求签名',
 
     replay: '重播',
     execute: '执行攻击',
@@ -179,7 +180,7 @@ export const MESSAGES: Record<Language, Messages> = {
 };
 
 /**
- * A layer name for display. English gets the term alone; Chinese gets the
+ * A stage name for display. English gets the term alone; Chinese gets the
  * Chinese term with the canonical English beside it, so a reader can map what
  * they are learning onto the term they will meet in every other document.
  */

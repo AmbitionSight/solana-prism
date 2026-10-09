@@ -35,6 +35,8 @@ export default function LayerCard({
   const isSecurityLayer = layer.isSecurityLayer && layer.broken;
   const stateClass = isSecurityLayer ? (isFixed ? 'security-fixed' : 'security-broken') : '';
   const name = bilingualName(language, layer.nameKey);
+  // The whole repair is one declaration, so stage 3 reads differently once fixed.
+  const code = isFixed && layer.codeWhenFixed ? layer.codeWhenFixed : layer.code;
 
   const style = {
     '--x': `${offsetX}px`,
@@ -51,7 +53,7 @@ export default function LayerCard({
   return (
     <div className={`layer-card ${stateClass}`} data-layer={layer.id} style={style}>
       <span className="layer-card__id">{layer.id}</span>
-      <code className="layer-card__code">{layer.code}</code>
+      <code className="layer-card__code">{code}</code>
       <span className="layer-card__label">
         <span className="layer-card__name">
           {name.primary}
@@ -61,7 +63,7 @@ export default function LayerCard({
         </span>
         {isSecurityLayer && (
           <span className="layer-card__badge">
-            {isFixed ? t.badgeSignerVerified : t.badgeMissingSigner}
+            {isFixed ? t.badgeSignerRequired : t.badgeNoSignerRequired}
           </span>
         )}
       </span>
