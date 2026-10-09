@@ -134,9 +134,24 @@
   color: var(--color-text-tertiary);
 }
 
+/* Status is carried by a drawn dot plus the card's own colour, not by an emoji:
+   the marker inherits `currentColor`, so it is red on the broken build and green
+   on the fixed one without a second rule. */
 .layer-card__badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.layer-card__badge::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .layer-card.security-broken .layer-card__badge {

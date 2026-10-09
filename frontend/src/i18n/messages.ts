@@ -95,8 +95,8 @@ export const MESSAGES: Record<Language, Messages> = {
     stageManualCheck: 'Manual Check',
     stageStateChange: 'State Change',
 
-    badgeNoSignerRequired: '⚠️ No signature required',
-    badgeSignerRequired: '🔒 Signature required',
+    badgeNoSignerRequired: 'No signature required',
+    badgeSignerRequired: 'Signature required',
 
     replay: 'Replay',
     execute: 'Execute',
@@ -143,8 +143,8 @@ export const MESSAGES: Record<Language, Messages> = {
     stageManualCheck: '手工校验',
     stageStateChange: '状态变更',
 
-    badgeNoSignerRequired: '⚠️ 未要求签名',
-    badgeSignerRequired: '🔒 要求签名',
+    badgeNoSignerRequired: '未要求签名',
+    badgeSignerRequired: '要求签名',
 
     replay: '重播',
     execute: '执行攻击',
