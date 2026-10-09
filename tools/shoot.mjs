@@ -202,7 +202,7 @@ const PLAN = [
   // --- pass 1: vulnerable path
   { wait: `__xray.has('${SQL.execute}')`, click: SQL.execute },
   { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard' },
-  { wait: `__xray.has('${SQL.dot}')`, after: 900, shot: 'step5-attack-dot' },
+  { wait: `__xray.has('${SQL.dot}')`, after: 1450, shot: 'step5-attack-dot' },
   {
     wait: `__xray.has('${SQL.result}')`,
     after: 700,
@@ -215,7 +215,7 @@ const PLAN = [
   { wait: `__xray.has('${SQL.fixToggleFixed}')`, click: SQL.fixToggleFixed },
   { wait: `!__xray.has('${SQL.result}')`, click: SQL.execute },
   { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard-fixed' },
-  { wait: `__xray.has('${SQL.dot}')`, after: 1450, shot: 'step5-attack-blocked' },
+  { wait: `__xray.has('${SQL.dot}')`, after: 1550, shot: 'step5-attack-blocked' },
   {
     wait: `__xray.has('${SQL.result}')`,
     after: 700,
