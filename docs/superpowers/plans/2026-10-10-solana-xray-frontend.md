@@ -121,11 +121,38 @@ export function fixedKeyframes(): string {     /* 撞到 L3 顶 → 弹回 → �
 
 | 层 | 手段 | 覆盖 |
 |---|---|---|
-| L1 逻辑 | `npm test`（Vitest） | geometry / steps / keyframes 数值正确性 |
+| L1 逻辑 | `npm test`（Vitest） | geometry / steps / keyframes / highlight / verification 数值正确性 |
 | L2 静态 | `npm run build`（`tsc -b && vite build`） | 类型错误、未用变量、构建可产出 |
-| L3 观感 | 截图 + `npm run dev` 人工过一遍 | 动画时序、easing 一致、✗ 可见性、无 console 报错 |
+| L3 观感 | `tools/shoot.mjs` 真实时间截图 + `npm run dev` 人工过一遍 | 动画时序、easing 一致、✗ 可见性、无 console 报错 |
 
-L3 的"人眼"部分由你（用户）在 CHECKPOINT 2 执行；我负责提供可复现的本地 URL 与逐步截图，不代替你签字。
+**L3 为什么不用 `--virtual-time-budget`**: 实测该模式下 `setTimeout` 被快进到虚拟时间，而 CSS 动画仍走真实时钟，截到的帧与组件自认的状态不对应（表现为"步骤已到 2、代码卡片却全透明"）。`tools/shoot.mjs` 改用 CDP 真实等待 + 真实点击，每帧都是 Demo 的真实帧。
+**运行**: `node tools/shoot.mjs http://localhost:5199/ .shots-real`（需 Node ≥ 22，用随包 Node 24 执行）。
+
+L3 的"人眼"终审由你（用户）在 CHECKPOINT 2 执行；我提供可复现的本地 URL 与逐步截图，不代替你签字。
+
+> **注意（评审 m6）**: `global.css` 含 `prefers-reduced-motion` 规则，会把动画压到 0.01ms。若验收环境报告 reduce，Demo 会变成静止画面。headless Chrome 默认不报告 reduce（已实测截图动画正常），但人工验收前请确认系统未开启"减少动态效果"。
+
+---
+
+## 1b. GAP-5 施工中新增的公开 API 与关键决议
+
+> 主计划第 11 条要求"计划变更必须回来改文档"。以下符号不在主计划 D 节的原清单内，是施工中为解决动画断裂而新增的，此处补齐签名与语义，并纳入 CHECKPOINT 2 的验收范围。
+
+| 符号 | 位置 | 语义 | 为什么必须有 |
+|---|---|---|---|
+| `stackedOffsetY(index, count)` | `lib/geometry.ts` | 层叠布局下，第 index 层中心相对容器中心的偏移 = `layerMidY(index) - stackHeight(count)/2` | 主计划 2.4 的 CSS 在散开态用 `position:absolute`、层叠态用 `position:relative`。切换 `position` 会改变包含块，卡片会从"容器中心 + 散布"瞬移到"流位置 + 散布"再飞入 —— 肉眼可见的弹跳。改为两种布局都是同一原点的纯 transform，CSS 才能插值 |
+| `dropStartY()` | `lib/geometry.ts` | 圆点下落起点 = 栈顶上方一个层高（-64px） | 关键帧需要一个"从视野外进入"的起点；写在 keyframes.ts 里就是手写像素 |
+| `blockedY(index)` / `BLOCK_CLEARANCE` | `lib/geometry.ts` | 被第 index 层拦停时圆点中心的 y = 层顶上方 8px | **修正主计划 2.7 的错误**：原文 `blockedY(2)+LAYER_HEIGHT` = 200，落在 L3 区间 [144,208] 内部 56px 处，视觉上等于"攻击穿过了安全层"，与修复路径要表达的意思相反。采用 `blockedY(2)` = 136 作为接触点，并由 `keyframes.test.ts` 断言"全程最深只到拦停位置，绝不进入安全层" |
+| `AttackState` | `lib/steps.ts` | `'idle' \| 'showing-tx' \| 'running' \| 'done'` | 主计划 2.1 要求 App 持有该状态，类型需与状态机同处定义 |
+| `lib/keyframes.ts` 整模块 | `lib/keyframes.ts` | 由 geometry + layers 生成两套圆点关键帧与两套层 pulse 关键帧 | 主计划 2.6 把关键帧内联在 `AttackDot.tsx`。抽出纯函数后，"禁止手写像素"才可被自动化测试守住：`keyframes.test.ts` 断言生成文本里每个 `translateY(Npx)` 的 N 都在 geometry 的输出集合内 |
+
+**其他施工决议:**
+- **层叠改为 transform 实现**（见上表第一行），`.decomposed` / `.stacked` 只改变 `--x` / `--y` / `--scale` 三个输入，DOM 结构完全不变，符合铁律第 1 条。
+- **散开态缩放 0.85**：480px 宽的卡片按原 scatter 坐标会互相压叠；缩到 0.85 后相邻卡片留出 32px 间隙且文字仍可读。
+- **层名标签只在 stacked 显示**，L3 的红色虚线同样只在 stacked 出现 —— 让"裂缝"成为第 4 步收拢时落下的揭示，而不是第 3 步就已经摊在明面上。
+- **`<style>` 注入位置**：由 `ContractLayers` 渲染在 `.layers-container` **之外**，避免关键帧 style 元素成为容器的子节点而干扰层叠布局。
+- **stagger 用内联 `transitionDelay`** 而非 `:nth-child(n)`：nth-child 会被任何新增子节点（如注入的 style、attack dot）打乱。
+- **Vite 锁 6.x**：本机 Node 20.10.0 低于 Vite 7 要求的 `^20.19.0`；`^6.3.5` 的 caret 上限为 <7.0.0，不会自行漂移。已写入 `package.json` 的 `engines` 与说明字段。
 
 ---
 
@@ -151,6 +178,26 @@ L3 的"人眼"部分由你（用户）在 CHECKPOINT 2 执行；我负责提供�
 | 2.7 | FixToggle + 修复版 | `FixToggle.tsx` | L3 顶两撞两弹后消失 | `feat(ui): fixed path and toggle` |
 | 2.8 | 结果 + 验证面板 | `AttackResult.tsx`、`VerifyPanel.tsx`、`config/verification.ts` | 两路径文案正确、面板结构正确 | `feat(ui): result and verify panel shell` |
 | — | **CHECKPOINT 2** | — | 全流程两遍 + 测试全绿 + 评审 | tag `frontend-demo` |
+
+**实际提交序列（Phase 0-2 完成后回填）:**
+
+```
+chore: init repo, spec, gitignore
+chore: scaffold vite react-ts + vitest baseline
+feat(styles): design tokens and reset
+feat(lib): geometry with tests                     <- RED 已见
+feat(lib): steps state machine with tests          <- RED 已见
+feat(config): vault layer data
+feat(lib): stackedOffsetY so stacked layout is a pure transform   <- RED 已见
+feat(app): step state machine, indicator, replay
+feat(ui): title and code steps with hand-written highlighter      <- highlight RED 已见
+feat(lib): keyframes generated from geometry, with tests          <- RED 已见
+feat(ui): layer stack, attack paths, payload card, verify panel
+feat(config): verification placeholders with tests                <- RED 已见
+```
+
+与原计划任务号的对应：2.1→`feat(app)`，2.2→`feat(ui): title and code`，2.3/2.4/2.5/2.6/2.7/2.8 合并为 `feat(ui): layer stack…` 一个提交。
+**合并理由**：2.3 与 2.4 改的是同一个组件、同一批 DOM、同一组 CSS 类，按原计划拆成两个提交会出现"提交 A 的 CSS 描述一个尚不存在的布局"的中间态；2.5-2.8 又都挂在同一个 `attackState` 状态机上。验证点（每个任务的验证步骤）逐条照跑，只是落盘时机合并。
 
 **降级顺序（时间不够时从 1 开始砍，与原计划一致）:** Step 6 面板 → Fixed 路径 → Step 3 散开 → Step 1 标题。
 **保底不可砍:** 层叠 + 交易卡片 + 漏洞版攻击动画。

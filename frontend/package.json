@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "comments": {
+    "vite": "Pinned to 6.x on purpose: Vite 7+ requires Node ^20.19.0 || >=22.12.0 and this machine runs Node 20.10.0. The ^6.3.5 caret caps below 7.0.0, so it will not drift to a version that cannot run here."
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
