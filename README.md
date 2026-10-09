@@ -37,13 +37,17 @@ highlighter and both attack animations are ours.
 cd frontend
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 44 tests
+npm test         # 48 tests
 npm run build    # tsc -b && vite build
 ```
 
-Node **20.10.0 or newer**. Vite is pinned to `6.x` on purpose: Vite 7 requires
-Node `^20.19.0 || >=22.12.0`, and the `^6.3.5` caret caps below 7.0.0 so it will
-not drift to a version that cannot run here.
+Node **20.10.0 or newer** to run the app. Vite is pinned to `6.x` on purpose:
+Vite 7 requires Node `^20.19.0 || >=22.12.0`, and the `^6.3.5` caret caps below
+7.0.0 so it will not drift to a version that cannot run here.
+
+The verification harness (`tools/shoot.mjs`) additionally needs **Node >= 22**
+for the global `WebSocket`; it says so plainly if run on an older Node. The app
+itself does not.
 
 ## Layout
 
@@ -72,11 +76,20 @@ can actually catch a violation:
   below measures the rendered result in a real browser. A value-only check would
   pass for a hard-coded-but-correct implementation, which is why the
   source-level one exists.
+
+  > `test: { css: true }` in `frontend/vite.config.ts` is **load-bearing, not
+  > cosmetic**. With Vitest's default, a `?raw` CSS import resolves to an empty
+  > string, so the guard silently reads nothing and passes. Removing it re-breaks
+  > the rule without failing a single test.
 - **Steps 3, 4 and 5 share one set of DOM nodes.** They differ only by class
   name and transform inputs, so the cards travel between layouts instead of
   being re-created. This cannot be proved by reading the source, so the harness
   proves it empirically: it tags the five live nodes and fails if the tags do
   not survive a layout change.
+
+Every guard above has been **falsified on purpose** — a mutation was introduced
+and the check confirmed to fail — because a check that cannot fail is worse than
+no check at all. Two of them originally could not.
 
 ## Verification
 
