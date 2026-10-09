@@ -26,14 +26,64 @@ const generatorSources = import.meta.glob('../../lib/keyframes.ts', {
   eager: true,
 }) as Record<string, string>;
 
-/** Arguments of every transform function that moves, scales or rotates a box. */
+/**
+ * Transform functions that move, scale or rotate a box.
+ *
+ * The 3D and matrix forms are listed explicitly: an earlier version of this
+ * guard used `translate[XYZ]?` and silently missed `translate3d`, `matrix`,
+ * `perspective` and friends.
+ */
+const TRANSFORM_CALL =
+  /(?:translate3d|translate[XYZ]?|scale3d|scale[XYZ]?|rotate3d|rotate[XYZ]?|skew[XY]?|matrix3d|matrix|perspective)\(([^)]*)\)/g;
+
+/**
+ * The arguments of every transform call anywhere in a stylesheet.
+ *
+ * Every declaration is scanned, not just `transform:` ones, because a coordinate
+ * can be smuggled in behind a custom property:
+ *   `:root { --shift: translateY(40px) }  .a { transform: var(--shift) }`
+ * which an earlier version of this guard also missed.
+ *
+ * NOT covered, deliberately: pixel values in non-transform properties (`top`,
+ * `left`, `margin`) on static chrome, and inline `style={{}}` in TSX. The layer
+ * and attack coordinate system is entirely transform-based, which is what makes
+ * this scope sufficient — see the note in README.
+ */
 function transformArguments(css: string): string[] {
-  return [...css.matchAll(/transform\s*:\s*([^;}]+)/g)].flatMap((declaration) =>
-    [...declaration[1].matchAll(/(?:translate[XYZ]?|scale[XYZ]?|rotate|skew[XY]?)\(([^)]*)\)/g)].map(
-      (call) => call[1],
-    ),
+  return [...css.matchAll(/[-\w]+\s*:\s*([^;}]+)/g)].flatMap((declaration) =>
+    [...declaration[1].matchAll(TRANSFORM_CALL)].map((call) => call[1]),
   );
 }
+
+describe('iron rule 2 — 检测器自身的覆盖范围', () => {
+  // A guard is only as good as its matcher. Each case below is a shape that a
+  // previous version of this guard let through while the suite stayed green.
+  it('能识别 3D 与 matrix 形式', () => {
+    expect(transformArguments('.a { transform: translate3d(0, 40px, 0); }')).toEqual(['0, 40px, 0']);
+    expect(transformArguments('.a { transform: matrix(1,0,0,1,0,40px); }')).toEqual([
+      '1,0,0,1,0,40px',
+    ]);
+    expect(transformArguments('.a { transform: perspective(10px) rotateY(2deg); }')).toEqual([
+      '10px',
+      '2deg',
+    ]);
+  });
+
+  it('能识别藏在自定义属性里的坐标', () => {
+    const css = ':root { --shift: translateY(40px); } .a { transform: var(--shift); }';
+    expect(transformArguments(css)).toEqual(['40px']);
+  });
+
+  it('能识别关键帧主体里的坐标', () => {
+    expect(transformArguments('@keyframes k { 50% { transform: translateY(40px); } }')).toEqual([
+      '40px',
+    ]);
+  });
+
+  it('不把纯令牌值误判为坐标', () => {
+    expect(transformArguments(':root { --nudge-enter: 10px; --layer-height: 64px; }')).toEqual([]);
+  });
+});
 
 describe('iron rule 2 — 手写坐标守卫(源码级)', () => {
   it('读到的是真实 CSS 内容, 不是空模块', () => {

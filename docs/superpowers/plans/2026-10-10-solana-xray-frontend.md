@@ -217,7 +217,7 @@ feat(config): verification placeholders with tests                <- RED 已见
 - **M2（新增 API 未回写文档）** → 本文件新增 GAP-5 小节补齐签名与语义。
 - Minor 中 `stackHeight(0)` 返回 -8、`blockedY` 的字面量 8、缺 `engines` 等已一并修掉并补测试。
 
-### CHECKPOINT 2 — ✅ PASS（首轮 FAIL，已修复后重验）
+### CHECKPOINT 2 — ✅ PASS（三轮：FAIL → FAIL → PASS，全部修复并逐条证伪）
 - [x] 完整流程 1→6 无刷新跑通两遍（harness 第二遍与第一遍逐字节相同）
 - [x] 交易卡片 ✗（ADMIN 签名缺席）一眼可见，且带 `aria-label="signature absent"`
 - [x] 全站 easing 均为 `--ease-apple`（全库仅 1 处 `cubic-bezier`），console 干净
@@ -293,6 +293,32 @@ harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 har
 同时更正了 `opacityAt()` 注释里的过度声明：它只理解 `at()` 产出的 `N%{prop:value}` 形状，**不是** CSS 语义模型（看不见 `to{}` 关键字帧、忽略 `opacity: 0` 带空格/`.5`、且假定首帧前 opacity 为 1）。渲染结果的把关交给 harness 的浏览器实测，而不是这个纯函数。
 
 **教训（值得记住）**: 这轮里"加一个守卫"本身引入了两次假绿——先是一个永远为真的断言，后是一个读空文件的守卫。**新增任何检查后，必须先让它失败一次**，否则不知道它是否真的在检查。
+
+### 第三次检查：守卫是否真的会失败 —— ✅ PASS
+
+复审的唯一问题是"这个守卫能不能失败"，答案是可以，且证据齐全：
+
+| 变异 | 结果 |
+|---|---|
+| 往样式表写 `transform: translateY(40px)` | **FAIL** 并指名文件 |
+| 往 `keyframes.ts` 写 `'40px'` | **FAIL** |
+| **撤掉 `css: true`**（即上一版假绿的确切状态） | **FAIL**：`expected [ '../animations.css', …(2) ] to deeply equal []` |
+| glob 匹配不到任何文件 | **FAIL**：`expected 0 to be greater than or equal to 3` |
+
+同时确认五项跟进项全部 VERIFIED（含：降级动画下 5 张卡在 **15ms** 内全部 opacity 1，而对照组确实逐个显形；harness 跑完 0 个残留 profile、0 个残留 chrome 进程）。
+
+**但它同时演示了四个仍然逃逸的形状**（48/48 依然全绿）：`translate3d`（regex 没覆盖 3D/matrix）、非 `transform` 属性（`top/left`）、以及自定义属性间接引用（`--shift: translateY(40px)` + `transform: var(--shift)`）。这四条已修：
+
+- 变换函数表补齐 `translate3d` / `matrix` / `matrix3d` / `perspective` / `rotate3d` / `scale3d` 等
+- 扫描范围从"只看 `transform:` 声明"改为**扫描所有声明**，间接引用因此可见
+- 新增**检测器自测**（4 条）：把上述逃逸形状逐个喂给匹配器，断言它抓得到；同时断言纯令牌值（`--nudge-enter: 10px`）不会被误判
+- **已证伪**：把 `translate3d(0, 40px, 0)` 与 `--xray-escape-x: translateY(40px)` 同时注入样式表 → 两条都被抓出（`transform(… 0, 40px, 0 …)`、`transform(… 40px …)`），退出码 1
+
+未覆盖范围已写进代码注释与 README（非 transform 属性上的静态 chrome 像素、TSX 内联 style），并说明为何这个scope足够：层级与攻击坐标系**完全**基于 transform。
+
+### 顺带验证：Phase 4 的链接分支（此前从未被执行过）
+
+复审曾指出 `TBD` 值下渲染出的 `<a>` 数量为 0，即"有值 → 渲染 Solscan 链接"这条分支从未被跑过。临时填入看起来真实的 Devnet 值后实测：3 条链接全部正确渲染，href 为 `https://solscan.io/account/<id>?cluster=devnet` 与 `https://solscan.io/tx/<sig>?cluster=devnet`，且带 `target="_blank"` 与 `rel="noreferrer"`；5 行全部显示真实值，仅剩 1 个 `.verify__pending`（视频占位）。随后已还原为 `TBD` 占位。**Phase 4 的接线是通的。**
 
 ---
 

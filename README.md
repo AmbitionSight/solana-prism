@@ -83,6 +83,14 @@ can actually catch a violation:
   pass for a hard-coded-but-correct implementation, which is why the
   source-level one exists.
 
+  Its scope is deliberate: it scans every declaration (so a coordinate hidden
+  behind a custom property is still caught) and understands the 3D, matrix and
+  perspective forms — each of which an earlier version missed while the suite
+  stayed green. It does **not** police pixel values in non-transform properties
+  (`top`, `left`, `margin`) on static chrome, or inline `style={{}}` in TSX.
+  That scope is sufficient because the layer and attack coordinate system is
+  entirely transform-based.
+
   > `test: { css: true }` in `frontend/vite.config.ts` is **load-bearing, not
   > cosmetic**. With Vitest's default, a `?raw` CSS import resolves to an empty
   > string, so the guard silently reads nothing and passes. Removing it re-breaks
