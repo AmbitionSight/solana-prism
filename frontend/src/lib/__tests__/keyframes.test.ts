@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  ATTACK_MS,
   BOUNCE_PX,
   SECOND_BOUNCE_PX,
   DANGER_PULSE_ANIMATION,
@@ -26,16 +25,51 @@ function translateYs(css: string): number[] {
   return [...css.matchAll(/translateY\((-?[\d.]+)px\)/g)].map((match) => Number(match[1]));
 }
 
-describe('keyframes — 数据来源', () => {
-  it('安全层索引从配置推导, 不写死', () => {
-    expect(SECURITY_INDEX).toBe(
-      VAULT_LAYERS.findIndex((layer) => layer.isSecurityLayer && layer.broken),
-    );
-    expect(VAULT_LAYERS[SECURITY_INDEX].id).toBe('L3');
-  });
+interface Frame {
+  pct: number;
+  body: string;
+}
 
-  it('攻击时长是正数', () => {
-    expect(ATTACK_MS).toBeGreaterThan(0);
+/** Parse `@keyframes x{ 0%{...} 50%{...} }` into ordered frames. */
+function frames(css: string): Frame[] {
+  return [...css.matchAll(/([\d.]+)%\{([^}]*)\}/g)].map((match) => ({
+    pct: Number(match[1]),
+    body: match[2],
+  }));
+}
+
+/**
+ * The opacity actually in force at `pct`, with CSS's own interpolation between
+ * the frames that declare it — NOT simply the last declared value. The
+ * difference matters: a frame list that only declares opacity at 6% and 100%
+ * fades continuously in between, which is exactly the bug this guards.
+ */
+function opacityAt(css: string, pct: number): number {
+  const declared = frames(css)
+    .map((frame) => ({ pct: frame.pct, raw: /opacity:([\d.]+)/.exec(frame.body)?.[1] }))
+    .filter((entry): entry is { pct: number; raw: string } => entry.raw !== undefined)
+    .map((entry) => ({ pct: entry.pct, value: Number(entry.raw) }));
+
+  if (declared.length === 0) return 1;
+  if (pct <= declared[0].pct) return declared[0].value;
+
+  for (let i = 1; i < declared.length; i++) {
+    const previous = declared[i - 1];
+    const next = declared[i];
+    if (pct <= next.pct) {
+      const t = (pct - previous.pct) / (next.pct - previous.pct);
+      return previous.value + (next.value - previous.value) * t;
+    }
+  }
+
+  return declared[declared.length - 1].value;
+}
+
+describe('keyframes — 数据来源', () => {
+  it('安全层是 L3, 且不在最顶层', () => {
+    expect(VAULT_LAYERS[SECURITY_INDEX].id).toBe('L3');
+    // blockedY(0) would be off-canvas, so the fixed path needs a layer above.
+    expect(SECURITY_INDEX).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -113,8 +147,30 @@ describe('keyframes — 修复版(拦停)', () => {
     expect(BOUNCE_PX).toBeGreaterThan(SECOND_BOUNCE_PX);
   });
 
-  it('结束时淡出', () => {
-    expect(fixedKeyframes()).toContain('opacity:0');
+  it('结束时淡出(检查的是最后一帧, 不是任何一帧)', () => {
+    const parsed = frames(fixedKeyframes());
+    const last = parsed[parsed.length - 1];
+    expect(last.pct).toBe(100);
+    expect(last.body).toContain('opacity:0');
+  });
+
+  it('两次撞击时仍然完全不透明, 不能在落地前就淡掉', () => {
+    const css = fixedKeyframes();
+    expect(opacityAt(css, FIXED_HIT_PCT)).toBe(1);
+    expect(opacityAt(css, 64)).toBe(1);
+    expect(opacityAt(css, FIXED_HIT2_PCT)).toBe(1);
+    expect(opacityAt(css, 88)).toBe(1);
+    // ...and it does fade, but only after the last bounce.
+    expect(opacityAt(css, 100)).toBe(0);
+  });
+});
+
+describe('keyframes — 漏洞版全程不透明', () => {
+  it('穿过安全层的那一刻仍然是完全不透明', () => {
+    const css = vulnerableKeyframes();
+    expect(opacityAt(css, 0)).toBe(0);
+    expect(opacityAt(css, VULNERABLE_HIT_PCT)).toBe(1);
+    expect(opacityAt(css, 100)).toBe(1);
   });
 });
 
