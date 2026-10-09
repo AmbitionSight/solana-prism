@@ -1,13 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AUTO_ADVANCE_MS, nextStep, type Step } from './lib/steps';
+import {
+  AUTO_ADVANCE_MS,
+  TX_CARD_MS,
+  nextStep,
+  type AttackState,
+  type Step,
+} from './lib/steps';
+import AttackResult from './components/AttackResult';
+import ContractLayers, { type LayersMode } from './components/ContractLayers';
+import FixToggle from './components/FixToggle';
 import Step1Title from './components/Step1Title';
 import Step2Code from './components/Step2Code';
+import TxCard from './components/TxCard';
+import VerifyPanel from './components/VerifyPanel';
 import './styles/app.css';
+import './styles/animations.css';
 
 const TOTAL_STEPS = 5;
 
 export default function App() {
   const [step, setStep] = useState<Step>(1);
+  const [isFixed, setIsFixed] = useState(false);
+  const [attackState, setAttackState] = useState<AttackState>('idle');
   /** Bumped on replay so the auto-advance timers restart from step 1. */
   const [runId, setRunId] = useState(0);
 
@@ -23,10 +37,30 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [step, runId]);
 
+  // Holding the payload on screen is an orchestration beat, not a race to
+  // avoid — unlike the drop itself, which ends on its own animation event.
+  useEffect(() => {
+    if (attackState !== 'showing-tx') return;
+    const id = window.setTimeout(() => setAttackState('running'), TX_CARD_MS);
+    return () => window.clearTimeout(id);
+  }, [attackState]);
+
+  const handleExecute = useCallback(() => setAttackState('showing-tx'), []);
+  const handleAttackEnd = useCallback(() => setAttackState('done'), []);
+
+  const handleFixChange = useCallback((next: boolean) => {
+    setIsFixed(next);
+    setAttackState('idle');
+  }, []);
+
   const replay = useCallback(() => {
     setStep(1);
+    setIsFixed(false);
+    setAttackState('idle');
     setRunId((id) => id + 1);
   }, []);
+
+  const layersMode: LayersMode = step >= 4 ? 'stacked' : step === 3 ? 'decomposed' : 'hidden';
 
   return (
     <div className="app">
@@ -41,10 +75,45 @@ export default function App() {
       <main className="stage">
         {step === 1 && <Step1Title />}
         {step === 2 && <Step2Code />}
+
         {step >= 3 && (
-          <div className="placeholder" data-testid="step-content">
-            Step {step}
-          </div>
+          <>
+            <div className="layers-wrap">
+              <ContractLayers
+                mode={layersMode}
+                isFixed={isFixed}
+                attackState={attackState}
+                onAttackEnd={handleAttackEnd}
+              />
+              {attackState === 'showing-tx' && <TxCard />}
+            </div>
+
+            {/* Reserved from step 3 so the stack never shifts while the attack
+                plays — a layout jump mid-animation would read as a glitch. */}
+            <div className="footer-slot">
+              {step === 5 && (
+                <div className="controls">
+                  <FixToggle isFixed={isFixed} onChange={handleFixChange} />
+                  <button
+                    type="button"
+                    className="execute-btn"
+                    data-testid="execute-btn"
+                    disabled={attackState !== 'idle'}
+                    onClick={handleExecute}
+                  >
+                    Execute
+                  </button>
+                </div>
+              )}
+
+              {attackState === 'done' && (
+                <>
+                  <AttackResult isFixed={isFixed} />
+                  <VerifyPanel />
+                </>
+              )}
+            </div>
+          </>
         )}
       </main>
     </div>
