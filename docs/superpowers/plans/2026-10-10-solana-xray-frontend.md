@@ -272,6 +272,10 @@ harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 har
 
 **交付完整性**: 从零克隆（`git clone` → `npm ci` → `npm test` → `npm run build` → 跑 harness）43 个文件、48 测试、25 步全流程通过，证明交付物自包含、不依赖任何未提交状态。
 
+**人眼验收材料（提前为 Phase 4 备好）**: `docs/screenshots/walkthrough.mp4` —— 28.6s / 1920×1080 / 30fps / 0.64MB，覆盖漏洞版攻击、修复版拒绝、证据面板全流程。由 `tools/record.mjs` 生成：走 CDP `Page.startScreencast` 抓页面自身的合成输出（无窗口边框、无桌面干扰），并用与 harness 相同的状态谓词驱动流程（视频不会与真实状态脱节），帧按到达时间戳重采样成恒定帧率（screencast 只在重绘时出帧，直接回放会忽快忽慢）。
+
+> 这同时解决了两件事：CHECKPOINT 2 要求的"人眼验收"不再需要你本地起服务；Phase 4 的 `demo.mp4` / `demo-verify.mp4` 有了可重复执行的录制工具（本机已有 ffmpeg），而不是手工录屏。注意 `walkthrough.mp4` **不是**提交用的最终 `demo.mp4` —— 后者按计划还要包含 Phase 3 的 Devnet 真实交易证据。
+
 ### CHECKPOINT 2 复审(first FAIL)与二次复审(仍 FAIL 1 条，已修)
 
 第一次复审 `FAIL (2 critical)` —— C1/C2/M1/M2 修复后，第二次复审确认 **C1、C2、M1、M2、M3、M4、M5 全部 VERIFIED**（并用 CDP 实测：修复版两次撞击点 opacity 均为 **1.0000**，此前是 0.207；降级动画下 11 行代码全部 opacity 1；不可满足的谓词会 53s 内失败而非挂死）。
