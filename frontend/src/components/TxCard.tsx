@@ -1,44 +1,54 @@
+import { useLanguage } from '../i18n/language';
+import type { MessageKey } from '../i18n/messages';
+
 /**
  * TxCard — the transaction payload, shown before the dot drops.
  *
  * This is the answer to the demo's biggest comprehension gap: the attack looks
  * like magic unless you first see that the admin's *address* is present while
  * the admin's *signature* is absent. The two annotations spell that out.
+ *
+ * Field names (`vault`, `authority`, `accounts:`, `signatures:`) stay in English
+ * on purpose — they are literal names from a real transaction, and translating
+ * them would put the demo out of step with what a viewer sees on Solscan. Only
+ * the annotations around them are translated.
  */
 
 interface AccountRow {
   field: string;
   value: string;
-  note: string;
+  noteKey: MessageKey;
   emphasis?: boolean;
 }
 
 interface SignatureRow {
   field: string;
   present: boolean;
-  note: string;
+  noteKey: MessageKey;
 }
 
 const ACCOUNTS: AccountRow[] = [
-  { field: 'vault', value: '7xKm…9mPQ', note: 'attacker-owned' },
+  { field: 'vault', value: '7xKm…9mPQ', noteKey: 'txNoteAttackerOwned' },
   {
     field: 'authority',
     value: 'ADMiN…x7wQ',
-    note: 'admin address present',
+    noteKey: 'txNoteAdminPresent',
     emphasis: true,
   },
 ];
 
 const SIGNATURES: SignatureRow[] = [
-  { field: 'ATTACKER', present: true, note: 'signed' },
-  { field: 'ADMIN', present: false, note: 'signature absent' },
+  { field: 'ATTACKER', present: true, noteKey: 'txNoteSigned' },
+  { field: 'ADMIN', present: false, noteKey: 'txNoteSignatureAbsent' },
 ];
 
 export default function TxCard() {
+  const { t } = useLanguage();
+
   return (
     <div className="txcard-overlay" data-testid="tx-card">
-      <section className="txcard" aria-label="Transaction">
-        <header className="txcard__header">Transaction</header>
+      <section className="txcard" aria-label={t.txTitle}>
+        <header className="txcard__header">{t.txTitle}</header>
 
         <div className="txcard__group">
           <span className="txcard__label">accounts:</span>
@@ -50,7 +60,7 @@ export default function TxCard() {
               >
                 <span className="txcard__field">{row.field}</span>
                 <code className="txcard__value">{row.value}</code>
-                <span className="txcard__note">{row.note}</span>
+                <span className="txcard__note">{t[row.noteKey]}</span>
               </li>
             ))}
           </ul>
@@ -67,11 +77,11 @@ export default function TxCard() {
                 <span className="txcard__field">{row.field}</span>
                 <span
                   className={`txcard__mark txcard__mark--${row.present ? 'ok' : 'missing'}`}
-                  aria-label={row.present ? 'signature present' : 'signature absent'}
+                  aria-label={row.present ? t.ariaSignaturePresent : t.ariaSignatureAbsent}
                 >
                   {row.present ? '✓' : '✗'}
                 </span>
-                <span className="txcard__note">{row.note}</span>
+                <span className="txcard__note">{t[row.noteKey]}</span>
               </li>
             ))}
           </ul>

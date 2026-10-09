@@ -51,8 +51,8 @@ const PAGE_HELPERS = `
 try {
   window.__xray = {
     step: () => {
-      const el = document.querySelector('[data-testid="step-indicator"]');
-      const n = el ? parseInt(el.textContent.trim(), 10) : NaN;
+      const el = document.querySelector('.app');
+      const n = el ? parseInt(el.dataset.step ?? '', 10) : NaN;
       return Number.isNaN(n) ? -1 : n;
     },
     mode: () => {
@@ -71,12 +71,22 @@ const SQL = {
   verifyPanel: '[data-testid="verify-panel"]',
   dot: '[data-testid="attack-dot"]',
   result: '[data-testid="attack-result"]',
+  langZh: '[data-testid="lang-zh"]',
+  langEn: '[data-testid="lang-en"]',
 };
 
 /** Condition-waited beats. `after` is a settle delay for pacing, never a guess. */
 const PLAN = [
   { wait: `__xray.step() === 1`, after: 2900 },
-  { wait: `__xray.step() === 2`, after: 3900 },
+  { wait: `__xray.step() === 2`, after: 2000 },
+
+  // Show the code card switching languages — the Rust stays identical, only the
+  // two comments change.
+  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  { wait: `document.body.innerText.includes('没有检查签名')`, after: 2600 },
+  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  { wait: `document.body.innerText.includes('no signature check')`, after: 1800 },
+
   { wait: `__xray.mode() === 'decomposed'`, after: 4700 },
   { wait: `__xray.mode() === 'stacked'`, after: 4300 },
   { wait: `__xray.step() === 5 && __xray.has('${SQL.execute}')`, after: 900 },
@@ -92,7 +102,13 @@ const PLAN = [
 
   // Evidence
   { click: SQL.verifyToggle },
-  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 3200 },
+  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 2600 },
+
+  // ...and the same finished state in Chinese, then back.
+  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  { wait: `document.documentElement.lang === 'zh-CN'`, after: 3000 },
+  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  { wait: `document.documentElement.lang === 'en'`, after: 1800 },
 ];
 
 function connect(ws, onScreencastFrame) {

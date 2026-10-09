@@ -322,6 +322,45 @@ harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 har
 
 ---
 
+## 5. 追加需求：中英双语（原计划未包含）
+
+**需求（用户 2026-10-10 追加）**: 初始英语；右上角可切换中英；英语版英文注释、中文版中文注释；层名中英对照；链上标识符保持英文原样；**并删除 `01 / 05` 步进指示器**。
+
+### 架构
+
+| 单元 | 职责 |
+|---|---|
+| `src/i18n/messages.ts` | `Language`、`Messages` 接口、`MESSAGES: Record<Language, Messages>`、`bilingualName()`、`LANGUAGES` |
+| `src/i18n/language.ts` | Context 对象 + `useLanguage()`（无 JSX，避开 react-refresh 的 only-export-components 规则）|
+| `src/i18n/LanguageProvider.tsx` | 持有当前语言；同步 `<html lang>`；**不做持久化** |
+| `src/components/LanguageToggle.tsx` | 右上角 `EN │ 中文` 分段控件 |
+
+**核心保证**: 两种语言实现同一个 `Messages` 接口，因此**漏翻一条 = 编译错误**（`tsc -b` 直接失败）。类型管不到的部分（空值、值其实还是英文）由 `messages.test.ts` 兜。
+
+**不翻译的**: `vault` / `authority` / `ATTACKER` / `ADMIN` / `accounts:` / `signatures:` —— 这些是真实交易里的字段名与标识符，翻掉会让 Demo 与 Solscan 上看到的东西对不上。只翻旁边的旁注。
+
+### 关键决策
+
+- **不持久化**（用户选择）: 每次打开都是英语，舞台上不会出现上次遗留的语言。
+- **层名中英对照**（用户选择）: 英文模式只显示 `Access Control`；中文模式显示 `访问控制 Access Control`，英文部分用 `--color-text-tertiary` 弱化。由 `bilingualName()` 返回 `{primary, secondary}`，中文副名直接取英文词条，**不重复写一遍英文**（英文改了中文会自动跟上）。标签列由 180px 放宽到 210px，否则 `业务逻辑 Business Logic` 会被 `nowrap` 截断。
+- **代码列表抽到 `src/lib/code.ts`**: `CodeLine = {code} | {comment, indent}`，`codeLines(language)` 是纯函数。这样"代码本身与语言无关、只有注释变"成为结构上的事实，而不是约定。
+- **删除步进指示器**: 原任务 2.1 要求渲染 `data-testid="step-indicator"`。指示器被移除后，当前步骤改由 `.app` 上的 `data-step` 暴露（机器可读，且不占用视觉）。harness 的 `__xray.step()` 随之改为读 `data-step`。
+- **`config/layers.ts` 形状变更**: `name: string` → `nameKey: LayerNameKey`。这是对主计划"层级由数据驱动"那份配置的改动，已在此记录。
+
+### 三层验证（重点是"有没有漏翻"）
+
+1. **编译期**: 接口保证两语言键集一致
+2. **源码守卫** `no-hardcoded-copy.test.ts`: 扫描 `components/*.tsx` 与 `App.tsx`，发现写死的 JSX 文本或 `aria-label="..."` 即失败。允许清单只有 `→` 与两个链上字段名。**已证伪**: 往 `FixToggle.tsx` 注入 `<span>Forgot To Translate</span>` → FAIL 并指名道姓。
+   - 该守卫第一版有 3 个假阳性——`useState<Step>(1)` 这类 TS 泛型会在两个 `<`/`>` 之间圈出整段代码。已加"含代码字符即不算文案"的过滤，并补了检测器自测。
+3. **端到端** `tools/shoot.mjs`: 在第 2 步切中文并断言代码卡片出现中文注释；在终态切中文并断言 13 个英文串**全部消失**、9 个中文串**全部出现**、且层名保持 `运行时 Runtime` 中英对照；再切回英文并断言没有中文残留、英文完全恢复。
+
+### 尚未覆盖（诚实记录）
+
+- 中文模式下第 1 步标题（`什么是智能合约？`）没有单独的浏览器断言 —— 该状态在终态断言时已被卸载。它由源码守卫 + 单元测试覆盖，但没有端到端断言。
+- 源码守卫只看 JSX 文本节点与 `aria-label`；写在 TS 常量里的用户可见字符串（如 `LANGUAGES` 的 `EN`/`中文`，属**故意**用母语标注）不在扫描范围。
+
+---
+
 ## 4. 风险
 
 | 风险 | 处置 |

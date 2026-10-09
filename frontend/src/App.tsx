@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   AUTO_ADVANCE_MS,
-  FINAL_STEP,
   TX_CARD_MS,
   nextStep,
   type AttackState,
@@ -10,14 +9,17 @@ import {
 import AttackResult from './components/AttackResult';
 import ContractLayers, { type LayersMode } from './components/ContractLayers';
 import FixToggle from './components/FixToggle';
+import LanguageToggle from './components/LanguageToggle';
 import Step1Title from './components/Step1Title';
 import Step2Code from './components/Step2Code';
 import TxCard from './components/TxCard';
 import VerifyPanel from './components/VerifyPanel';
+import { useLanguage } from './i18n/language';
 import './styles/app.css';
 import './styles/animations.css';
 
 export default function App() {
+  const { t } = useLanguage();
   const [step, setStep] = useState<Step>(1);
   const [isFixed, setIsFixed] = useState(false);
   const [attackState, setAttackState] = useState<AttackState>('idle');
@@ -62,14 +64,16 @@ export default function App() {
   const layersMode: LayersMode = step >= 4 ? 'stacked' : step === 3 ? 'decomposed' : 'hidden';
 
   return (
-    <div className="app">
-      <div className="step-indicator" data-testid="step-indicator">
-        {String(step).padStart(2, '0')} / {String(FINAL_STEP).padStart(2, '0')}
+    // data-step is the machine-readable current step. The visible 01/05 counter
+    // was removed, so the verification harness reads this instead of scraping
+    // the DOM for text that is no longer rendered.
+    <div className="app" data-step={step}>
+      <div className="top-controls">
+        <button type="button" className="replay-btn" onClick={replay}>
+          {t.replay}
+        </button>
+        <LanguageToggle />
       </div>
-
-      <button type="button" className="replay-btn" onClick={replay}>
-        Replay
-      </button>
 
       <main className="stage">
         {step === 1 && <Step1Title />}
@@ -100,7 +104,7 @@ export default function App() {
                     disabled={attackState === 'showing-tx' || attackState === 'running'}
                     onClick={handleExecute}
                   >
-                    Execute
+                    {t.execute}
                   </button>
                 </div>
               )}

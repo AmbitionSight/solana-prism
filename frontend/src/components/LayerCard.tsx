@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import type { ContractLayer } from '../config/layers';
 import { DANGER_PULSE_ANIMATION, SUCCESS_PULSE_ANIMATION } from '../lib/keyframes';
+import { useLanguage } from '../i18n/language';
+import { bilingualName } from '../i18n/messages';
 
 interface LayerCardProps {
   layer: ContractLayer;
@@ -28,8 +30,11 @@ export default function LayerCard({
   isFixed,
   attacking,
 }: LayerCardProps) {
+  const { language, t } = useLanguage();
+
   const isSecurityLayer = layer.isSecurityLayer && layer.broken;
   const stateClass = isSecurityLayer ? (isFixed ? 'security-fixed' : 'security-broken') : '';
+  const name = bilingualName(language, layer.nameKey);
 
   const style = {
     '--x': `${offsetX}px`,
@@ -48,10 +53,15 @@ export default function LayerCard({
       <span className="layer-card__id">{layer.id}</span>
       <code className="layer-card__code">{layer.code}</code>
       <span className="layer-card__label">
-        <span className="layer-card__name">{layer.name}</span>
+        <span className="layer-card__name">
+          {name.primary}
+          {/* In Chinese the canonical English term rides alongside, so the
+              reader can map what they are learning onto every other document. */}
+          {name.secondary && <span className="layer-card__name-latin"> {name.secondary}</span>}
+        </span>
         {isSecurityLayer && (
           <span className="layer-card__badge">
-            {isFixed ? '🔒 Signer Verified' : '⚠️ Missing Signer Check'}
+            {isFixed ? t.badgeSignerVerified : t.badgeMissingSigner}
           </span>
         )}
       </span>

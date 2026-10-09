@@ -7,13 +7,19 @@
  * different array — no component changes.
  *
  * `scatter` values are offsets from the centre of the stage, in px.
+ *
+ * The display name is a message key rather than a literal, because it is
+ * language-dependent; `code` stays a literal because Rust reads the same in
+ * every language.
  */
+
+import type { LayerNameKey } from '../i18n/messages';
 
 export interface ContractLayer {
   /** Display id, e.g. 'L3'. Also the React key — must be stable. */
   id: string;
-  /** Human-readable layer name, shown to the right of the stacked card. */
-  name: string;
+  /** Catalogue key for the layer name, resolved per language at render time. */
+  nameKey: LayerNameKey;
   /** The line of contract code this layer abstracts. */
   code: string;
   /** True for the layer that carries the access-control check. */
@@ -28,7 +34,7 @@ export interface ContractLayer {
 export const VAULT_LAYERS: ContractLayer[] = [
   {
     id: 'L5',
-    name: 'Instruction',
+    nameKey: 'layerInstruction',
     code: 'pub fn withdraw(ctx, amount) -> Result<()>',
     isSecurityLayer: false,
     broken: false,
@@ -36,7 +42,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
   },
   {
     id: 'L4',
-    name: 'Account State',
+    nameKey: 'layerAccountState',
     code: 'struct Vault { authority, balance }',
     isSecurityLayer: false,
     broken: false,
@@ -44,7 +50,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
   },
   {
     id: 'L3',
-    name: 'Access Control',
+    nameKey: 'layerAccessControl',
     code: 'require!(vault.authority == authority.key())',
     isSecurityLayer: true,
     broken: true,
@@ -52,7 +58,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
   },
   {
     id: 'L2',
-    name: 'Business Logic',
+    nameKey: 'layerBusinessLogic',
     code: 'vault.balance -= amount',
     isSecurityLayer: false,
     broken: false,
@@ -60,7 +66,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
   },
   {
     id: 'L1',
-    name: 'Runtime',
+    nameKey: 'layerRuntime',
     code: '#[derive(Accounts)] struct Withdraw',
     isSecurityLayer: false,
     broken: false,

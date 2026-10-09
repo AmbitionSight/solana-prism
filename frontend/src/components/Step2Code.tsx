@@ -1,29 +1,22 @@
 import type { CSSProperties } from 'react';
 import { AUTO_ADVANCE_MS } from '../lib/steps';
+import { useLanguage } from '../i18n/language';
 import { highlightRust } from '../lib/highlight';
-
-/** The withdraw path as it appears in the vulnerable build. */
-const CODE = [
-  '#[program]',
-  'pub mod xray_vault {',
-  '    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {',
-  '        let vault = &mut ctx.accounts.vault;',
-  '        // 检查 authority 地址是否匹配',
-  '        require!(vault.authority == ctx.accounts.authority.key());',
-  '        // 但... 没有检查签名!',
-  '        vault.balance -= amount;',
-  '        Ok(())',
-  '    }',
-  '}',
-];
+import { codeLines } from '../lib/code';
 
 const LINE_STAGGER_MS = 60;
 
 /**
  * Step 2 — the contract, highlighted line by line by our own tokenizer.
- * Lines arrive staggered so the code reads as if it is being written.
+ *
+ * The listing comes from lib/code.ts, which keeps the Rust identical across
+ * languages and swaps only the two comments. Lines arrive staggered so the code
+ * reads as if it is being written.
  */
 export default function Step2Code() {
+  const { language } = useLanguage();
+  const lines = codeLines(language);
+
   const style = {
     '--step-duration': `${AUTO_ADVANCE_MS[2]}ms`,
   } as CSSProperties;
@@ -32,7 +25,7 @@ export default function Step2Code() {
     <section className="step2" style={style} data-testid="step2-code">
       <pre className="code-card">
         <code>
-          {CODE.map((line, lineIndex) => (
+          {lines.map((line, lineIndex) => (
             <span
               className="code-card__line"
               key={line}

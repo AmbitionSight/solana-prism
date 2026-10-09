@@ -18,23 +18,16 @@
 
 /* ---------- Chrome ---------- */
 
-.step-indicator {
-  position: absolute;
-  top: 26px;
-  left: 28px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  font-variant-numeric: tabular-nums;
-  /* Secondary, not tertiary: tertiary is ~2.5:1 on white and this text carries
-     the actual step number. */
-  color: var(--color-text-secondary);
-}
-
-.replay-btn {
+.top-controls {
   position: absolute;
   top: 20px;
   right: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.replay-btn {
   padding: 6px 14px;
   font-size: 13px;
   color: var(--color-text-secondary);
@@ -49,6 +42,35 @@
 .replay-btn:hover {
   color: var(--color-text);
   border-color: var(--color-text-tertiary);
+}
+
+/* Same segmented shape as the Vulnerable/Fixed switch, so the two read as the
+   same kind of control. Each option is labelled in its own language. */
+.lang-toggle {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--color-bg-subtle);
+  border-radius: 999px;
+}
+
+.lang-toggle__option {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  transition:
+    color var(--duration-fast) var(--ease-apple),
+    background-color var(--duration-fast) var(--ease-apple),
+    box-shadow var(--duration-fast) var(--ease-apple);
+}
+
+.lang-toggle__option.is-active {
+  color: var(--color-text);
+  background: var(--color-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* ---------- Stage ---------- */

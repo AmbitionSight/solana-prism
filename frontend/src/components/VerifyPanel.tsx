@@ -5,19 +5,23 @@ import {
   solscanAccountUrl,
   solscanTxUrl,
 } from '../config/verification';
+import { useLanguage } from '../i18n/language';
+import type { MessageKey } from '../i18n/messages';
 
 const VIDEO_SRC = '/demo-verify.mp4';
 
 interface RowProps {
-  label: string;
+  labelKey: MessageKey;
   value: string;
   href?: string;
 }
 
-function Row({ label, value, href }: RowProps) {
+function Row({ labelKey, value, href }: RowProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="verify__row">
-      <dt className="verify__key">{label}</dt>
+      <dt className="verify__key">{t[labelKey]}</dt>
       <dd className="verify__val">
         {isFilled(value) ? (
           href ? (
@@ -28,7 +32,7 @@ function Row({ label, value, href }: RowProps) {
             <code>{value}</code>
           )
         ) : (
-          <span className="verify__pending">awaiting Phase 4</span>
+          <span className="verify__pending">{t.verifyPending}</span>
         )}
       </dd>
     </div>
@@ -41,6 +45,7 @@ function Row({ label, value, href }: RowProps) {
  * row reads as pending rather than as a link that goes nowhere.
  */
 export default function VerifyPanel() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [videoBroken, setVideoBroken] = useState(false);
   /**
@@ -81,33 +86,40 @@ export default function VerifyPanel() {
         aria-controls="verify-panel"
         onClick={() => setOpen((value) => !value)}
       >
-        Verify on-chain <span aria-hidden="true">→</span>
+        {t.verifyToggle} <span aria-hidden="true">→</span>
       </button>
 
       {open && (
-        <div className="verify__panel" id="verify-panel" data-testid="verify-panel" role="region" aria-label="On-chain verification">
-          <p className="verify__claim">
-            This is not an animation. The exploit is real, deployed, and reproducible on Devnet.
-          </p>
+        <div
+          className="verify__panel"
+          id="verify-panel"
+          data-testid="verify-panel"
+          role="region"
+          aria-label={t.ariaVerifyRegion}
+        >
+          <p className="verify__claim">{t.verifyClaim}</p>
 
           <dl className="verify__rows">
             <Row
-              label="Vulnerable program"
+              labelKey="verifyVulnerableProgram"
               value={vulnerableProgramId}
               href={solscanAccountUrl(vulnerableProgramId)}
             />
             <Row
-              label="Attack transaction"
+              labelKey="verifyAttackTx"
               value={attackTxSignature}
               href={solscanTxUrl(attackTxSignature)}
             />
-            <Row label="Vault balance" value={`${VERIFICATION.vaultBefore} → ${VERIFICATION.vaultAfter}`} />
             <Row
-              label="Fixed program"
+              labelKey="verifyVaultBalance"
+              value={`${VERIFICATION.vaultBefore} → ${VERIFICATION.vaultAfter}`}
+            />
+            <Row
+              labelKey="verifyFixedProgram"
               value={fixedProgramId}
               href={solscanAccountUrl(fixedProgramId)}
             />
-            <Row label="Same call, fixed build" value={attackTxError} />
+            <Row labelKey="verifySameCall" value={attackTxError} />
           </dl>
 
           {videoAvailable && !videoBroken ? (
@@ -119,9 +131,7 @@ export default function VerifyPanel() {
               onError={() => setVideoBroken(true)}
             />
           ) : videoAvailable === null ? null : (
-            <p className="verify__pending verify__video-fallback">
-              Recorded walkthrough (demo-verify.mp4) is added in Phase 4.
-            </p>
+            <p className="verify__pending verify__video-fallback">{t.verifyVideoNote}</p>
           )}
         </div>
       )}

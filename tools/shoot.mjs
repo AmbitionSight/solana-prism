@@ -56,8 +56,8 @@ const PAGE_HELPERS = `
 try {
   window.__xray = {
     step: () => {
-      const el = document.querySelector('[data-testid="step-indicator"]');
-      const n = el ? parseInt(el.textContent.trim(), 10) : NaN;
+      const el = document.querySelector('.app');
+      const n = el ? parseInt(el.dataset.step ?? '', 10) : NaN;
       return Number.isNaN(n) ? -1 : n;
     },
     mode: () => {
@@ -74,6 +74,41 @@ try {
   void error;
 }
 `;
+
+/**
+ * Copy that must be fully translated in Chinese mode, checked in the state the
+ * final assertions run in (vulnerable result + verify panel open). Layer names
+ * are excluded on purpose: they render bilingually ("运行时 Runtime"), so their
+ * English form is *supposed* to still be on screen.
+ */
+const MUST_BE_TRANSLATED = [
+  'Replay',
+  'Execute',
+  'Vulnerable',
+  'Fixed',
+  'Verify on-chain',
+  'Attack Successful',
+  'Missing Signer Check',
+  'Vulnerable program',
+  'Attack transaction',
+  'Vault balance',
+  'Same call, fixed build',
+  'awaiting Phase 4',
+  'Recorded walkthrough',
+];
+
+/** ...and the Chinese that must actually have replaced it. */
+const MUST_APPEAR_IN_CHINESE = [
+  '重播',
+  '执行攻击',
+  '漏洞版',
+  '攻击成功',
+  '缺少签名校验',
+  '链上验证',
+  '金库余额',
+  '运行时',
+  '业务逻辑',
+];
 
 /**
  * Iron rule 1: steps 3, 4 and 5 must reuse the same DOM nodes. If the cards are
@@ -110,12 +145,31 @@ const SQL = {
   dot: '[data-testid="attack-dot"]',
   result: '[data-testid="attack-result"]',
   replay: '.replay-btn',
+  langZh: '[data-testid="lang-zh"]',
+  langEn: '[data-testid="lang-en"]',
 };
 
 const PLAN = [
   // --- pass 1: the narrated steps, each waiting for the state it claims to show
   { wait: `__xray.step() === 1`, after: 1300, shot: 'step1-title' },
   { wait: `__xray.step() === 2`, after: 2400, shot: 'step2-code' },
+
+  // The headline of the bilingual feature: the Rust is identical, only the two
+  // comments change. Checked in the browser rather than only in the unit test.
+  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  {
+    wait: `document.body.innerText.includes('没有检查签名')`,
+    after: 500,
+    expect: { expression: `__xray.text('.code-card')`, contains: '检查 authority 地址是否匹配' },
+    shot: 'zh-step2-code',
+  },
+  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  {
+    wait: `document.body.innerText.includes('no signature check')`,
+    after: 400,
+    expect: { expression: `__xray.text('.code-card')`, contains: 'check the authority address matches' },
+  },
+
   { wait: `__xray.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'step3-scatter' },
   { wait: `__xray.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'step4-stacked' },
   { wait: `__xray.step() === 5 && __xray.has('${SQL.execute}')`, shot: 'step5-ready' },
@@ -180,6 +234,49 @@ const PLAN = [
     after: 700,
     expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Attack Successful' },
     shot: 'pass2-step5-result-success',
+  },
+
+  // --- bilingual: the same finished state, switched to Chinese. The verify
+  // panel is opened first so its labels are on screen for the check too.
+  { wait: `__xray.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
+  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 600 },
+  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  {
+    wait: `document.documentElement.lang === 'zh-CN'`,
+    after: 500,
+    expect: {
+      expression: `(() => {
+        const text = document.body.innerText;
+        const stillEnglish = ${JSON.stringify(MUST_BE_TRANSLATED)}.filter((s) => text.includes(s));
+        const missingZh = ${JSON.stringify(MUST_APPEAR_IN_CHINESE)}.filter((s) => !text.includes(s));
+        return stillEnglish.length === 0 && missingZh.length === 0
+          ? 'zh-ok'
+          : 'still-english[' + stillEnglish.join('|') + '] missing-zh[' + missingZh.join('|') + ']';
+      })()`,
+      contains: 'zh-ok',
+    },
+    shot: 'zh-step5-state',
+  },
+  {
+    // Layer names are bilingual by design, so the English term must survive.
+    expect: { expression: `__xray.text('.layers-container')`, contains: '运行时 Runtime' },
+  },
+  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  {
+    wait: `document.documentElement.lang === 'en'`,
+    after: 400,
+    // Switching back must restore English everywhere, not just the toggle.
+    expect: {
+      expression: `(() => {
+        const text = document.body.innerText;
+        const leakedZh = ${JSON.stringify(MUST_APPEAR_IN_CHINESE)}.filter((s) => text.includes(s));
+        return text.includes('Verify on-chain') && leakedZh.length === 0
+          ? 'en-restored'
+          : 'zh-left-behind[' + leakedZh.join('|') + ']';
+      })()`,
+      contains: 'en-restored',
+    },
+    shot: 'en-restored',
   },
 ];
 

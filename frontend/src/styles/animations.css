@@ -99,13 +99,15 @@
   text-overflow: ellipsis;
 }
 
-/* Layer names only earn their place once the stack has settled. */
+/* Layer names only earn their place once the stack has settled.
+   Wide enough for the Chinese labels, which carry the English term alongside
+   ("业务逻辑 Business Logic") and must not be clipped by nowrap. */
 .layer-card__label {
   position: absolute;
   left: calc(100% + 20px);
   top: 50%;
   transform: translateY(-50%);
-  width: 180px;
+  width: 210px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -123,6 +125,13 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-secondary);
+}
+
+/* The canonical English term beside the Chinese one, so a reader can map what
+   they are learning onto every other document. */
+.layer-card__name-latin {
+  font-weight: 400;
+  color: var(--color-text-tertiary);
 }
 
 .layer-card__badge {
