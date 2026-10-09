@@ -71,22 +71,23 @@ const SQL = {
   verifyPanel: '[data-testid="verify-panel"]',
   dot: '[data-testid="attack-dot"]',
   result: '[data-testid="attack-result"]',
+  replay: '.replay-btn',
   langZh: '[data-testid="lang-zh"]',
   langEn: '[data-testid="lang-en"]',
 };
 
-/** Condition-waited beats. `after` is a settle delay for pacing, never a guess. */
+/**
+ * Condition-waited beats. `after` is a settle delay for pacing, never a guess.
+ *
+ * The language switch is shown by switching and then pressing Replay, rather
+ * than by toggling mid-step: step 2 is only 4 seconds long, so squeezing
+ * "English comments → Chinese comments → back" into it either overruns the step
+ * or gives each language about a second on screen.
+ */
 const PLAN = [
+  // --- English: the whole flow
   { wait: `__xray.step() === 1`, after: 2900 },
-  { wait: `__xray.step() === 2`, after: 2000 },
-
-  // Show the code card switching languages — the Rust stays identical, only the
-  // two comments change.
-  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
-  { wait: `document.body.innerText.includes('没有检查签名')`, after: 2600 },
-  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
-  { wait: `document.body.innerText.includes('no signature check')`, after: 1800 },
-
+  { wait: `__xray.step() === 2`, after: 3900 },
   { wait: `__xray.mode() === 'decomposed'`, after: 4700 },
   { wait: `__xray.mode() === 'stacked'`, after: 4300 },
   { wait: `__xray.step() === 5 && __xray.has('${SQL.execute}')`, after: 900 },
@@ -102,13 +103,22 @@ const PLAN = [
 
   // Evidence
   { click: SQL.verifyToggle },
-  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 2600 },
+  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 2400 },
 
-  // ...and the same finished state in Chinese, then back.
+  // --- Chinese: switch, then replay so the narration itself runs in Chinese
   { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
-  { wait: `document.documentElement.lang === 'zh-CN'`, after: 3000 },
+  { wait: `document.documentElement.lang === 'zh-CN'`, after: 1600 },
+  { wait: `__xray.has('${SQL.replay}')`, click: SQL.replay },
+  { wait: `__xray.step() === 1`, after: 2400 },
+  { wait: `__xray.step() === 2`, after: 3200 },
+  { wait: `__xray.mode() === 'decomposed'`, after: 2600 },
+  { wait: `__xray.mode() === 'stacked'`, after: 2600 },
+
+  // --- back to English to close. The hold is long on purpose: the screencast
+  // only emits frames when the page repaints, so a short tail can end up with
+  // the switch-back happening after the last captured frame.
   { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
-  { wait: `document.documentElement.lang === 'en'`, after: 1800 },
+  { wait: `document.documentElement.lang === 'en'`, after: 3200 },
 ];
 
 function connect(ws, onScreencastFrame) {

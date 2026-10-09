@@ -28,7 +28,10 @@ export default function Step2Code() {
           {lines.map((line, lineIndex) => (
             <span
               className="code-card__line"
-              key={line}
+              // Keyed by position, NOT by text: the comment lines change when the
+              // language changes, and keying by text would remount them and
+              // replay their fade-in on every switch.
+              key={lineIndex}
               style={{ animationDelay: `${lineIndex * LINE_STAGGER_MS}ms` }}
             >
               {highlightRust(line).map((token, tokenIndex) => (
