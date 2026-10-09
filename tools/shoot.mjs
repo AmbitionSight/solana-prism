@@ -25,6 +25,18 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+// The app needs Node >= 20.10, but this harness needs the global WebSocket that
+// only arrived in Node 22 — say so plainly rather than dying with
+// "WebSocket is not defined" halfway through.
+if (typeof WebSocket === 'undefined') {
+  console.error(
+    `tools/shoot.mjs needs Node >= 22 for the global WebSocket (this is ${process.version}).\n` +
+      `The app itself runs on Node >= 20.10; only this verification harness needs 22+.\n` +
+      `Use a newer Node, or \`node --experimental-websocket tools/shoot.mjs\`.`,
+  );
+  process.exit(1);
+}
+
 const CHROME =
   process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const TARGET_URL = process.argv[2] ?? 'http://localhost:5199/';
@@ -37,19 +49,26 @@ const WAIT_TIMEOUT_MS = 20000;
 
 /** Predicates the plan below is written against. Installed before navigation. */
 const PAGE_HELPERS = `
-window.__xray = {
-  step: () => {
-    const el = document.querySelector('[data-testid="step-indicator"]');
-    const n = el ? parseInt(el.textContent.trim(), 10) : NaN;
-    return Number.isNaN(n) ? -1 : n;
-  },
-  mode: () => {
-    const el = document.querySelector('[data-testid="layers-container"]');
-    return el ? el.dataset.mode : null;
-  },
-  has: (sel) => !!document.querySelector(sel),
-  text: (sel) => (document.querySelector(sel)?.textContent ?? '').trim(),
-};
+try {
+  window.__xray = {
+    step: () => {
+      const el = document.querySelector('[data-testid="step-indicator"]');
+      const n = el ? parseInt(el.textContent.trim(), 10) : NaN;
+      return Number.isNaN(n) ? -1 : n;
+    },
+    mode: () => {
+      const el = document.querySelector('[data-testid="layers-container"]');
+      return el ? el.dataset.mode : null;
+    },
+    has: (sel) => !!document.querySelector(sel),
+    text: (sel) => (document.querySelector(sel)?.textContent ?? '').trim(),
+  };
+} catch (error) {
+  // Swallowed on purpose: this helper is injected into the page, so if it ever
+  // threw, Runtime.exceptionThrown would report the harness's own bug as an
+  // application error. A missing helper makes the waits below fail loudly.
+  void error;
+}
 `;
 
 /**
@@ -123,8 +142,14 @@ const PLAN = [
   },
   { wait: `__xray.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
   {
-    wait: `__xray.has('${SQL.verifyPanel}')`,
-    after: 600,
+    // The condition IS the predicate. Waiting only for the panel and then
+    // sleeping would pass on a sleep rather than on the invariant — measured:
+    // for ~20ms after the click the panel exists with neither child, which is
+    // the very state this is supposed to reject.
+    wait:
+      `__xray.has('${SQL.verifyPanel}') && ` +
+      `(__xray.has('.verify__panel video') || __xray.has('.verify__video-fallback'))`,
+    after: 400,
     // Durable invariant: the panel must show either the recording or the
     // "added in Phase 4" note — never an empty black <video> box. Note that a
     // static host's SPA fallback answers 200 text/html for a missing .mp4, so
