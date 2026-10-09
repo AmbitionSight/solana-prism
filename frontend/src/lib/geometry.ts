@@ -24,6 +24,20 @@ export function stackHeight(count: number): number {
   return count * LAYER_HEIGHT + (count - 1) * LAYER_GAP;
 }
 
+/**
+ * Offset from the centre of the stack container to the centre of layer `index`,
+ * for a stack of `count` layers.
+ *
+ * The stacked layout is expressed as a transform for the same reason the
+ * scattered layout is: switching `position` between the two modes would change
+ * the containing block mid-transition and make the cards pop instead of
+ * converging. Both layouts are therefore pure transforms off the same origin,
+ * and CSS interpolates between them.
+ */
+export function stackedOffsetY(index: number, count: number): number {
+  return layerMidY(index) - stackHeight(count) / 2;
+}
+
 /** y where the attack dot comes to rest after being blocked by layer `index`
  *  (8px clearance above that layer's top edge). */
 export function blockedY(index: number): number {

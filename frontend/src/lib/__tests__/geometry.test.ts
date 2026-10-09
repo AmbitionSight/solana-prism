@@ -5,6 +5,7 @@ import {
   layerMidY,
   layerTopY,
   stackHeight,
+  stackedOffsetY,
   blockedY,
 } from '../geometry';
 
@@ -32,5 +33,22 @@ describe('geometry', () => {
 
   it('blockedY: 被第 i 层挡住时圆点停留 y(层顶上方 8px)', () => {
     expect(blockedY(2)).toBe(136);
+  });
+});
+
+describe('stackedOffsetY — 层叠位置相对容器中心的偏移', () => {
+  it('5 层时首/中/末层的偏移', () => {
+    expect(stackedOffsetY(0, 5)).toBe(-144);
+    expect(stackedOffsetY(2, 5)).toBe(0);
+    expect(stackedOffsetY(4, 5)).toBe(144);
+  });
+
+  it('相邻层间距恒为 LAYER_HEIGHT + LAYER_GAP', () => {
+    expect(stackedOffsetY(1, 5) - stackedOffsetY(0, 5)).toBe(LAYER_HEIGHT + LAYER_GAP);
+    expect(stackedOffsetY(4, 5) - stackedOffsetY(3, 5)).toBe(LAYER_HEIGHT + LAYER_GAP);
+  });
+
+  it('奇数层时中间层正好落在容器中心', () => {
+    expect(stackedOffsetY(1, 3)).toBe(0);
   });
 });
