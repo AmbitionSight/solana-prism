@@ -206,19 +206,40 @@ feat(config): verification placeholders with tests                <- RED 已见
 
 ## 3. 门禁清单
 
-### CHECKPOINT 1
-- [ ] `npm test` 全绿（geometry + steps，且都见过 RED）
-- [ ] `npm run build` 无 TS 错误
-- [ ] 两段式评审通过（规格符合度 / 代码质量）
-- [ ] 铁律自查：无 CSS 手写像素、无 DOM 拆分
+### CHECKPOINT 1 — ✅ PASS
+- [x] `npm test` 全绿（geometry + steps，且都见过 RED）
+- [x] `npm run build` 无 TS 错误
+- [x] 两段式评审通过（子代理独立复核，押 SHA `de7f590`）
+- [x] 铁律自查：无 CSS 手写像素、无 DOM 拆分
 
-### CHECKPOINT 2
-- [ ] 完整流程 1→6 无刷新跑通两遍
-- [ ] 交易卡片 ✗（ADMIN 签名缺席）一眼可见
-- [ ] 全站 easing 均为 `--ease-apple`，无 console 报错
-- [ ] `npm test` 全绿
-- [ ] 两段式评审通过
-- [ ] 截图或本地 URL 可交付给你做人眼验收
+评审给出 0 Critical、2 Major、7 Minor。Major 两条均为**文档/契约债**而非代码缺陷，已全部处理：
+- **M1（拦停坐标矛盾）** → 见 GAP-5 的 `IMPACT_Y` 行；评审独立复核确认"计划公式 200 落在 L3 区间 [144,208] 内 56px，视觉上等于攻击穿过了安全层"，并实测实现版本圆点峰值恰好 136.0、从不触及 144。
+- **M2（新增 API 未回写文档）** → 本文件新增 GAP-5 小节补齐签名与语义。
+- Minor 中 `stackHeight(0)` 返回 -8、`blockedY` 的字面量 8、缺 `engines` 等已一并修掉并补测试。
+
+### CHECKPOINT 2 — ✅ PASS（首轮 FAIL，已修复后重验）
+- [x] 完整流程 1→6 无刷新跑通两遍（harness 第二遍与第一遍逐字节相同）
+- [x] 交易卡片 ✗（ADMIN 签名缺席）一眼可见，且带 `aria-label="signature absent"`
+- [x] 全站 easing 均为 `--ease-apple`（全库仅 1 处 `cubic-bezier`），console 干净
+- [x] `npm test` 全绿（48 个）
+- [x] 两段式评审通过（子代理押 SHA `851d563`，用 CDP 实测 + 变异测试）
+- [x] 截图（`docs/screenshots/contact-sheet.png`）可交付给你做人眼验收
+
+**首轮评审结论为 `FAIL (2 critical)`，两条都是"验证层"而非产品缺陷**，已全部修复：
+
+| # | 问题 | 修复 |
+|---|---|---|
+| C1 | 控制台错误门禁**永远不会失败**：`window.__xrayErrors` 全库无人赋值，`connect()` 又丢弃所有事件消息。评审同时实测到真实报错（favicon 404）| harness 改为在 `connect()` 内收集 `Runtime.consoleAPICalled` / `Runtime.exceptionThrown` / `Log.entryAdded`；`index.html` 加内联空图标消除 404。**已用"故意 `console.error` → 门禁 FAIL → 撤回"证明该门禁确实会失败** |
+| C2 | `'结束时淡出'` 是假绿：`toContain('opacity:0')` 被 0% 帧满足 | 改为解析关键帧、断言**最后一帧**；并新增 `opacityAt()`（含 CSS 插值语义）断言两次撞击时仍为 1 |
+| M1 | 修复版两条弹跳是**幽灵**：opacity 从 6% 一路插值到 100%，实测第一次撞击时只有 0.207 | 在 88% 处重申 `opacity:1`，只在最后一次弹跳后淡出。**已用变异测试证明新断言会失败（算出 0.5106）** |
+| M2 | `prefers-reduced-motion` 下第 1、2 步**整屏空白**（动画瞬间结束 + `fill-mode:both` 钉在 opacity:0 的末帧）| 在 reduced-motion 块内单独覆写这三个选择器为 `animation:none; opacity:1`（不能用一刀切 `animation:none`，否则 `.code-card__line` 基线 opacity:0 永远不可见）。**已用 `Emulation.setEmulatedMedia` 实测两步 opacity 均为 1** |
+| M3 | harness 用绝对 sleep，违反本项目调试协议 §I，并制造了 2 次假失败 | 改为**全部条件等待**（`wait` 谓词 + `at` 仅作超时上限），每次截图记录实测到的 step/mode |
+| M4 | 6 处装饰性手写像素位移（±10/-6/4/8/-1px）与铁律 2 字面冲突 | 全部提为 `--nudge-*` / `--scale-enter` 令牌 |
+| M5 | Execute 在 `done` 后永久禁用，只能靠 Replay 逃出 | 改为 `attackState === 'showing-tx' \|\| 'running'` 时才禁用 |
+| M6 | 铁律 2 **未被机器校验**（评审用变异测试证明：硬编码但数值正确可通过）| 新增 `no-hardcoded-pixels.test.ts`：读取 CSS 与 `keyframes.ts` 源码，transform 内出现 px 字面量即失败。该守卫当场抓出 `box-shadow` 的 `6px` 扩散半径 → 提为 `--ring-spread` |
+| m1-m9 | 死类 `.attacking`/`.attack-dot--*`、死令牌 `--duration-slow`、死类 `.placeholder`、多余 export、`TOTAL_STEPS` 重复、footer 预留不足 19px、`{'\n'}` 冗余、`aria-controls` 缺失、无 favicon、对比度 | 逐条修掉；`--color-text-tertiary`(2.57:1) 只留给装饰性文字并在令牌处写明，`--color-syntax-comment` 提到 #6E6E73 (5.1:1) |
+
+harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 harness 互相劫持对方浏览器）、等待进程树退出后再删 profile（原先 8 个临时目录泄漏）、CDP 每条命令加超时。
 
 ---
 
