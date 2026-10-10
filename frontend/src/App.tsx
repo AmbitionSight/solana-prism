@@ -213,6 +213,9 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setPayload(null);
     setChainResult(null);
     setDotLanded(false);
+    // A real run replaces whatever the animated path last said: the stale
+    // "nothing to attack" sentence belongs to the demo target, not to this run.
+    setDemoBlocked(null);
 
     void executeChainRun(
       {
@@ -231,6 +234,10 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
         onTarget: (target) => {
           if (stale()) return;
           setPayload({
+            // The program this run actually called: the selected build, fixed
+            // or vulnerable. `ChainTarget` carries it, so the card names the
+            // address the transaction did rather than borrowing the demo's.
+            programId: target.programId.toBase58(),
             vault: target.vault.toBase58(),
             authority: target.authority.toBase58(),
             // `withdraw` declares no signer, so the only signature on this

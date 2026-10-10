@@ -48,6 +48,7 @@ interface SignatureRow {
  * payer's — which is exactly why a visitor can run the real attack alone.
  */
 export interface TxPayload {
+  programId: string;
   vault: string;
   authority: string;
   signer: string;
@@ -67,13 +68,15 @@ const ANIMATED_SIGNATURES: SignatureRow[] = [
  * nothing honest to name, so the caller gets null and renders no rows rather
  * than a placeholder.
  *
- * The program row is only added for `demoTarget`: `TxPayload` has no program id,
- * and the demo target's is always the vulnerable build, whereas a real run can
- * be against the fixed build — borrowing the wrong one would be a lie.
+ * The program row is present on both paths: a real run's payload carries the
+ * program it actually called — the selected build, fixed or vulnerable — so the
+ * row names the same address the transaction did. There is no borrowing: each
+ * source supplies its own program id.
  */
 function accountsFor(payload?: TxPayload, demoTarget?: DemoTarget): AccountRow[] | null {
   if (payload) {
     return [
+      { field: 'program', value: elide(payload.programId), noteKey: 'txNoteProgram' },
       { field: 'vault', value: elide(payload.vault), noteKey: 'txNoteVaultTarget' },
       {
         field: 'authority',

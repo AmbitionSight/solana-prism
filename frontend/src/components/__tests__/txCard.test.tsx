@@ -16,8 +16,14 @@ import { baselines, render } from './harness';
 const VAULT = '7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2';
 const ADMIN = 'ECnXMpRNVhdxbDHTSpjGxEboNUbcipydCBsw6xRjN4VU';
 const SIGNER = '9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq';
+const PROGRAM = 'ProGxYq3kLm9vN2wB7cF4dH5jR8tS6uE1aZmA';
 
-const payload: TxPayload = { vault: VAULT, authority: ADMIN, signer: SIGNER };
+const payload: TxPayload = {
+  programId: PROGRAM,
+  vault: VAULT,
+  authority: ADMIN,
+  signer: SIGNER,
+};
 
 describe('TxCard — 缺省渲染不再编造地址', () => {
   it('markup 与基线完全相同', () => {
@@ -61,6 +67,11 @@ describe('TxCard — 有真实 payload 时', () => {
 
   it('签名的是访客钱包自己的地址', () => {
     expect(html).toContain('9CFb…ayPq');
+  });
+
+  it('program 行来自这一次真实运行的 programId, 而不是省略', () => {
+    expect(html).toContain(elide(PROGRAM));
+    expect(html).toContain(MESSAGES.en.txNoteProgram);
   });
 
   it('ADMIN 依旧没有签名 —— 这正是演示的论点', () => {
