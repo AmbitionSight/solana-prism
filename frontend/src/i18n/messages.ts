@@ -68,21 +68,22 @@ export interface Messages {
   sayStateChange: string;
 
   /* Stage 4's comparison, spelled out. The stage holds two values against each
-     other, so it renders as two labelled rows and their result. That the two
-     rows carry the *same* address is the point, not a duplication to fix — the
-     attacker supplied the admin's real public address, which is exactly why the
-     check passes.
+     other, so it renders as two labelled rows — the vault's stored authority,
+     which is a real address, and the caller's supplied address, which is left
+     blank until the attack fills it. Showing the same address on both lines
+     would give the answer away, so the second row is a slot waiting to be
+     filled.
 
-     Only the labels and the result are copy. The address itself is config
-     (`VERIFICATION.adminPubkey`) and is elided for display; writing it into the
-     catalogue would put a value that changes on redeploy into a translated
-     string. "From" labels name the stage each value came from (S0 wrote it,
-     S2 supplied it). */
+     Only the labels and the two notes are copy. The one address that exists is
+     config (`VERIFICATION.adminPubkey`) and is elided for display; writing it
+     into the catalogue would put a value that changes on redeploy into a
+     translated string. The first note is a back-reference (S0 wrote it in); the
+     second is a fact about the platform, not a back-reference — on Solana the
+     caller supplies this and nothing checks who they are. */
   compareStored: string;
   compareStoredFrom: string;
   compareSupplied: string;
-  compareSuppliedFrom: string;
-  compareResult: string;
+  compareSuppliedNote: string;
 
   /* Stage 3's badge — the flaw, stated plainly */
   badgeNoSignerRequired: string;
@@ -214,14 +215,13 @@ export const MESSAGES: Record<Language, Messages> = {
     sayCall: 'Someone calls the contract, asking for 500.',
     sayHandOver: 'They hand over two accounts.',
     sayDeclaration: 'The runtime checks the declaration — which asks for nothing.',
-    sayCompare: 'The program compares the address itself.',
+    sayCompare: 'The program compares two addresses.',
     sayStateChange: 'The balance is reduced by 500.',
 
     compareStored: 'stored in the vault',
-    compareStoredFrom: 'S0 wrote it in',
-    compareSupplied: 'he supplied',
-    compareSuppliedFrom: 'S2 handed it over',
-    compareResult: 'same → the comparison passes',
+    compareStoredFrom: 'written in when the vault was created',
+    compareSupplied: 'the caller fills in',
+    compareSuppliedNote: 'on Solana, anyone may put anything here',
 
     badgeNoSignerRequired: 'No signature required',
     badgeSignerRequired: 'Signature required',
@@ -315,14 +315,13 @@ export const MESSAGES: Record<Language, Messages> = {
     sayCall: '有人调用合约，要取 500。',
     sayHandOver: '他交出了两个账户。',
     sayDeclaration: '运行时代合约检查声明 —— 声明里什么都没要求。',
-    sayCompare: '合约代码自己比对地址。',
+    sayCompare: '合约代码比对两个地址。',
     sayStateChange: '余额被减掉 500。',
 
     compareStored: '合约里存着的',
-    compareStoredFrom: '第 ⓪ 步管理员写进去的',
-    compareSupplied: '他这次填的',
-    compareSuppliedFrom: '第 ② 步他交出来的',
-    compareResult: '一样 → 比对通过',
+    compareStoredFrom: '建金库时写进去的',
+    compareSupplied: '调用者填的',
+    compareSuppliedNote: 'Solana 上谁都能填，没人核对',
 
     badgeNoSignerRequired: '未要求签名',
     badgeSignerRequired: '要求签名',

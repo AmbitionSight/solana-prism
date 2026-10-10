@@ -172,8 +172,8 @@
 /* ---------- Stage 4's comparison ---------- */
 
 /* The compare card carries more than a sentence and a code line — two labelled
-   values and the result of holding them together — so it sizes to its content
-   instead of clipping. It stays centred on the flow's slot, and the flow's pitch
+   rows, one of them a blank slot — so it sizes to its content instead of
+   clipping. It stays centred on the flow's slot, and the flow's pitch
    (LAYER_HEIGHT + LAYER_GAP) leaves room for the extra height: the extra is far
    smaller than the gap, so the node above and the node below are never touched. */
 .layer-card--compare {
@@ -209,7 +209,20 @@
   font-size: 13px;
 }
 
-/* Where each value came from — S0 wrote it in, S2 handed it over. This is the
+/* The caller's side, deliberately empty. Drawn as a dashed slot rather than
+   left as whitespace, so it reads as a field waiting to be filled — an input —
+   and not as a value that went missing. Dashed, in the border token, matching
+   the empty width of the elided address opposite it; the attack page fills it
+   in. */
+.layer-card__compare-value--blank {
+  width: 72px;
+  height: 1.05em;
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+}
+
+/* The note beside each value. The first names where the vault's address came
+   from (S0 wrote it in); the second is a fact about the platform. This is the
    line that makes the flow legible, so it is secondary text (5.0:1), not the
    tertiary tone reserved for decoration. */
 .layer-card__compare-from {
@@ -217,22 +230,6 @@
   font-family: var(--font-sans);
   font-size: 11px;
   color: var(--color-text-secondary);
-}
-
-/* The rule stands in for the `==` the code line below spells out: it is the
-   thing the result is the result *of*, not a divider between sections. */
-.layer-card__compare-rule {
-  width: 132px;
-  height: 1px;
-  margin: 2px 0;
-  background: var(--color-border);
-}
-
-.layer-card__compare-result {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-success);
 }
 
 /* Stage names only earn their place once the flow has settled.

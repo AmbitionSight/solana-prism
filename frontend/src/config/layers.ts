@@ -36,21 +36,27 @@ import type { LayerNameKey, MessageKey } from '../i18n/messages';
  * with a sentence and one code line — only stage 4.
  *
  * Deliberately a description rather than the values: it carries the catalogue
- * keys for the two labels, the two back-references and the result, while the
- * address itself stays where every other address in the demo lives
+ * keys for the two labels and the two notes, while the one address that exists
+ * stays where every other address in the demo lives
  * (`VERIFICATION.adminPubkey`), elided at render. A literal address here would
  * be as stale as one written into the copy.
+ *
+ * There is no result key. The caller's side is blank on this page, so the
+ * comparison has no outcome to show yet; the result arrives with the attack,
+ * when the second slot is actually filled.
  */
 export interface ComparisonSpec {
   /** Label for the value the vault stored (written at S0). */
   storedKey: MessageKey;
   /** Where that value came from — the stage that wrote it. */
   storedFromKey: MessageKey;
-  /** Label for the value supplied with this call (handed over at S2). */
+  /** Label for the value the caller supplies with this call. */
   suppliedKey: MessageKey;
-  suppliedFromKey: MessageKey;
-  /** The comparison's own result — not a general verdict on the attack. */
-  resultKey: MessageKey;
+  /**
+   * A fact about the platform, not a back-reference: on Solana the caller
+   * supplies this value and nothing checks who they are.
+   */
+  suppliedNoteKey: MessageKey;
 }
 
 export interface ContractLayer {
@@ -141,15 +147,15 @@ export const VAULT_LAYERS: ContractLayer[] = [
     sayKey: 'sayCompare',
     code: 'require!(vault.authority == authority.key())',
     // The only stage that shows *what* is compared: the vault's stored
-    // authority against the address this call handed over. Both sides are the
-    // same address — the admin's real one, public input the attacker supplied —
-    // and that is why the check passes rather than a sign it works.
+    // authority against the address this call hands over. Only the vault's side
+    // has a value here; the caller's side is left blank, because on Solana the
+    // caller supplies it and nothing checks who they are. Filling that blank is
+    // the attack, and the attack is a later page.
     compare: {
       storedKey: 'compareStored',
       storedFromKey: 'compareStoredFrom',
       suppliedKey: 'compareSupplied',
-      suppliedFromKey: 'compareSuppliedFrom',
-      resultKey: 'compareResult',
+      suppliedNoteKey: 'compareSuppliedNote',
     },
     isSecurityLayer: false,
     broken: false,
