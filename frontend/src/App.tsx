@@ -76,9 +76,6 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
    */
   const [flowSettled, setFlowSettled] = useState(false);
   const [attackState, setAttackState] = useState<AttackState>('idle');
-  /** Bumped on replay so the auto-advance timers restart from step 1. */
-  const [runId, setRunId] = useState(0);
-
   /**
    * The wallet, detected once and held here rather than inside the button: the
    * real-run layer needs the same provider to sign with, and two detections
@@ -124,7 +121,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
       if (next !== null) setStep(next);
     }, delay);
     return () => window.clearTimeout(id);
-  }, [step, runId]);
+  }, [step]);
 
   // Page 4's decomposition happens in place: the cards first land on the page-2
   // code boxes, then fly apart, then settle into the flow. The scatter is not a
@@ -304,14 +301,6 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setDotLanded(true);
   }, []);
 
-  const replay = useCallback(() => {
-    setStep(1);
-    setFlowSettled(false);
-    setAttackState('idle');
-    setRunId((id) => id + 1);
-    clearRealRun();
-  }, [clearRealRun]);
-
   /**
    * Run the real attack with the visitor's own wallet.
    *
@@ -454,12 +443,6 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     // the DOM for text that is no longer rendered.
     <div className="app" data-step={step}>
       <div className="top-controls">
-        {/* The shortcut, stated once so it is discoverable — a keyboard
-            affordance nobody is told about does not exist. Quiet on purpose. */}
-        <span className="key-hint">{t.keyHint}</span>
-        <button type="button" className="replay-btn" onClick={replay}>
-          {t.replay}
-        </button>
         <WalletButton
           provider={provider}
           address={walletAddress}

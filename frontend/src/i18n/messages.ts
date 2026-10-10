@@ -97,10 +97,7 @@ export interface Messages {
   badgeSignerRequired: string;
 
   /* Controls */
-  replay: string;
   execute: string;
-  /** The arrow-key affordance, shown quietly in the page chrome. */
-  keyHint: string;
   versionVulnerable: string;
   versionFixed: string;
   ariaLanguage: string;
@@ -312,9 +309,7 @@ export const MESSAGES: Record<Language, Messages> = {
     badgeNoSignerRequired: 'No signature required',
     badgeSignerRequired: 'Signature required',
 
-    replay: 'Replay',
     execute: 'Execute',
-    keyHint: '↑ ↓ to move between pages',
     versionVulnerable: 'Vulnerable',
     versionFixed: 'Fixed',
     ariaLanguage: 'Language',
@@ -483,9 +478,7 @@ export const MESSAGES: Record<Language, Messages> = {
     badgeNoSignerRequired: '未要求签名',
     badgeSignerRequired: '要求签名',
 
-    replay: '重播',
     execute: '执行攻击',
-    keyHint: '↑ ↓ 翻页',
     versionVulnerable: '漏洞版',
     versionFixed: '修复版',
     ariaLanguage: '语言',
