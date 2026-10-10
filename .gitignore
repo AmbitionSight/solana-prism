@@ -39,3 +39,7 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# ---------- Session notes (never commit) ----------
+# Carries build-machine credentials; must never be staged.
+.workbuddy/
