@@ -13,8 +13,6 @@
  * both true.
  */
 
-import type { MessageKey } from '../i18n/messages';
-
 /** The file, line for line, with no trailing newline entry. */
 export const CONTRACT_LINES: string[] = [
   '//! prism_vulnerable — the build the demo attacks.',
@@ -84,20 +82,23 @@ export const CONTRACT_LINES: string[] = [
 ];
 
 /**
- * Which lines become which stage, in SOURCE order — the boxes sweep down the
- * listing the way you read it, and the stage numbers on the labels are what
- * shows the reordering (2, 3, 1, 4, 5).
+ * Which lines become which stage, ascending by line number — the boxes sweep
+ * down the listing the way you read it, and the stage numbers on the labels are
+ * what shows the reordering: read top to bottom, the stages come out 1, 4, 5,
+ * 2, 3. The accounts struct sits at the bottom of the file, yet its stages are
+ * the second and third to execute — so the declaration is the last thing you
+ * read and the third thing that happens. That gap is the reveal.
  *
  * Indices are into CONTRACT_LINES and were taken from the real file, not
  * adjusted to fit: the previous listing was an excerpt, so every one of these
  * numbers moved when the excerpt became the whole file.
  */
 export const CONTRACT_REGIONS: { stageId: string; from: number; to: number }[] = [
-  { stageId: 'S2', from: 51, to: 54 },
-  { stageId: 'S3', from: 55, to: 56 },
   { stageId: 'S1', from: 29, to: 29 },
   { stageId: 'S4', from: 31, to: 35 },
   { stageId: 'S5', from: 36, to: 36 },
+  { stageId: 'S2', from: 51, to: 54 },
+  { stageId: 'S3', from: 55, to: 56 },
 ];
 
 /**
@@ -106,11 +107,21 @@ export const CONTRACT_REGIONS: { stageId: string; from: number; to: number }[] =
  * Beside the code rather than inside it: the listing has to stay byte-identical
  * to the deployed file, and a Chinese comment inside it would end that the
  * moment the file was rebuilt.
+ *
+ * `match` pins each note to its line's content, so a note cannot drift onto the
+ * wrong line without a test going red.
  */
-export const MARGIN_NOTES: { line: number; key: MessageKey }[] = [
-  { line: 16, key: 'noteDeclareId' },
-  { line: 51, key: 'noteStructNotSigner' },
-  { line: 29, key: 'noteHandlerRequires' },
-  { line: 56, key: 'noteTheBug' },
-  { line: 36, key: 'noteStateChange' },
+export type MarginNoteKey =
+  | 'noteDeclareId'
+  | 'noteStructNotSigner'
+  | 'noteHandlerRequires'
+  | 'noteTheBug'
+  | 'noteStateChange';
+
+export const MARGIN_NOTES: { line: number; key: MarginNoteKey; match: string }[] = [
+  { line: 16, key: 'noteDeclareId', match: 'declare_id!' },
+  { line: 29, key: 'noteHandlerRequires', match: 'pub fn withdraw' },
+  { line: 36, key: 'noteStateChange', match: 'vault.balance -= amount' },
+  { line: 52, key: 'noteStructNotSigner', match: 'pub struct Withdraw' },
+  { line: 56, key: 'noteTheBug', match: "AccountInfo<'info>," },
 ];

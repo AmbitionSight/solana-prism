@@ -35,7 +35,7 @@ describe('contractSource — 阶段区域落在正确的行上', () => {
   const textOf = (from: number, to: number) => CONTRACT_LINES.slice(from, to + 1).join('\n');
 
   it('五个区域，按源码顺序排列', () => {
-    expect(CONTRACT_REGIONS.map((r) => r.stageId)).toEqual(['S2', 'S3', 'S1', 'S4', 'S5']);
+    expect(CONTRACT_REGIONS.map((r) => r.stageId)).toEqual(['S1', 'S4', 'S5', 'S2', 'S3']);
   });
 
   it('每个区域框住的确实是那一阶段的代码', () => {
@@ -58,6 +58,18 @@ describe('contractSource — 阶段区域落在正确的行上', () => {
       expect(region.to).toBeLessThan(CONTRACT_LINES.length);
     }
   });
+
+  /**
+   * The stage ids in CONTRACT_REGIONS are a closed set that has to match the
+   * layers the rest of the demo is built from. The other tests hardcode the
+   * literals, so a rename in layers.ts would not move them; this one reads the
+   * ids from their source.
+   */
+  it('阶段 id 与 VAULT_LAYERS 完全对齐', () => {
+    expect([...CONTRACT_REGIONS.map((r) => r.stageId)].sort()).toEqual(
+      [...VAULT_LAYERS.map((l) => l.id)].sort(),
+    );
+  });
 });
 
 describe('contractSource — 中文旁注', () => {
@@ -65,6 +77,9 @@ describe('contractSource — 中文旁注', () => {
     for (const note of MARGIN_NOTES) {
       expect(note.line, `line ${note.line} 越界`).toBeLessThan(CONTRACT_LINES.length);
       expect(CONTRACT_LINES[note.line].trim().length, `line ${note.line} 是空行`).toBeGreaterThan(0);
+      // The note's `match` pins it to its line's content: without this, a line
+      // shift would let a note annotate the wrong code in silence.
+      expect(CONTRACT_LINES[note.line], `line ${note.line} 与 match 不符`).toContain(note.match);
     }
   });
 
@@ -78,17 +93,5 @@ describe('contractSource — 中文旁注', () => {
       expect(MESSAGES.en[note.key].trim().length).toBeGreaterThan(0);
       expect(MESSAGES.zh[note.key].trim().length).toBeGreaterThan(0);
     }
-  });
-
-  /**
-   * The stage ids in CONTRACT_REGIONS are a closed set that has to match the
-   * layers the rest of the demo is built from. The other tests hardcode the
-   * literals, so a rename in layers.ts would not move them; this one reads the
-   * ids from their source.
-   */
-  it('阶段 id 与 VAULT_LAYERS 完全对齐', () => {
-    expect([...CONTRACT_REGIONS.map((r) => r.stageId)].sort()).toEqual(
-      [...VAULT_LAYERS.map((l) => l.id)].sort(),
-    );
   });
 });
