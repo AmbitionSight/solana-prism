@@ -44,30 +44,38 @@ export default function RetryRefused() {
 
   return (
     <section className="retry" data-testid="retry">
-      <h2 className="page-intro__title">{t.retryTitle}</h2>
-      <p className="page-intro__body">{t.retryNote}</p>
+      {/* Copy and table side by side rather than stacked: together they are the
+          tallest footer any page carries, and stacked they pushed page 9 past
+          the fold. Read left then right, the same order as stacked. */}
+      <div className="retry__grid">
+        <div className="retry__copy">
+          <h2 className="page-intro__title">{t.retryTitle}</h2>
+          <p className="page-intro__body">{t.retryNote}</p>
+          <p className="page-intro__lede retry__conclusion">{t.retryConclusion}</p>
+        </div>
 
-      <h3 className="page-intro__heading">{t.retryTableHeading}</h3>
-      <table className="cmp-table">
-        <thead>
-          <tr>
-            <th />
-            <th>{t.versionVulnerable}</th>
-            <th>{t.versionFixed}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ROWS.map((row) => (
-            <tr key={row.labelKey}>
-              <td>{t[row.labelKey]}</td>
-              <td>{t[row.vulnKey]}</td>
-              <td>{t[row.fixedKey]}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <p className="page-intro__lede retry__conclusion">{t.retryConclusion}</p>
+        <div className="retry__table">
+          <h3 className="page-intro__heading">{t.retryTableHeading}</h3>
+          <table className="cmp-table">
+            <thead>
+              <tr>
+                <th />
+                <th>{t.versionVulnerable}</th>
+                <th>{t.versionFixed}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ROWS.map((row) => (
+                <tr key={row.labelKey}>
+                  <td>{t[row.labelKey]}</td>
+                  <td>{t[row.vulnKey]}</td>
+                  <td>{t[row.fixedKey]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
   );
 }

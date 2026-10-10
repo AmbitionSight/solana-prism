@@ -1,16 +1,24 @@
 /**
  * contractSource.ts — the deployed contract, verbatim.
  *
- * Not a paraphrase and not an excerpt: this is the file `anchor build` compiled
- * and `solana program deploy` put on testnet. `contractSource.test.ts` pins it
- * line for line to `public/source/prism_vulnerable.rs.txt`, which is itself
- * guarded byte-for-byte against `contract/` — so the text on screen and the
- * text the closing note links to cannot drift apart from what was deployed.
+ * This is the file `anchor build` compiled and `solana program deploy` put on
+ * testnet. `contractSource.test.ts` pins CONTRACT_LINES line for line to
+ * `public/source/prism_vulnerable.rs.txt`, which is itself guarded byte-for-byte
+ * against `contract/` — so every line the demo can show, and the text the
+ * closing note links to, cannot drift apart from what was deployed.
  *
  * Because it is verbatim, its comments are English: they are the file's own.
  * Chinese explanation lives in MARGIN_NOTES, beside the code rather than inside
- * it, so that "this is the real file" and "a Chinese reader can follow it" are
- * both true.
+ * it, so that "these are the real lines" and "a Chinese reader can follow it"
+ * are both true.
+ *
+ * Page 2 shows an EXCERPT of this file, not all 64 lines: at a readable size 64
+ * lines do not fit a 1280x820 viewport, and the demo is paged, not scrolled.
+ * CONTRACT_EXCERPT names the ranges shown; every shown line is still this
+ * file's own text, character for character, and the page labels the omission on
+ * screen (see messages.ts `excerptScope` / `excerptElided`) so it never quietly
+ * claims to be the whole file. The whole file is still linked, verbatim, from
+ * the closing note.
  */
 
 /** The file, line for line, with no trailing newline entry. */
@@ -104,6 +112,27 @@ export const CONTRACT_REGIONS: { stageId: string; from: number; to: number }[] =
   { stageId: 'S5', from: 36, to: 36 },
   { stageId: 'S2', from: 51, to: 54 },
   { stageId: 'S3', from: 55, to: 56 },
+];
+
+/**
+ * The ranges page 2 shows, as indices into CONTRACT_LINES. Everything outside
+ * them is elided on screen and marked as such.
+ *
+ * Two runs, chosen so that no stage region is split and the file's reading order
+ * survives: the `#[program]` module with `initialize` and `withdraw` (which
+ * carries stages S0, S1, S4 and S5), then the `Withdraw` accounts struct (S2 and
+ * S3, the declaration the whole lesson turns on). Between and around them the
+ * page prints "N lines elided", so a reader can tell they are reading sections
+ * of a longer file rather than the entire thing.
+ *
+ * The leading run starts at 18 rather than at the top of the file: the crate
+ * header comment and `declare_id!` above it are context, not the fault, and
+ * including them is what pushed the listing past the fold. Lines 0-17 are marked
+ * elided, not hidden.
+ */
+export const CONTRACT_EXCERPT: { from: number; to: number }[] = [
+  { from: 18, to: 38 },
+  { from: 50, to: 57 },
 ];
 
 /**

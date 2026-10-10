@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CONTRACT_LINES, CONTRACT_REGIONS, MARGIN_NOTES } from '../contractSource';
+import { CONTRACT_EXCERPT, CONTRACT_LINES, CONTRACT_REGIONS, MARGIN_NOTES } from '../contractSource';
 import { MESSAGES } from '../../i18n/messages';
 import { VAULT_LAYERS } from '../../config/layers';
 import { VERIFICATION } from '../../config/verification';
@@ -89,6 +89,39 @@ describe('contractSource — 阶段区域落在正确的行上', () => {
     expect([...CONTRACT_REGIONS.map((r) => r.stageId)].sort()).toEqual(
       [...VAULT_LAYERS.map((l) => l.id)].sort(),
     );
+  });
+});
+
+describe('contractSource — 展示的是节选, 但每一行仍是原文', () => {
+  it('确实只展示一部分 —— 有整行被省略', () => {
+    // If this ever became the whole file the excerpt would be harmless, but the
+    // page copy says "key sections"; a change back to the full listing has to
+    // update both this and that copy deliberately.
+    const shown = CONTRACT_EXCERPT.reduce((sum, r) => sum + (r.to - r.from + 1), 0);
+    expect(shown).toBeLessThan(CONTRACT_LINES.length);
+    expect(shown).toBeGreaterThan(0);
+  });
+
+  it('每个省段都在文件范围内, 且按顺序、不重叠', () => {
+    for (const range of CONTRACT_EXCERPT) {
+      expect(range.from).toBeGreaterThanOrEqual(0);
+      expect(range.to).toBeLessThan(CONTRACT_LINES.length);
+      expect(range.to).toBeGreaterThanOrEqual(range.from);
+    }
+    for (let i = 1; i < CONTRACT_EXCERPT.length; i += 1) {
+      expect(CONTRACT_EXCERPT[i].from).toBeGreaterThan(CONTRACT_EXCERPT[i - 1].to);
+    }
+  });
+
+  it('展示的部分把全部六个阶段都含进来 —— 一个都没被省掉', () => {
+    // The excerpt is allowed to drop context, but never a stage: the mapping in
+    // step 2 would break and the lesson would lose its point.
+    for (const region of CONTRACT_REGIONS) {
+      const covered = CONTRACT_EXCERPT.some(
+        (range) => range.from <= region.from && range.to >= region.to,
+      );
+      expect(covered, `${region.stageId} 被省掉了`).toBe(true);
+    }
   });
 });
 

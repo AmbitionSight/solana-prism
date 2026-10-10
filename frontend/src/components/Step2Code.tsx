@@ -20,16 +20,23 @@ interface Step2CodeProps {
 }
 
 /**
- * Step 2 — the deployed contract, verbatim, highlighted line by line by our own
- * tokenizer.
+ * Step 2 — an excerpt of the deployed contract, highlighted line by line by our
+ * own tokenizer.
  *
- * The listing is the file `anchor build` compiled, not an excerpt of it: the
- * status bar above names the program and the chain it runs on, and the Chinese
- * margin notes sit *beside* the lines they explain rather than inside them, so
- * the code can stay byte-identical to what was deployed.
+ * The listing shows the file `anchor build` compiled, but not all of it: 64
+ * lines do not fit a 1280x820 viewport at a readable size, and the demo is
+ * paged, not scrolled. The ranges shown are CONTRACT_EXCERPT, and every line in
+ * them is the file's own text, character for character. What is left out is
+ * marked on screen — an elision line says how many lines are hidden — and the
+ * status bar says the listing is "key sections, shown verbatim", so the page
+ * never quietly claims to be the whole file. The whole file is still linked,
+ * verbatim, from the closing note on the attack page.
+ *
+ * The Chinese margin notes sit *beside* the lines they explain rather than
+ * inside them, so the shown lines stay byte-identical to what was deployed.
  *
  * Halfway through the step, each region of the listing is boxed and labelled
- * with the stage it becomes. Without that, the five cards in step 3 arrive from
+ * with the stage it becomes. Without that, the cards in step 3 arrive from
  * nowhere; with it, the decomposition is just the boxes flying apart.
  */
 export default function Step2Code({ onRegionRects }: Step2CodeProps) {
@@ -94,10 +101,31 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
         <span className="contract-status__id">{VERIFICATION.vulnerableProgramId}</span>
         <span className="contract-status__live">{formatCluster(t.contractLive)}</span>
       </div>
+      {/* What is on screen, stated on the page: this is sections of the file,
+          not the whole file. Without it the elision markers below would be the
+          only clue, and "the deployed contract" would read as "all of it". */}
+      <p className="contract-scope" data-testid="contract-scope">
+        {t.excerptScope}
+      </p>
 
       <pre className="code-card" ref={cardRef}>
         <code>
           {blocks.map((block) => {
+            // A gap in the excerpt: print how many lines are missing rather than
+            // let the code jump, so the excerpt reads as an excerpt.
+            if (block.kind === 'elision') {
+              return (
+                <span
+                  className="code-card__line code-card__elision"
+                  key={`elide-${block.from}`}
+                  data-testid={`code-elision-${block.from}`}
+                  style={{ animationDelay: `${block.from * LINE_STAGGER_MS}ms` }}
+                >
+                  {t.excerptElided.replace('{n}', String(block.count))}
+                </span>
+              );
+            }
+
             const stage = block.stageId
               ? VAULT_LAYERS.find((layer) => layer.id === block.stageId)
               : undefined;

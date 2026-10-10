@@ -10,10 +10,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* The 72px pitch below is the layer pitch (LAYER_HEIGHT + LAYER_GAP) expressed
-     as page padding by coincidence, not by dependency. Layer geometry lives in
-     lib/geometry.ts. Kept tight so step 6's panel fits a laptop viewport. */
-  padding: 40px 24px;
+  /* Tight on purpose: every page has to fit a 1280x820 viewport with no scroll,
+     so the vertical padding is spent only where it is needed to keep the
+     top-controls off the content. Layer geometry lives in lib/geometry.ts. */
+  padding: 16px 24px;
 }
 
 /* ---------- Chrome ---------- */
@@ -93,7 +93,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 14px;
 }
 
 /* ---------- Step 1: title ---------- */
@@ -156,6 +156,16 @@
 .contract-status__name { font-weight: 600; color: var(--color-text); }
 .contract-status__live::before { content: '● '; color: var(--color-success); }
 
+/* Says the listing below is sections of the file, not the whole file. Quiet,
+   but present: it is the page's honesty, not a decoration. */
+.contract-scope {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 /* Margin notes: beside the line, never inside it. The listing is verbatim. */
 .code-card__note {
   display: block;
@@ -170,7 +180,7 @@
   margin: 0;
   width: 100%;
   max-width: 720px;
-  padding: 24px;
+  padding: 16px 20px;
   /* White, lifted off the tinted page. A code block tinted the same as the page
      would sit flush with it and stop reading as a card at all. */
   background: var(--color-bg);
@@ -178,10 +188,21 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.75;
+  /* Tighter than the old 14 / 1.75: the excerpt plus the status bar and its
+     scope line have to fit a 1280x820 viewport with no scroll. 12px mono at
+     1.5 still reads comfortably. */
+  font-size: 12px;
+  line-height: 1.5;
   /* No overflow clipping: the stage labels sit outside this box, to the right. */
   animation: code-card-out var(--step-duration, 9000ms) var(--ease-apple) both;
+}
+
+/* The marker standing in for a run of lines the excerpt leaves out. Muted and
+   inset, so it reads as a note about the file rather than as code. */
+.code-card__elision {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  padding: 2px 0;
 }
 
 /* The card dissolves right at the end of step 2, so the boxes are still crisp
@@ -210,9 +231,11 @@
   display: block;
   position: relative;
   /* Uniform padding on every block, mapped or not, so that boxing a region can
-     never shift its code sideways relative to the unboxed lines. */
+     never shift its code sideways relative to the unboxed lines. Kept to 1px
+     vertically because the excerpt has a dozen blocks and their padding alone
+     was eating the viewport the listing has to fit. */
   margin: 0 -10px;
-  padding: 3px 10px;
+  padding: 1px 10px;
   border: 1px solid transparent;
   border-radius: 8px;
 }
@@ -322,10 +345,12 @@
 }
 
 /* Tall enough to hold the controls *and* the result, so the stack never shifts
-   while the attack plays — a layout jump mid-animation reads as a glitch. */
+   while the attack plays — a layout jump mid-animation reads as a glitch.
+   Reserved from page 4, and kept just under the tallest thing that lands here
+   (page 9's two-column retry) so no page it appears on pushes past the fold. */
 .footer-slot {
   width: 100%;
-  min-height: 180px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -860,12 +885,12 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 10px;
+  gap: 6px;
   animation: rise-in var(--duration-normal) var(--ease-apple) both;
 }
 
 .page-intro__title {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -907,7 +932,7 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin: 10px 0;
+  margin: 4px 0;
   font-family: var(--font-mono);
   font-size: 15px;
 }
@@ -942,10 +967,10 @@
 .two-panes {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  gap: 14px;
   width: 100%;
   max-width: 720px;
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 @media (max-width: 720px) {
@@ -1070,6 +1095,52 @@
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* Page 9's footer, side by side: the copy in one column, the table in the
+   other. Stacked, the two together are the tallest thing any page puts below
+   the flow and push page 9 past the fold; as two columns the section is as tall
+   as its taller half. Collapses to one column when there is no room. */
+.retry__grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.retry__copy,
+.retry__table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.retry__copy {
+  text-align: left;
+}
+
+/* Tighter than the shared table: in a half-width column the cells wrap, and at
+   the shared size that wrapping alone was taller than the copy beside it. */
+.retry__table .cmp-table {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.retry__table .cmp-table th,
+.retry__table .cmp-table td {
+  padding: 5px 8px;
+}
+
+.retry__copy .retry__conclusion {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+@media (max-width: 720px) {
+  .retry__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 

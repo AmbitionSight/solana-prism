@@ -204,14 +204,17 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
       if (next === null) return;
 
       // The arrow keys are the paging gesture here, and the demo is paged, not
-      // scrolled: a page taller than the viewport must not slide out from under
-      // the move. Suppressing the default stops the browser's own arrow-key
-      // scroll from running at the same time as the page change — the two
-      // together read as a conflict. It is claimed here, on the one path where
-      // this handler actually acts: the guards above return early for a focused
-      // form control (a radio group still needs ↑/↓ for its options) and at the
-      // first/last page (a user scrolling an overflowing edge page keeps their
-      // scroll). Keys this handler does not act on are never swallowed.
+      // scrolled. Every page now fits the reference viewport, so on the default
+      // path there is nothing for the browser's own arrow-key scroll to move —
+      // but the suppression is kept as a guard, not an everyday event: it stops
+      // the key from scrolling if content ever overflows (a regression, a
+      // shorter window, or the opt-in post-attack reveal, which adds the closing
+      // note and the verify panel below the flow). Without it, the page change
+      // and a native scroll would run together and read as a conflict. It is
+      // claimed only on the path where this handler acts: the guards above
+      // return early for a focused form control (a radio group still needs ↑/↓
+      // for its options) and at the first/last page, so keys this handler does
+      // not act on are never swallowed.
       event.preventDefault();
 
       // Leaving a page takes the run with it — a chain answer that lands after

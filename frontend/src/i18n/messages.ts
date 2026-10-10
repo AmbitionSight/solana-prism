@@ -47,6 +47,14 @@ export interface Messages {
      `{cluster}` like the other sentences that name the chain. */
   contractLive: string;
 
+  /* Step 2 shows an excerpt of the deployed file, not the whole thing: 64 lines
+     do not fit a 1280x820 viewport at a readable size. These two say so on the
+     page — `excerptScope` names what is on screen, and `excerptElided` marks
+     each run of lines left out, templated with `{n}`. Neither may be dropped
+     without the page quietly claiming to be the whole file. */
+  excerptScope: string;
+  excerptElided: string;
+
   /* The six stages of one instruction, in execution order.
      In Chinese these render as "中文 English" — see bilingualName. */
   stageSetup: string;
@@ -286,6 +294,9 @@ export const MESSAGES: Record<Language, Messages> = {
 
     contractLive: 'running on {cluster}',
 
+    excerptScope: 'key sections, shown verbatim — elided lines are marked',
+    excerptElided: '… {n} lines elided …',
+
     stageSetup: 'Vault Setup',
     stageInstruction: 'Instruction',
     stageAccounts: 'Accounts',
@@ -454,6 +465,9 @@ export const MESSAGES: Record<Language, Messages> = {
     noteStateChange: '伤害落点：vault 账户里的一个 u64。',
 
     contractLive: '正在 {cluster} 上运行',
+
+    excerptScope: '关键段落，逐字照录 —— 省略的行已标出',
+    excerptElided: '… 省略 {n} 行 …',
 
     stageSetup: '金库建立',
     stageInstruction: '指令',

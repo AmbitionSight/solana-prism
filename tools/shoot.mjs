@@ -263,13 +263,17 @@ const PLAN = [
   // synthetic KeyboardEvent, so the browser's own default action for the arrow
   // key actually runs and the app's suppression of it is observable.
   //
-  // Pages 5 and 6 both show the flow and both overflow the viewport, so an
-  // unprevented ↓ would scroll the page as well as page it — the conflict this
-  // asserts away. Each step captures `scrollY` and the document's scrollability;
-  // the position must stay put across the press, and the page must be scrollable
-  // for that to mean anything. (Kept off pages 7-9 because the flow is hidden
-  // there and the pages fit the viewport, which would make the assertion
-  // vacuous.)
+  // This used to assert `scrollable=true`: pages 5 and 6 overflowed the
+  // viewport, so an unprevented ↓ would scroll as well as page, and the page
+  // had to be scrollable for "the position stayed put" to mean anything. That
+  // is no longer true — every page now fits the reference viewport, so the
+  // page is NOT scrollable and "the arrows did not scroll it" is vacuous on its
+  // own. Rather than delete the check or leave it claiming teeth it lacks, it is
+  // inverted into the invariant this work established: on pages 5 and 6 the
+  // document must not scroll at all (`scrollable=false`), and `scrollY` must be
+  // 0 across the key press. `scrollable=false` can still fail — it goes red the
+  // moment any of these pages regresses into overflowing the viewport, which is
+  // exactly the regression that made them draggable before.
   { wait: `__prism.step() === 6`, press: 'ArrowUp' },
   {
     wait: `__prism.step() === 5`,
@@ -280,7 +284,7 @@ const PLAN = [
         const scrollable = d.scrollHeight > window.innerHeight;
         return 'scrollY=' + window.scrollY + ' scrollable=' + scrollable;
       })()`,
-      contains: 'scrollY=0 scrollable=true',
+      contains: 'scrollY=0 scrollable=false',
     },
     shot: 'key-arrow-up-step5',
   },
@@ -294,7 +298,7 @@ const PLAN = [
         const scrollable = d.scrollHeight > window.innerHeight;
         return 'scrollY=' + window.scrollY + ' scrollable=' + scrollable;
       })()`,
-      contains: 'scrollY=0 scrollable=true',
+      contains: 'scrollY=0 scrollable=false',
     },
     shot: 'key-arrow-down-step6',
   },

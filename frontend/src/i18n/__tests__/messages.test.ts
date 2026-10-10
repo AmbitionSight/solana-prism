@@ -202,10 +202,16 @@ describe('messages — 链名来自配置, 不是写死的', () => {
   });
 
   it('没有残留的未填槽位', () => {
+    // Two deliberate slots: `{cluster}` (filled by formatCluster) and `{n}`
+    // (the elision count, filled by Step2Code when it prints the marker). Any
+    // other brace is a placeholder somebody forgot to interpolate.
+    const SLOTS = ['{cluster}', '{n}'];
     const unfilled: string[] = [];
     for (const language of LANGUAGES) {
       for (const [key, value] of Object.entries(MESSAGES[language])) {
-        if (value.includes('{') && !value.includes('{cluster}')) unfilled.push(`${language}.${key}`);
+        if (value.includes('{') && !SLOTS.some((slot) => value.includes(slot))) {
+          unfilled.push(`${language}.${key}`);
+        }
       }
     }
     expect(unfilled).toEqual([]);

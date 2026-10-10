@@ -20,9 +20,14 @@ import { useLanguage } from '../i18n/language';
  *
  * When `filled` is true (page 6 and page 9, after the attacker has supplied the
  * admin's public address) the caller's slot carries that same elided address and
- * the comparison states its result. The blank is never *silently* replaced: the
- * attribute changes from `empty` to `filled`, so a regression that fills it on
- * the wrong page is visible in the markup.
+ * the comparison states its result, trailing the supplied row in place of the
+ * platform note. The blank is never *silently* replaced: the attribute changes
+ * from `empty` to `filled`, so a regression that fills it on the wrong page is
+ * visible in the markup.
+ *
+ * The comparison is deliberately two rows in both states. The card sizes to its
+ * content, and the flow's pitch only clears a card of about that height; a third
+ * row would make stage 4 overlap its neighbours.
  *
  * The address is config, not copy: it comes from `VERIFICATION.adminPubkey` and
  * is elided for display, with the full value left in `title`. Only the labels
@@ -74,15 +79,18 @@ export default function AddressComparison({
             aria-hidden="true"
           />
         )}
-        <span className="layer-card__compare-from">{t[spec.suppliedNoteKey]}</span>
+        {/* The trailing note swaps once the slot is filled: on page 4 it is the
+            platform fact ("anyone may put anything here"); on the attack pages
+            the outcome takes its place, so the comparison stays two rows tall
+            and the card never outgrows the flow's pitch. The outcome exists only
+            once both sides hold a value, and its own element is absent on page 4
+            — nothing to conclude yet. */}
+        {filled ? (
+          <span className="layer-card__compare-result">{t[spec.resultKey]}</span>
+        ) : (
+          <span className="layer-card__compare-from">{t[spec.suppliedNoteKey]}</span>
+        )}
       </span>
-      {/* The outcome exists only once both sides hold a value; on page 4 there
-          is nothing to conclude and this row is absent entirely. */}
-      {filled && (
-        <span className="layer-card__compare-row layer-card__compare-result">
-          <span className="layer-card__compare-label">{t[spec.resultKey]}</span>
-        </span>
-      )}
     </span>
   );
 }

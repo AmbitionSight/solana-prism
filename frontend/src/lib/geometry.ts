@@ -12,23 +12,26 @@
  */
 
 /*
- * Both constants are read off docs/mockup/prism-flow.html — the design of record.
+ * The pitch was retuned so the whole six-node flow fits a 1280x820 viewport
+ * under the footer each page carries: at the old 96 + 26 the flow alone was
+ * 706px, which pushed pages 4, 5, 6 and 9 past the fold and made them scroll —
+ * the demo is paged, not scrolled, so that had to go.
  *
- * LAYER_HEIGHT = 96. The mockup's node is 28px of padding + a 2px border + three
- * stacked text blocks (an ~19px tag, an ~24px body and an ~26px note, with their
- * 6px margins): ~105px. Our node folds the body and its explanation onto the one
- * 64px row the card already had and adds only the tag above it — 64 + ~25 ≈ 89 —
- * so 96 leaves the bilingual name and badge room without clipping.
+ * LAYER_HEIGHT = 68. The card's intrinsic content is now ~39px (a 12px sentence,
+ * a 4px gap, and the id-plus-code row), so 68 leaves the sentence room to wrap
+ * to two lines on the longest English copy without clipping while keeping the
+ * six-card flow short enough to sit above a footer.
  *
- * LAYER_GAP = 26, the mockup's connector `.link` height (.link { height: 26px }).
- * The gap is what the connector line is drawn in, so it has to be tall enough to
- * read as a line rather than the nodes merely touching; 26px of clear space
- * between two 96px nodes does that. (The mockup's nodes are ~800px wide against
- * our 480px cards, but a connector's legibility is its pixel height, not a
- * fraction of the node width, so the 26px carries over unchanged.)
+ * LAYER_GAP = 16, the connector's clear space. Still tall enough for the 2px
+ * line to read as a link rather than the cards merely touching, and the pitch
+ * (68 + 16 = 84) still clears the tallest card — stage 4's comparison, which
+ * sizes to its content — without the two overlapping.
+ *
+ * These are the numbers the attack dot's keyframes are generated from; nothing
+ * in CSS may hardcode them.
  */
-export const LAYER_HEIGHT = 96;
-export const LAYER_GAP = 26;
+export const LAYER_HEIGHT = 68;
+export const LAYER_GAP = 16;
 
 /** y of the top edge of node `index`. */
 export function layerTopY(index: number): number {
