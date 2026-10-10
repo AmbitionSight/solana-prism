@@ -181,6 +181,8 @@ describe('messages — 链名来自配置, 不是写死的', () => {
       MESSAGES.zh.chainNeedSol,
       MESSAGES.en.verifyClaimDeployed,
       MESSAGES.zh.verifyClaimDeployed,
+      MESSAGES.en.contractLive,
+      MESSAGES.zh.contractLive,
     ]) {
       expect(template).toContain('{cluster}');
     }

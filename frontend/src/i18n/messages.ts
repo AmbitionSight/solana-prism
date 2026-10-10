@@ -43,6 +43,10 @@ export interface Messages {
   noteTheBug: string;
   noteStateChange: string;
 
+  /* Step 2's status bar — the chain the deployed build runs on. Templated with
+     `{cluster}` like the other sentences that name the chain. */
+  contractLive: string;
+
   /* Code card — the Rust itself is language-independent, only comments differ */
   codeCommentBug: string;
   codeCommentAddressOnly: string;
@@ -159,6 +163,8 @@ export const MESSAGES: Record<Language, Messages> = {
       'This line is the whole bug.',
     noteStateChange: 'Where the damage lands: a u64 inside the vault account.',
 
+    contractLive: 'running on {cluster}',
+
     codeCommentBug: 'CHECK: address only — no signature required. This is the bug.',
     codeCommentAddressOnly: 'the address matches — but who signed was never checked',
 
@@ -243,6 +249,8 @@ export const MESSAGES: Record<Language, Messages> = {
     noteHandlerRequires: '处理函数。它只在运行时满意之后才会执行。',
     noteTheBug: '`AccountInfo` 向运行时什么都没要 —— 连签名都没要。这一行就是全部的漏洞。',
     noteStateChange: '伤害落点：vault 账户里的一个 u64。',
+
+    contractLive: '正在 {cluster} 上运行',
 
     codeCommentBug: 'CHECK: 只查地址，不要求签名 —— 漏洞就在这里',
     codeCommentAddressOnly: '地址对得上就放行 —— 但从没验过是谁签的名',

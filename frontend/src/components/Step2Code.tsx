@@ -1,10 +1,12 @@
 import { useLayoutEffect, type CSSProperties } from 'react';
 import { AUTO_ADVANCE_MS } from '../lib/steps';
 import { useLanguage } from '../i18n/language';
-import { bilingualName } from '../i18n/messages';
+import { bilingualName, formatCluster } from '../i18n/messages';
 import { highlightRust } from '../lib/highlight';
 import { codeBlocks } from '../lib/code';
+import { MARGIN_NOTES, type MarginNoteKey } from '../lib/contractSource';
 import { VAULT_LAYERS } from '../config/layers';
+import { VERIFICATION } from '../config/verification';
 
 const LINE_STAGGER_MS = 60;
 
@@ -18,19 +20,28 @@ interface Step2CodeProps {
 }
 
 /**
- * Step 2 — the contract, highlighted line by line by our own tokenizer.
+ * Step 2 — the deployed contract, verbatim, highlighted line by line by our own
+ * tokenizer.
+ *
+ * The listing is the file `anchor build` compiled, not an excerpt of it: the
+ * status bar above names the program and the chain it runs on, and the Chinese
+ * margin notes sit *beside* the lines they explain rather than inside them, so
+ * the code can stay byte-identical to what was deployed.
  *
  * Halfway through the step, each region of the listing is boxed and labelled
  * with the stage it becomes. Without that, the five cards in step 3 arrive from
  * nowhere; with it, the decomposition is just the boxes flying apart.
- *
- * The listing comes from lib/code.ts, which keeps the Rust identical across
- * languages and swaps only the comments.
  */
 export default function Step2Code({ onRegionRects }: Step2CodeProps) {
-  const { language } = useLanguage();
-  const blocks = codeBlocks(language);
+  const { language, t } = useLanguage();
+  const blocks = codeBlocks();
   const duration = AUTO_ADVANCE_MS[2] ?? 0;
+
+  // Notes are keyed by absolute line index, so build the lookup once per render
+  // rather than scanning MARGIN_NOTES for every one of the file's lines.
+  const noteByLine = new Map<number, MarginNoteKey>(
+    MARGIN_NOTES.map((note) => [note.line, note.key]),
+  );
 
   // No dependency array: the boxes only change when the listing does, and this
   // is five getBoundingClientRect calls. Runs before paint, so the rects are
@@ -51,6 +62,12 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
 
   return (
     <section className="step2" style={style} data-testid="step2-code">
+      <div className="contract-status" data-testid="contract-status">
+        <span className="contract-status__name">prism_vulnerable</span>
+        <span className="contract-status__id">{VERIFICATION.vulnerableProgramId}</span>
+        <span className="contract-status__live">{formatCluster(t.contractLive)}</span>
+      </div>
+
       <pre className="code-card">
         <code>
           {blocks.map((block) => {
@@ -70,19 +87,29 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
                 data-stage={block.stageId ?? undefined}
                 style={blockStyle}
               >
-                {block.lines.map((line, offset) => (
-                  <span
-                    className="code-card__line"
-                    key={block.from + offset}
-                    style={{ animationDelay: `${(block.from + offset) * LINE_STAGGER_MS}ms` }}
-                  >
-                    {highlightRust(line).map((token, tokenIndex) => (
-                      <span className={`tok tok--${token.kind}`} key={tokenIndex}>
-                        {token.text}
-                      </span>
-                    ))}
-                  </span>
-                ))}
+                {block.lines.map((line, offset) => {
+                  const index = block.from + offset;
+                  const noteKey = noteByLine.get(index);
+
+                  return (
+                    <span
+                      className="code-card__line"
+                      key={index}
+                      style={{ animationDelay: `${index * LINE_STAGGER_MS}ms` }}
+                    >
+                      {highlightRust(line).map((token, tokenIndex) => (
+                        <span className={`tok tok--${token.kind}`} key={tokenIndex}>
+                          {token.text}
+                        </span>
+                      ))}
+                      {noteKey && (
+                        <span className="code-card__note" data-testid={`code-note-${index}`}>
+                          {t[noteKey]}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
 
                 {stage && name && (
                   <span className="code-block__label" data-testid={`code-label-${stage.id}`}>

@@ -21,9 +21,13 @@ const SOURCES = import.meta.glob(['../../components/*.tsx', '../../App.tsx'], {
  *
  * `accounts:` / `signatures:` are field names from a real transaction — they are
  * English on Solscan too, so translating them would make the demo disagree with
- * the chain. Everything else must come from the catalogue.
+ * the chain. `prism_vulnerable` is likewise an identifier, not copy: it is the
+ * crate name the deployed program declares (`pub mod prism_vulnerable`), so it
+ * reads the same in both languages and naming it any other way would put the
+ * status bar out of step with the file below it. Everything else must come from
+ * the catalogue.
  */
-const ALLOWED_JSX_TEXT = new Set(['→', 'accounts:', 'signatures:']);
+const ALLOWED_JSX_TEXT = new Set(['→', 'accounts:', 'signatures:', 'prism_vulnerable']);
 
 function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
