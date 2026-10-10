@@ -74,6 +74,8 @@ export interface Messages {
   /* Controls */
   replay: string;
   execute: string;
+  /** The arrow-key affordance, shown quietly in the page chrome. */
+  keyHint: string;
   versionVulnerable: string;
   versionFixed: string;
   ariaContractVersion: string;
@@ -203,6 +205,7 @@ export const MESSAGES: Record<Language, Messages> = {
 
     replay: 'Replay',
     execute: 'Execute',
+    keyHint: '↑ ↓ to move between pages',
     versionVulnerable: 'Vulnerable',
     versionFixed: 'Fixed',
     ariaContractVersion: 'Contract version',
@@ -297,6 +300,7 @@ export const MESSAGES: Record<Language, Messages> = {
 
     replay: '重播',
     execute: '执行攻击',
+    keyHint: '↑ ↓ 翻页',
     versionVulnerable: '漏洞版',
     versionFixed: '修复版',
     ariaContractVersion: '合约版本',

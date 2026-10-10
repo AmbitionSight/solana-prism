@@ -27,6 +27,16 @@
   gap: 10px;
 }
 
+/* The keyboard shortcut, stated once so it is discoverable. Deliberately
+   quieter than the buttons beside it — an affordance, not a headline — but at
+   the "lightest tone allowed for copy" so it still reads as words. */
+.key-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
 .replay-btn {
   padding: 6px 14px;
   font-size: 13px;

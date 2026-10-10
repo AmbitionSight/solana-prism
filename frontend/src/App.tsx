@@ -4,6 +4,7 @@ import {
   AUTO_ADVANCE_MS,
   TX_CARD_MS,
   nextStep,
+  prevStep,
   type AttackState,
   type Step,
 } from './lib/steps';
@@ -132,6 +133,47 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setChainBusy(false);
     setDemoBlocked(null);
   }, []);
+
+  /**
+   * Step through the demo by hand: ↓ forward, ↑ back.
+   *
+   * A narrator who wants the previous page should not have to wait out the
+   * timer. It works mid-narration because the auto-advance effect above is keyed
+   * on `step`: setting it here re-runs that effect, which clears the timer that
+   * was armed for the page being left and arms a fresh one for the page arrived
+   * at — so pressing ↓ while page 2 narrates moves on at once instead of
+   * queueing behind the 9s timer.
+   */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+
+      // A focused form control owns the arrow keys: a radio group uses ↑/↓ to
+      // move between its options and a text field to move the caret. Taking the
+      // key from it would make those pages unusable, so the control keeps it.
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'SELECT' ||
+        target?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
+      const next = event.key === 'ArrowUp' ? prevStep(step) : nextStep(step);
+      if (next === null) return;
+
+      // Leaving a page takes the run with it — a chain answer that lands after
+      // the move belongs to a page nobody is on any more. The same reset the
+      // Replay and build-switch paths use, so there is only one of it.
+      setAttackState('idle');
+      clearRealRun();
+      setStep(next);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [step, clearRealRun]);
 
   /**
    * Execute — the attack, for real.
@@ -314,6 +356,9 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     // the DOM for text that is no longer rendered.
     <div className="app" data-step={step}>
       <div className="top-controls">
+        {/* The shortcut, stated once so it is discoverable — a keyboard
+            affordance nobody is told about does not exist. Quiet on purpose. */}
+        <span className="key-hint">{t.keyHint}</span>
         <button type="button" className="replay-btn" onClick={replay}>
           {t.replay}
         </button>

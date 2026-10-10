@@ -354,6 +354,25 @@ const PLAN = [
     },
     shot: 'en-restored',
   },
+
+  // --- the keyboard: ↑ and ↓ move between pages by hand. Every step above
+  // drives the demo by waiting on state; this is the one place it presses a key
+  // — a real KeyboardEvent on window, exactly what App listens for. Placed last
+  // so the extra move cannot disturb any state the steps above assert on.
+  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
+  {
+    wait: `__prism.step() === 6`,
+    after: 200,
+    expect: { expression: `__prism.step()`, contains: '6' },
+    shot: 'key-arrow-down-step6',
+  },
+  { wait: `__prism.step() === 6`, press: 'ArrowUp' },
+  {
+    wait: `__prism.step() === 5`,
+    after: 200,
+    expect: { expression: `__prism.step()`, contains: '5' },
+    shot: 'key-arrow-up-step5',
+  },
 ];
 
 function connect(ws, consoleErrors) {
@@ -516,7 +535,7 @@ async function main() {
         .result.value;
 
     for (const action of PLAN) {
-      const label = action.shot ?? action.click ?? action.probe ?? 'step';
+      const label = action.shot ?? action.click ?? action.press ?? action.probe ?? 'step';
       const deadline = Date.now() + (action.timeoutMs ?? WAIT_TIMEOUT_MS);
 
       if (action.wait) {
@@ -542,6 +561,14 @@ async function main() {
              if (!el) return false; el.click(); return true; })()`,
         );
         if (clicked !== true) failures.push(`click ${action.click} -> element missing`);
+      }
+
+      if (action.press) {
+        const pressed = await evaluate(
+          `(() => { window.dispatchEvent(new KeyboardEvent('keydown', ` +
+            `{ key: ${JSON.stringify(action.press)}, bubbles: true })); return true; })()`,
+        );
+        if (pressed !== true) failures.push(`press ${action.press} -> dispatch failed`);
       }
 
       if (action.probe) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AUTO_ADVANCE_MS, nextStep, attackOutcome, TX_CARD_MS } from '../steps';
+import { AUTO_ADVANCE_MS, nextStep, prevStep, attackOutcome, TX_CARD_MS } from '../steps';
 
 describe('steps', () => {
   it('nextStep 推进, 9 后 null', () => {
@@ -12,6 +12,13 @@ describe('steps', () => {
     expect(nextStep(7)).toBe(8);
     expect(nextStep(8)).toBe(9);
     expect(nextStep(9)).toBeNull();
+  });
+
+  it('prevStep 回退, 1 之前 null', () => {
+    expect(prevStep(9)).toBe(8);
+    expect(prevStep(5)).toBe(4);
+    expect(prevStep(2)).toBe(1);
+    expect(prevStep(1)).toBeNull();
   });
 
   it('Step1-4 自动推进, Step5-9 手动', () => {
