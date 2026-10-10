@@ -47,10 +47,6 @@ export interface Messages {
      `{cluster}` like the other sentences that name the chain. */
   contractLive: string;
 
-  /* Code card — the Rust itself is language-independent, only comments differ */
-  codeCommentBug: string;
-  codeCommentAddressOnly: string;
-
   /* The five stages of one instruction, in execution order.
      In Chinese these render as "中文 English" — see bilingualName. */
   stageInstruction: string;
@@ -175,9 +171,6 @@ export const MESSAGES: Record<Language, Messages> = {
 
     contractLive: 'running on {cluster}',
 
-    codeCommentBug: 'CHECK: address only — no signature required. This is the bug.',
-    codeCommentAddressOnly: 'the address matches — but who signed was never checked',
-
     stageInstruction: 'Instruction',
     stageAccounts: 'Accounts',
     stageDeclaration: 'Account Declaration',
@@ -263,9 +256,6 @@ export const MESSAGES: Record<Language, Messages> = {
     noteStateChange: '伤害落点：vault 账户里的一个 u64。',
 
     contractLive: '正在 {cluster} 上运行',
-
-    codeCommentBug: 'CHECK: 只查地址，不要求签名 —— 漏洞就在这里',
-    codeCommentAddressOnly: '地址对得上就放行 —— 但从没验过是谁签的名',
 
     stageInstruction: '指令',
     stageAccounts: '账户',

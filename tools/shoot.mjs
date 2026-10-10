@@ -151,19 +151,43 @@ const SQL = {
   langEn: '[data-testid="lang-en"]',
 };
 
+/**
+ * Step 2's bilingual check.
+ *
+ * The listing is the deployed file verbatim, so its comments are the file's own
+ * and read the same in either language. What the language switch changes is the
+ * MARGIN NOTE rendered beside the annotated line, not the code. So the property
+ * is two things at once and both are asserted:
+ *
+ *   - the code is byte-identical in both languages (`CODE_ANNOTATION` is the
+ *     file's own English comment, and it has to survive the switch — a
+ *     translated comment leaking back into the listing would break it), and
+ *   - the note is translated (`NOTE_THE_BUG_*`, the margin note on the line
+ *     marked as the bug).
+ */
+const CODE_ANNOTATION = 'CHECK: address only';
+const NOTE_THE_BUG_ZH = '这一行就是全部的漏洞';
+const NOTE_THE_BUG_EN = 'This line is the whole bug';
+
 const PLAN = [
   // --- pass 1: the narrated steps, each waiting for the state it claims to show
   { wait: `__prism.step() === 1`, after: 1300, shot: 'step1-title' },
   { wait: `__prism.step() === 2`, after: 2400, shot: 'step2-code' },
 
-  // The code-to-stage mapping: each region boxed and labelled in turn.
+  // The code-to-stage mapping: each region boxed and labelled in turn. The boxes
+  // sweep down the listing in reading order — S1, S4, S5, S2, S3 — and their
+  // labels are staggered in that same order, so S3, on the region at the bottom
+  // of the file, is the LAST to appear. Waiting on S5 (as this used to) returns
+  // while S2 and S3 are still invisible, and the assertion below then fails.
   // NOTE: the labels exist in the DOM from the start and are animated up from
   // opacity 0, so "does the element exist" is true immediately and proves
-  // nothing — the condition has to be *visibility*.
+  // nothing — the condition has to be *visibility*. The wait is therefore the
+  // same predicate as the assertion: every label up, not just the one.
   {
     wait: `(() => {
-      const el = document.querySelector('[data-testid="code-label-S5"]');
-      return el ? Number(getComputedStyle(el).opacity) > 0.9 : false;
+      const labels = [...document.querySelectorAll('.code-block__label')];
+      return labels.length === 5
+        && labels.every((el) => Number(getComputedStyle(el).opacity) > 0.9);
     })()`,
     after: 500,
     expect: {
@@ -175,24 +199,38 @@ const PLAN = [
   },
 
   // The headline of the bilingual feature: the Rust is identical, only the
-  // comments change. Checked in the browser rather than only in the unit test.
+  // margin note beside it is translated (see CODE_ANNOTATION above). Checked in
+  // the browser, where both halves are observable at once, not only in the unit
+  // test: the code stays English while the note follows the language toggle.
   { wait: `__prism.has('${SQL.langZh}')`, click: SQL.langZh },
   {
-    wait: `document.body.innerText.includes('漏洞就在这里')`,
+    wait: `__prism.text('.code-card').includes(${JSON.stringify(NOTE_THE_BUG_ZH)})`,
     after: 500,
     expect: {
-      expression: `__prism.text('.code-card')`,
-      contains: '只查地址，不要求签名',
+      expression: `(() => {
+        const text = __prism.text('.code-card');
+        const code = text.includes(${JSON.stringify(CODE_ANNOTATION)});
+        const note = text.includes(${JSON.stringify(NOTE_THE_BUG_ZH)});
+        return code && note ? 'zh-ok'
+          : 'zh[' + (code ? '' : 'code-missing ') + (note ? '' : 'note-missing') + ']';
+      })()`,
+      contains: 'zh-ok',
     },
     shot: 'zh-step2-code',
   },
   { wait: `__prism.has('${SQL.langEn}')`, click: SQL.langEn },
   {
-    wait: `document.body.innerText.includes('This is the bug')`,
+    wait: `__prism.text('.code-card').includes(${JSON.stringify(NOTE_THE_BUG_EN)})`,
     after: 400,
     expect: {
-      expression: `__prism.text('.code-card')`,
-      contains: 'no signature required',
+      expression: `(() => {
+        const text = __prism.text('.code-card');
+        const code = text.includes(${JSON.stringify(CODE_ANNOTATION)});
+        const note = text.includes(${JSON.stringify(NOTE_THE_BUG_EN)});
+        return code && note ? 'en-ok'
+          : 'en[' + (code ? '' : 'code-missing ') + (note ? '' : 'note-missing') + ']';
+      })()`,
+      contains: 'en-ok',
     },
   },
 
