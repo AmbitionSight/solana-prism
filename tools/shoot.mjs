@@ -137,6 +137,21 @@ const PROBES = {
   })()`,
 };
 
+/**
+ * The arrow keys, as CDP `Input.dispatchKeyEvent` needs them. The harness drives
+ * Chrome over the DevTools protocol, so it can send a *real* key press rather
+ * than a synthetic `KeyboardEvent` from JavaScript — and only a real one takes
+ * the browser's own default action. That matters here because the app suppresses
+ * the arrow key's native scroll (`preventDefault`): a synthetic event never
+ * scrolls in the first place, so it cannot tell the suppression from its absence.
+ */
+const KEY_CODES = {
+  ArrowUp: 38,
+  ArrowDown: 40,
+  ArrowLeft: 37,
+  ArrowRight: 39,
+};
+
 const SQL = {
   execute: '[data-testid="execute-btn"]',
   fixToggleFixed: '[data-testid="fix-toggle-fixed"]',
@@ -357,20 +372,42 @@ const PLAN = [
 
   // --- the keyboard: ↑ and ↓ move between pages by hand. Every step above
   // drives the demo by waiting on state; this is the one place it presses a key
-  // — a real KeyboardEvent on window, exactly what App listens for. Placed last
+  // — a genuine key press sent through CDP (`Input.dispatchKeyEvent`), not a
+  // synthetic KeyboardEvent, so the browser's own default action for the arrow
+  // key actually runs and the app's suppression of it is observable. Placed last
   // so the extra move cannot disturb any state the steps above assert on.
+  //
+  // These pages overflow the viewport, so an unprevented ↓ would scroll the page
+  // as well as page it — the conflict this asserts away. Each step's assertion
+  // captures `scrollY` and the document's scrollability; the position must stay
+  // put across the press, and the page must be scrollable for that to mean
+  // anything.
   { wait: `__prism.step() === 5`, press: 'ArrowDown' },
   {
     wait: `__prism.step() === 6`,
     after: 200,
-    expect: { expression: `__prism.step()`, contains: '6' },
+    expect: {
+      expression: `(() => {
+        const d = document.documentElement;
+        const scrollable = d.scrollHeight > window.innerHeight;
+        return 'scrollY=' + window.scrollY + ' scrollable=' + scrollable;
+      })()`,
+      contains: 'scrollY=0 scrollable=true',
+    },
     shot: 'key-arrow-down-step6',
   },
   { wait: `__prism.step() === 6`, press: 'ArrowUp' },
   {
     wait: `__prism.step() === 5`,
     after: 200,
-    expect: { expression: `__prism.step()`, contains: '5' },
+    expect: {
+      expression: `(() => {
+        const d = document.documentElement;
+        const scrollable = d.scrollHeight > window.innerHeight;
+        return 'scrollY=' + window.scrollY + ' scrollable=' + scrollable;
+      })()`,
+      contains: 'scrollY=0 scrollable=true',
+    },
     shot: 'key-arrow-up-step5',
   },
 ];
@@ -564,11 +601,21 @@ async function main() {
       }
 
       if (action.press) {
-        const pressed = await evaluate(
-          `(() => { window.dispatchEvent(new KeyboardEvent('keydown', ` +
-            `{ key: ${JSON.stringify(action.press)}, bubbles: true })); return true; })()`,
-        );
-        if (pressed !== true) failures.push(`press ${action.press} -> dispatch failed`);
+        // A real key press through the browser's input pipeline, not a scripted
+        // KeyboardEvent: only this runs the default action the app suppresses.
+        const code = KEY_CODES[action.press];
+        if (code === undefined) {
+          failures.push(`press ${action.press} -> no virtual key code`);
+        } else {
+          const keyEvent = {
+            key: action.press,
+            code: action.press,
+            windowsVirtualKeyCode: code,
+            nativeVirtualKeyCode: code,
+          };
+          await send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyEvent });
+          await send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyEvent });
+        }
       }
 
       if (action.probe) {

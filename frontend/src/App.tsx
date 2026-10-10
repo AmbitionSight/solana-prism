@@ -164,6 +164,17 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
       const next = event.key === 'ArrowUp' ? prevStep(step) : nextStep(step);
       if (next === null) return;
 
+      // The arrow keys are the paging gesture here, and the demo is paged, not
+      // scrolled: a page taller than the viewport must not slide out from under
+      // the move. Suppressing the default stops the browser's own arrow-key
+      // scroll from running at the same time as the page change — the two
+      // together read as a conflict. It is claimed here, on the one path where
+      // this handler actually acts: the guards above return early for a focused
+      // form control (a radio group still needs ↑/↓ for its options) and at the
+      // first/last page (a user scrolling an overflowing edge page keeps their
+      // scroll). Keys this handler does not act on are never swallowed.
+      event.preventDefault();
+
       // Leaving a page takes the run with it — a chain answer that lands after
       // the move belongs to a page nobody is on any more. The same reset the
       // Replay and build-switch paths use, so there is only one of it.
