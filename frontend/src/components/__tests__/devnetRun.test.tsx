@@ -93,6 +93,17 @@ describe('DevnetRun — 已连接且程序已部署', () => {
     expect(failed).toContain('getAccountInfo failed');
     expect(failed).not.toContain(MESSAGES.en.resultRejectedTitle);
   });
+
+  it('没有配置 authority 时, 说的是和动画路径同一句话, 而不是「没能完成」', () => {
+    // One condition (`!isFilled(adminPubkey)`), one sentence — the real control
+    // must not accuse a submission that never happened.
+    const unconfigured = render(
+      <DevnetRun {...base} status={{ kind: 'notConfigured' }} providerPresent connected />,
+    );
+    expect(unconfigured).toContain(MESSAGES.en.demoNoTarget);
+    expect(unconfigured).not.toContain(MESSAGES.en.chainAttemptFailed);
+    expect(unconfigured).not.toContain(MESSAGES.en.chainExhausted);
+  });
 });
 
 describe('DevnetRun — 修复版还没部署时', () => {

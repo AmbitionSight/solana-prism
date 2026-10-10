@@ -50,6 +50,25 @@ describe('TxCard — 缺省渲染不再编造地址', () => {
     expect(html).toContain(elide(VERIFICATION.adminPubkey));
     expect(html).toContain(MESSAGES.en.txNoteProgram);
   });
+
+  it('没有目标时卡片仍然出现 —— 签名两行不依赖任何地址', () => {
+    // The reason the card must render with no source: the "ATTACKER ✓ /
+    // ADMIN ✗" rows are the demo's argument, and they need no address. Dropping
+    // the whole card for want of one would hide exactly that argument.
+    const html = render(<TxCard />);
+    expect(html).toContain('data-testid="tx-card"');
+    expect(html).toContain('ATTACKER');
+    expect(html).toContain('ADMIN');
+    expect(html).toContain(MESSAGES.en.txNoteSigned);
+    expect(html).toContain(MESSAGES.en.txNoteSignatureAbsent);
+    expect(html).toContain('txcard__item--missing');
+  });
+
+  it('没有目标时也就没有 accounts: 分组, 而不是空地址行', () => {
+    const html = render(<TxCard />);
+    expect(html).not.toContain('accounts:');
+    expect(html).toContain('signatures:');
+  });
 });
 
 describe('TxCard — 有真实 payload 时', () => {

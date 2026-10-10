@@ -28,6 +28,13 @@ import './styles/app.css';
 import './styles/animations.css';
 
 /**
+ * Why the animated path cannot honestly run — every resolution that is not a
+ * target. Derived from `DemoTargetResolution` rather than re-typed, so a new
+ * kind cannot slip past `handleExecute`'s test and start a beat with no card.
+ */
+type BlockedKind = Exclude<DemoTargetResolution['kind'], 'target'>;
+
+/**
  * `initialStep` exists for one reason: step 5 is entered by timers, and a test
  * that renders to a string runs no effects, so it cannot wait for them. Passing
  * the final step directly lets a test hold the demo in the state the default
@@ -66,10 +73,11 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
    * What the animated path names when there is no wallet — resolved once, at
    * page load.
    *
-   * `null` means not settled yet. The resolution is an RPC round trip, and
-   * rendering the card before it lands would paint one address and swap it for
-   * another. Step 5 is only reachable after steps 1-4 auto-advance, so in
-   * practice it settles long before anyone gets there.
+   * `null` means not settled yet. The resolution is an RPC round trip, so
+   * before it lands the card has no address to show and renders without its
+   * `accounts:` rows; the address rows appear once it settles. Step 5 is only
+   * reachable after steps 1-4 auto-advance, so in practice it settles long
+   * before anyone gets there.
    */
   const [demoTarget, setDemoTarget] = useState<DemoTargetResolution | null>(null);
 
@@ -79,7 +87,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
    * Read from the same `demoTarget` the card does, so the sentence and the card
    * can never disagree about what is attackable.
    */
-  const [demoBlocked, setDemoBlocked] = useState<'exhausted' | 'notConfigured' | null>(null);
+  const [demoBlocked, setDemoBlocked] = useState<BlockedKind | null>(null);
 
   /**
    * Bumped whenever the page moves on. A chain answer that arrives after that
@@ -156,13 +164,11 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     // An empty pool and a missing authority are real states, and neither is
     // attackable. The animated path says so with the same sentence the real path
     // uses, rather than starting a beat whose transaction card would have no
-    // honest address to name.
-    if (demoTarget?.kind === 'exhausted') {
-      setDemoBlocked('exhausted');
-      return;
-    }
-    if (demoTarget?.kind === 'notConfigured') {
-      setDemoBlocked('notConfigured');
+    // honest address to name. Tested against `'target'` (and typed as
+    // `BlockedKind`) so a new non-target kind is caught here instead of falling
+    // through to a beat that renders nothing.
+    if (demoTarget && demoTarget.kind !== 'target') {
+      setDemoBlocked(demoTarget.kind);
       return;
     }
     setAttackState('showing-tx');
@@ -270,12 +276,15 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const chainVerdict = chainResult ? verdictOf(chainResult) : null;
   const chainStatus = controlStatus(chainResult, payload !== null, chainBusy);
 
-  // The card only comes up when there is a real address to put on it: a run in
-  // flight, or a target the mount-time resolution settled on. Before it settles
-  // (`demoTarget === null`) there is no card — a blank beat, never a swapped
-  // address, because resolving starts at page load and step 5 is minutes away.
+  // The card comes up whenever the beat is showing, with whatever honest
+  // addresses there are at that moment. `demoTarget` is passed only once it has
+  // settled on a real target; before then `accountsFor` sees no source and
+  // renders no address rows. The rows that carry the lesson are the signatures
+  // ("ATTACKER ✓ / ADMIN ✗"), and those never depend on an address — dropping
+  // the whole card for want of an address would hide precisely the argument it
+  // exists to make.
   const txTarget = demoTarget?.kind === 'target' ? demoTarget.target : undefined;
-  const showTxCard = attackState === 'showing-tx' && (payload !== null || txTarget !== undefined);
+  const showTxCard = attackState === 'showing-tx';
 
   return (
     // data-step is the machine-readable current step. The visible 01/05 counter

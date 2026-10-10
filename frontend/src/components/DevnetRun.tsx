@@ -60,6 +60,12 @@ export default function DevnetRun({
       <p className="attack-result__body">{formatCluster(t.chainNeedSol)}</p>
       {status.kind === 'busy' && <p className="attack-result__body">{t.chainRunning}</p>}
       {status.kind === 'exhausted' && <p className="attack-result__body">{t.chainExhausted}</p>}
+      {/* A missing authority is the same state the animated path reports, so it
+          gets the same sentence — not `chainAttemptFailed`'s "could not
+          complete", which would blame an attempt that never began. */}
+      {status.kind === 'notConfigured' && (
+        <p className="attack-result__body">{t.demoNoTarget}</p>
+      )}
       {status.kind === 'failed' && (
         <p className="attack-result__body">
           {t.chainAttemptFailed}

@@ -340,16 +340,28 @@ describe('devnetRun — 运行入口旁边的状态', () => {
     expect(controlStatus({ kind: 'exhausted' }, false, false)).toEqual({ kind: 'exhausted' });
   });
 
-  it('没能开始攻击时, 失败要说在入口旁边', () => {
+  it('没能开始攻击时, 失败要说在入口旁边 —— 且带着它自己的理由', () => {
     // The pool scan can fail (an unreachable RPC, for one), and then there is no
     // payload and no animation to hang a result under.
     expect(controlStatus({ kind: 'failed', reason: 'rpc unreachable' }, false, false)).toEqual({
       kind: 'failed',
       detail: 'rpc unreachable',
     });
+  });
+
+  it('没有填 authority 时是它自己的状态, 不是一次失败的运行', () => {
+    // Same condition the animated path reports as `demoNoTarget`: no address is
+    // configured, so nothing was submitted and there is no failure to name.
     expect(controlStatus({ kind: 'notConfigured' }, false, false)).toEqual({
-      kind: 'failed',
-      detail: undefined,
+      kind: 'notConfigured',
+    });
+  });
+
+  it('配置缺失优先于「归结果面板」—— 它本就没有结果面板', () => {
+    // A notConfigured result never produced a transaction, so an `attacked` flag
+    // (however it got set) must not swallow the state into an idle control.
+    expect(controlStatus({ kind: 'notConfigured' }, true, false)).toEqual({
+      kind: 'notConfigured',
     });
   });
 

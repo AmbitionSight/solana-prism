@@ -113,6 +113,14 @@ export type RunStatus =
   | { kind: 'idle' }
   | { kind: 'busy' }
   | { kind: 'exhausted' }
+  /**
+   * No authority is set, so nothing could be submitted. Not a failed attempt:
+   * `failed` carries a real reason for a submission that never happened, while
+   * this is a configuration state with no reason to give. It is reported as
+   * itself so the real control can say the same sentence the animated path does
+   * for the same condition.
+   */
+  | { kind: 'notConfigured' }
   | { kind: 'failed'; detail?: string };
 
 /**
@@ -132,6 +140,12 @@ export function controlStatus(
 ): RunStatus {
   if (busy) return { kind: 'busy' };
   if (!result) return { kind: 'idle' };
+
+  // Checked before `attacked` and before the verdict mapping: this state is not
+  // a failed run, and `verdictOf` would otherwise fold it into one. The same
+  // sentence the animated path gives (`demoNoTarget`) is the honest report for
+  // a missing authority, so the control names the state rather than a failure.
+  if (result.kind === 'notConfigured') return { kind: 'notConfigured' };
 
   const { verdict, detail } = verdictOf(result);
   if (verdict === null) return { kind: 'exhausted' };
