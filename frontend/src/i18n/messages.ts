@@ -47,25 +47,29 @@ export interface Messages {
      `{cluster}` like the other sentences that name the chain. */
   contractLive: string;
 
-  /* The five stages of one instruction, in execution order.
+  /* The six stages of one instruction, in execution order.
      In Chinese these render as "中文 English" — see bilingualName. */
+  stageSetup: string;
   stageInstruction: string;
   stageAccounts: string;
   stageDeclaration: string;
   stageManualCheck: string;
   stageStateChange: string;
 
+  /* The sentence each stage card leads with — plain language saying what happens
+     at that step, with the code line underneath as the evidence. These carry who
+     makes the stage happen ("the runtime…", "the program…") in their own words,
+     which is why there is no separate enforcer tag. */
+  sayCreateVault: string;
+  sayCall: string;
+  sayHandOver: string;
+  sayDeclaration: string;
+  sayCompare: string;
+  sayStateChange: string;
+
   /* Stage 3's badge — the flaw, stated plainly */
   badgeNoSignerRequired: string;
   badgeSignerRequired: string;
-
-  /* Who enforces each stage — the small tag on every card.
-     The three answers are the lesson: the caller does 1 and 2, the runtime does
-     3 on the program's written behalf, and stages 4 and 5 are the program's own
-     code. Kept to one word each so the tag reads as a label, not a sentence. */
-  enforcerCaller: string;
-  enforcerRuntime: string;
-  enforcerCode: string;
 
   /* Controls */
   replay: string;
@@ -157,8 +161,9 @@ export interface Messages {
 
 export type MessageKey = keyof Messages;
 
-/** The five stage names, so `bilingualName` can be typed narrowly. */
+/** The six stage names, so `bilingualName` can be typed narrowly. */
 export type LayerNameKey =
+  | 'stageSetup'
   | 'stageInstruction'
   | 'stageAccounts'
   | 'stageDeclaration'
@@ -179,18 +184,22 @@ export const MESSAGES: Record<Language, Messages> = {
 
     contractLive: 'running on {cluster}',
 
+    stageSetup: 'Vault Setup',
     stageInstruction: 'Instruction',
     stageAccounts: 'Accounts',
     stageDeclaration: 'Account Declaration',
     stageManualCheck: 'Manual Check',
     stageStateChange: 'State Change',
 
+    sayCreateVault: 'An admin creates the vault — and writes their own address into it.',
+    sayCall: 'Someone calls the contract, asking for 500.',
+    sayHandOver: 'They hand over two accounts.',
+    sayDeclaration: 'The runtime checks the declaration — which asks for nothing.',
+    sayCompare: 'The program compares the address itself.',
+    sayStateChange: 'The balance is reduced by 500.',
+
     badgeNoSignerRequired: 'No signature required',
     badgeSignerRequired: 'Signature required',
-
-    enforcerCaller: 'you',
-    enforcerRuntime: 'runtime',
-    enforcerCode: 'code',
 
     replay: 'Replay',
     execute: 'Execute',
@@ -269,18 +278,22 @@ export const MESSAGES: Record<Language, Messages> = {
 
     contractLive: '正在 {cluster} 上运行',
 
+    stageSetup: '金库建立',
     stageInstruction: '指令',
     stageAccounts: '账户',
     stageDeclaration: '账户声明',
     stageManualCheck: '手工校验',
     stageStateChange: '状态变更',
 
+    sayCreateVault: '管理员建立金库 —— 把自己的地址写了进去。',
+    sayCall: '有人调用合约，要取 500。',
+    sayHandOver: '他交出了两个账户。',
+    sayDeclaration: '运行时代合约检查声明 —— 声明里什么都没要求。',
+    sayCompare: '合约代码自己比对地址。',
+    sayStateChange: '余额被减掉 500。',
+
     badgeNoSignerRequired: '未要求签名',
     badgeSignerRequired: '要求签名',
-
-    enforcerCaller: '你',
-    enforcerRuntime: '运行时',
-    enforcerCode: '代码',
 
     replay: '重播',
     execute: '执行攻击',

@@ -8,9 +8,9 @@ describe('code blocks — 代码到阶段的映射', () => {
     expect(codeBlocks().flatMap((b) => b.lines)).toEqual(CONTRACT_LINES);
   });
 
-  it('五个阶段各有一个区块，按阅读顺序', () => {
+  it('六个阶段各有一个区块，按阅读顺序', () => {
     const mapped = codeBlocks().filter((b) => b.stageId);
-    expect(mapped.map((b) => b.stageId)).toEqual(['S1', 'S4', 'S5', 'S2', 'S3']);
+    expect(mapped.map((b) => b.stageId)).toEqual(['S0', 'S1', 'S4', 'S5', 'S2', 'S3']);
   });
 
   it('区块不重叠、不丢行、不重复行', () => {
@@ -20,11 +20,11 @@ describe('code blocks — 代码到阶段的映射', () => {
     }
   });
 
-  it('只有五个阶段区块带揭示时间，且从上往下依次出现', () => {
+  it('只有六个阶段区块带揭示时间，且从上往下依次出现', () => {
     const reveals = codeBlocks()
       .filter((b) => b.revealAt !== undefined)
       .map((b) => b.revealAt as number);
-    expect(reveals).toHaveLength(5);
+    expect(reveals).toHaveLength(6);
     for (let i = 1; i < reveals.length; i += 1) {
       expect(reveals[i]).toBeGreaterThan(reveals[i - 1]);
     }

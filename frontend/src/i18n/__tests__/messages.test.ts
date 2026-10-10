@@ -61,8 +61,9 @@ describe('messages — 层名中英对照', () => {
     });
   });
 
-  it('五个阶段都有中英两份', () => {
+  it('六个阶段都有中英两份', () => {
     const keys = [
+      'stageSetup',
       'stageInstruction',
       'stageAccounts',
       'stageDeclaration',

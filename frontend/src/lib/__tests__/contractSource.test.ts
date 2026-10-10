@@ -50,12 +50,16 @@ describe('contractSource — 显示的就是链上那份', () => {
 describe('contractSource — 阶段区域落在正确的行上', () => {
   const textOf = (from: number, to: number) => CONTRACT_LINES.slice(from, to + 1).join('\n');
 
-  it('五个区域，按源码顺序排列', () => {
-    expect(CONTRACT_REGIONS.map((r) => r.stageId)).toEqual(['S1', 'S4', 'S5', 'S2', 'S3']);
+  it('六个区域，按源码顺序排列', () => {
+    expect(CONTRACT_REGIONS.map((r) => r.stageId)).toEqual(['S0', 'S1', 'S4', 'S5', 'S2', 'S3']);
   });
 
   it('每个区域框住的确实是那一阶段的代码', () => {
     const byId = Object.fromEntries(CONTRACT_REGIONS.map((r) => [r.stageId, r]));
+    expect(textOf(byId.S0.from, byId.S0.to)).toContain('pub fn initialize(ctx: Context<Initialize>');
+    expect(textOf(byId.S0.from, byId.S0.to)).toContain(
+      'vault.authority = ctx.accounts.authority.key();',
+    );
     expect(textOf(byId.S1.from, byId.S1.to)).toContain('pub fn withdraw(ctx: Context<Withdraw>');
     expect(textOf(byId.S2.from, byId.S2.to)).toContain("pub struct Withdraw<'info> {");
     expect(textOf(byId.S2.from, byId.S2.to)).toContain("pub vault: Account<'info, Vault>,");

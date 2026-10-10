@@ -175,7 +175,7 @@ const PLAN = [
   { wait: `__prism.step() === 2`, after: 2400, shot: 'step2-code' },
 
   // The code-to-stage mapping: each region boxed and labelled in turn. The boxes
-  // sweep down the listing in reading order — S1, S4, S5, S2, S3 — and their
+  // sweep down the listing in reading order — S0, S1, S4, S5, S2, S3 — and their
   // labels are staggered in that same order, so S3, on the region at the bottom
   // of the file, is the LAST to appear. Waiting on S5 (as this used to) returns
   // while S2 and S3 are still invisible, and the assertion below then fails.
@@ -186,14 +186,14 @@ const PLAN = [
   {
     wait: `(() => {
       const labels = [...document.querySelectorAll('.code-block__label')];
-      return labels.length === 5
+      return labels.length === 6
         && labels.every((el) => Number(getComputedStyle(el).opacity) > 0.9);
     })()`,
     after: 500,
     expect: {
       expression: `[...document.querySelectorAll('.code-block__label')]
-        .filter((el) => Number(getComputedStyle(el).opacity) > 0.9).length + '/5 visible'`,
-      contains: '5/5 visible',
+        .filter((el) => Number(getComputedStyle(el).opacity) > 0.9).length + '/6 visible'`,
+      contains: '6/6 visible',
     },
     shot: 'step2-mapping',
   },

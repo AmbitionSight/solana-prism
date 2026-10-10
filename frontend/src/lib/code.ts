@@ -11,7 +11,7 @@
  * plain runs between them, and when each box appears. The boxed regions come
  * from CONTRACT_REGIONS in source order, so the boxes sweep down the listing the
  * way you read it; the stage numbers on the labels are what make the reordering
- * visible, because read top to bottom they come out 1, 4, 5, 2, 3.
+ * visible, because read top to bottom they come out 0, 1, 4, 5, 2, 3.
  */
 
 import { CONTRACT_LINES, CONTRACT_REGIONS } from './contractSource';

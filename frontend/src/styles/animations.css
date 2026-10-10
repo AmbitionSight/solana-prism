@@ -21,9 +21,9 @@
   top: 50%;
   width: 480px;
   height: var(--layer-height);
-  /* A column now: the enforcer tag sits above the one row carrying the id and
-     the code — the mockup's node with its body and note folded onto a single
-     line. The row keeps the old horizontal flex behaviour. */
+  /* A column now: the sentence sits above the one row carrying the id and the
+     code — the mockup's node with its body and note folded into the card, the
+     sentence first. The row keeps the old horizontal flex behaviour. */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -129,23 +129,26 @@
 
 /* ---------- Card contents ---------- */
 
-/* The id and the code on the card's single line. The tag sits above this row. */
+/* The id and the code on the card's single line. The sentence sits above it. */
 .layer-card__row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-/* Who enforces this stage. A quiet mono tag, above the line it annotates —
-   the mockup's `.node .tag`, with the caller / runtime / code wording coming
-   from the catalogue so it follows the language toggle. `uppercase` shapes the
-   Latin form; Chinese is unaffected by it. */
-.layer-card__enforcer {
-  align-self: flex-start;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+/* What happens at this step, in plain language — the mockup's `.node .say`, now
+   the card's leading line. Sans, unlike the mono code beneath it, so the
+   sentence reads as an explanation rather than as more source. Clamped to two
+   lines so the longest English sentence cannot push the code line out of the
+   fixed-height card. */
+.layer-card__say {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.35;
   color: var(--color-text-secondary);
 }
 
