@@ -31,6 +31,28 @@
 
 import type { LayerNameKey, MessageKey } from '../i18n/messages';
 
+/**
+ * A stage whose card holds two values against each other rather than leading
+ * with a sentence and one code line — only stage 4.
+ *
+ * Deliberately a description rather than the values: it carries the catalogue
+ * keys for the two labels, the two back-references and the result, while the
+ * address itself stays where every other address in the demo lives
+ * (`VERIFICATION.adminPubkey`), elided at render. A literal address here would
+ * be as stale as one written into the copy.
+ */
+export interface ComparisonSpec {
+  /** Label for the value the vault stored (written at S0). */
+  storedKey: MessageKey;
+  /** Where that value came from — the stage that wrote it. */
+  storedFromKey: MessageKey;
+  /** Label for the value supplied with this call (handed over at S2). */
+  suppliedKey: MessageKey;
+  suppliedFromKey: MessageKey;
+  /** The comparison's own result — not a general verdict on the attack. */
+  resultKey: MessageKey;
+}
+
 export interface ContractLayer {
   /** Display id, e.g. 'S3'. Also the React key — must be stable. */
   id: string;
@@ -50,6 +72,13 @@ export interface ContractLayer {
    * the whole fix is that one declaration.
    */
   codeWhenFixed?: string;
+  /**
+   * Present only on a stage that renders a comparison instead of a bare
+   * sentence: two labelled values, their origin and the result of holding them
+   * against each other. This is the discriminator — the card branches on the
+   * data being there, never on the stage's id.
+   */
+  compare?: ComparisonSpec;
   /** True for the stage that carries the flaw. */
   isSecurityLayer: boolean;
   /** True when this build of the contract has the flaw in this stage. */
@@ -111,6 +140,17 @@ export const VAULT_LAYERS: ContractLayer[] = [
     nameKey: 'stageManualCheck',
     sayKey: 'sayCompare',
     code: 'require!(vault.authority == authority.key())',
+    // The only stage that shows *what* is compared: the vault's stored
+    // authority against the address this call handed over. Both sides are the
+    // same address — the admin's real one, public input the attacker supplied —
+    // and that is why the check passes rather than a sign it works.
+    compare: {
+      storedKey: 'compareStored',
+      storedFromKey: 'compareStoredFrom',
+      suppliedKey: 'compareSupplied',
+      suppliedFromKey: 'compareSuppliedFrom',
+      resultKey: 'compareResult',
+    },
     isSecurityLayer: false,
     broken: false,
     scatter: { x: 210, y: 90 },

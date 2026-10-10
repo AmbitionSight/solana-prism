@@ -3,6 +3,7 @@ import type { ContractLayer } from '../config/layers';
 import { DANGER_PULSE_ANIMATION, SUCCESS_PULSE_ANIMATION } from '../lib/keyframes';
 import { useLanguage } from '../i18n/language';
 import { bilingualName } from '../i18n/messages';
+import AddressComparison from './AddressComparison';
 
 interface LayerCardProps {
   layer: ContractLayer;
@@ -52,11 +53,19 @@ export default function LayerCard({
   } as CSSProperties;
 
   return (
-    <div className={`layer-card ${stateClass}`} data-layer={layer.id} style={style}>
+    <div
+      className={`layer-card ${stateClass}${layer.compare ? 'layer-card--compare' : ''}`}
+      data-layer={layer.id}
+      style={style}
+    >
       {/* The node leads with a plain sentence saying what happens at this step;
           the code line below it is the evidence. This is the mockup's node with
           its body and note folded into the card, the sentence first. */}
       <span className="layer-card__say">{say}</span>
+      {/* Stage 4 alone shows the comparison itself, between the sentence and the
+          code line. The discriminator is the field, never the id: a card with no
+          `compare` renders exactly what it always did. */}
+      {layer.compare && <AddressComparison spec={layer.compare} />}
       <span className="layer-card__row">
         <span className="layer-card__id">{layer.id}</span>
         <code className="layer-card__code">{code}</code>
