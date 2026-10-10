@@ -16,9 +16,12 @@
  *   never fake, and with no reader we genuinely cannot know which vault is
  *   fresh; a real address is the honest degradation.
  * - **`exhausted`** — the scan ran and found nothing fresh, so the pool is used
- *   up. This is the one case where we *know* index 0 holds 500, so naming it and
- *   then animating 1000 -> 500 beneath it would be a lie. It is reported as
- *   itself instead, telling the same story the real run's `exhausted` tells.
+ *   up. Index 0 is the very vault we have stopped treating as attackable, so
+ *   naming it and then animating 1000 -> 500 beneath it would be a lie. (What a
+ *   `null` scan proves is that index 0 is not *fresh* — drained, missing, or
+ *   holding someone else's authority. In this pool that means drained.) It is
+ *   reported as itself instead, telling the same story the real run's
+ *   `exhausted` tells.
  * - **`notConfigured`** — no admin address is set, so no authority could be
  *   honest and nothing is named at all.
  */
