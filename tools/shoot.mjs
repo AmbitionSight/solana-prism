@@ -145,6 +145,7 @@ const SQL = {
   txCard: '[data-testid="tx-card"]',
   dot: '[data-testid="attack-dot"]',
   result: '[data-testid="attack-result"]',
+  closing: '[data-testid="closing-note"]',
   replay: '.replay-btn',
   langZh: '[data-testid="lang-zh"]',
   langEn: '[data-testid="lang-en"]',
@@ -209,6 +210,18 @@ const PLAN = [
     probe: 'checkCards',
     expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Attack Successful' },
     shot: 'step5-result-success',
+  },
+  {
+    // The note ships with the result, so it must be present whenever the result
+    // is — and it must be the real copy, not an empty shell that satisfies a
+    // selector. The text check is what makes that distinction.
+    wait: `__xray.has('${SQL.closing}')`,
+    after: 400,
+    expect: {
+      expression: `__xray.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
+      contains: 'closing-present',
+    },
+    shot: 'step5-closing-note',
   },
 
   // --- pass 1: fixed path
