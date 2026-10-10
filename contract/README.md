@@ -4,20 +4,20 @@ Two Anchor programs that differ by exactly one line:
 
 | | `Withdraw.authority` | What the runtime enforces |
 |---|---|---|
-| `programs/xray_vulnerable` | `AccountInfo<'info>` | nothing |
-| `programs/xray_fixed` | `Signer<'info>` | a signature, before the handler runs |
+| `programs/prism_vulnerable` | `AccountInfo<'info>` | nothing |
+| `programs/prism_fixed` | `Signer<'info>` | a signature, before the handler runs |
 
 Everything else — the `initialize`, the `require!` address check, the
 `vault.balance -= amount` — is identical. That is the point: the fix is a
 declaration, not a line of logic.
 
-The listing shown in step 2 of the web demo is `programs/xray_vulnerable/src/lib.rs`
+The listing shown in step 2 of the web demo is `programs/prism_vulnerable/src/lib.rs`
 verbatim, so what the animation dissects is real source in this repository.
 
 ## Status: written, never compiled
 
 **Neither program has been built, deployed, or tested.** No `.so`, no program id,
-no transaction signature exists. `tests/xray.ts` is therefore a claim about what
+no transaction signature exists. `tests/prism.ts` is therefore a claim about what
 will happen, not a record of what did.
 
 The reason is a toolchain gap, not a choice: producing Solana bytecode needs
@@ -47,7 +47,7 @@ refused at deploy time. That needs platform-tools >= v1.56 and
 cargo-build-sbf >= v4.2.0. Confirm with:
 
 ```bash
-readelf -h target/deploy/xray_vulnerable.so | grep Flags   # 0x3 == SBPFv3
+readelf -h target/deploy/prism_vulnerable.so | grep Flags   # 0x3 == SBPFv3
 ```
 
 If that comes back `0x0`, the build is v0 and Devnet may reject it.

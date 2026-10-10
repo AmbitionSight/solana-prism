@@ -1,4 +1,4 @@
-//! xray_vulnerable — the build the demo attacks.
+//! prism_vulnerable — the build the demo attacks.
 //!
 //! The `Withdraw` accounts struct declares `authority` as `AccountInfo<'info>`,
 //! which asks the runtime for nothing at all. The handler then checks the
@@ -6,17 +6,18 @@
 //! hand it over and sign the transaction themselves.
 //!
 //! This is the whole bug, and it is one line: the declaration at stage 3, not
-//! the `require!` further down. Compare with programs/xray_fixed/src/lib.rs,
+//! the `require!` further down. Compare with programs/prism_fixed/src/lib.rs,
 //! which differs only in that declaration.
 
 use anchor_lang::prelude::*;
 
-// Placeholder. `anchor keys sync` rewrites this from
-// target/deploy/xray_vulnerable-keypair.json on the first build.
-declare_id!("11111111111111111111111111111111");
+// The real address, written by `anchor keys sync` from
+// target/deploy/prism_vulnerable-keypair.json. Anchor derives `#[account]`'s
+// Owner from this, so it has to match the keypair the program is built with.
+declare_id!("7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2");
 
 #[program]
-pub mod xray_vault {
+pub mod prism_vulnerable {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
@@ -29,7 +30,10 @@ pub mod xray_vault {
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
         // The address matches, so this passes — nobody ever checked who signed.
-        require!(vault.authority == ctx.accounts.authority.key());
+        require!(
+            vault.authority == ctx.accounts.authority.key(),
+            ErrorCode::RequireViolated
+        );
         vault.balance -= amount;
         Ok(())
     }

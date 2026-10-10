@@ -1,12 +1,12 @@
 [package]
-name = "xray_fixed"
+name = "prism_vulnerable"
 version = "0.1.0"
-description = "The repaired build behind the X-Ray demo — withdraw declares authority as Signer"
+description = "The vulnerable build behind the Prism demo — withdraw checks the address but not the signature"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "xray_fixed"
+name = "prism_vulnerable"
 
 [features]
 default = []

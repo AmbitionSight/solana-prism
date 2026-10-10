@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "programs/xray_vulnerable",
-    "programs/xray_fixed",
+    "programs/prism_vulnerable",
+    "programs/prism_fixed",
 ]
 resolver = "2"
 

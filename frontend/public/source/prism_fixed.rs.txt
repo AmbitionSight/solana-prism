@@ -1,6 +1,6 @@
-//! xray_fixed — the same contract, repaired.
+//! prism_fixed — the same contract, repaired.
 //!
-//! Identical to xray_vulnerable except for ONE line: `Withdraw.authority` is
+//! Identical to prism_vulnerable except for ONE line: `Withdraw.authority` is
 //! declared `Signer<'info>` instead of `AccountInfo<'info>`.
 //!
 //! That is the lesson of the demo. The runtime enforces a declared constraint
@@ -17,12 +17,13 @@
 
 use anchor_lang::prelude::*;
 
-// Placeholder. `anchor keys sync` rewrites this from
-// target/deploy/xray_fixed-keypair.json on the first build.
-declare_id!("11111111111111111111111111111111");
+// The real address, written by `anchor keys sync` from
+// target/deploy/prism_fixed-keypair.json. Anchor derives `#[account]`'s Owner
+// from this, so it has to match the keypair the program is built with.
+declare_id!("9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq");
 
 #[program]
-pub mod xray_vault {
+pub mod prism_fixed {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
@@ -34,7 +35,10 @@ pub mod xray_vault {
 
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
-        require!(vault.authority == ctx.accounts.authority.key());
+        require!(
+            vault.authority == ctx.accounts.authority.key(),
+            ErrorCode::RequireViolated
+        );
         vault.balance -= amount;
         Ok(())
     }

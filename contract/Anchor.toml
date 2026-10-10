@@ -5,19 +5,34 @@ anchor_version = "0.30.1"
 resolution = true
 skip-lint = false
 
-# Placeholder addresses. `anchor keys sync` rewrites both this file and
-# declare_id! from target/deploy/<program>-keypair.json on the first build, so
-# these do not need to be edited by hand — but a build IS required before
-# either address means anything.
+# The real addresses, written by `anchor keys sync` from
+# target/deploy/<program>-keypair.json. Anchor derives `#[account]`'s Owner from
+# declare_id!, so each of these has to match the keypair its program is built
+# from — a placeholder here makes the runtime reject the vault account.
 [programs.devnet]
-xray_vulnerable = "11111111111111111111111111111111"
-xray_fixed = "11111111111111111111111111111111"
+prism_vulnerable = "7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2"
+prism_fixed = "9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq"
+
+# Deployed and live. The build box reaches the cluster only through a reverse
+# tunnel to the host's HTTP proxy (this network's DNS poisons *.solana.com), so
+# deployment ran as `solana program deploy --url https://api.testnet.solana.com`
+# with HTTPS_PROXY pointing at that tunnel.
+[programs.testnet]
+prism_vulnerable = "7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2"
+prism_fixed = "9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq"
+
+# Plan C fallback: the same keypairs run against a local validator, which is how
+# the four attack assertions were first proven before a public cluster was
+# reachable.
+[programs.localnet]
+prism_vulnerable = "7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2"
+prism_fixed = "9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "testnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

@@ -16,19 +16,19 @@ import { fileURLToPath } from 'node:url';
 
 const PAIRS = [
   {
-    title: 'xray_vulnerable.rs.txt mirrors contract/programs/xray_vulnerable/src/lib.rs',
-    copy: '../../public/source/xray_vulnerable.rs.txt',
-    source: '../../../contract/programs/xray_vulnerable/src/lib.rs',
+    title: 'prism_vulnerable.rs.txt mirrors contract/programs/prism_vulnerable/src/lib.rs',
+    copy: '../../public/source/prism_vulnerable.rs.txt',
+    source: '../../../contract/programs/prism_vulnerable/src/lib.rs',
   },
   {
-    title: 'xray_fixed.rs.txt mirrors contract/programs/xray_fixed/src/lib.rs',
-    copy: '../../public/source/xray_fixed.rs.txt',
-    source: '../../../contract/programs/xray_fixed/src/lib.rs',
+    title: 'prism_fixed.rs.txt mirrors contract/programs/prism_fixed/src/lib.rs',
+    copy: '../../public/source/prism_fixed.rs.txt',
+    source: '../../../contract/programs/prism_fixed/src/lib.rs',
   },
   {
-    title: 'xray.test.ts.txt mirrors contract/tests/xray.ts',
-    copy: '../../public/source/xray.test.ts.txt',
-    source: '../../../contract/tests/xray.ts',
+    title: 'prism.test.ts.txt mirrors contract/tests/prism.ts',
+    copy: '../../public/source/prism.test.ts.txt',
+    source: '../../../contract/tests/prism.ts',
   },
 ];
 

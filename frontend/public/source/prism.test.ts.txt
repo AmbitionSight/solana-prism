@@ -1,5 +1,5 @@
 /**
- * xray.ts — the two outcomes the demo claims, asserted against real Devnet.
+ * prism.ts — the two outcomes the demo claims, asserted against a live cluster.
  *
  * The demo animates a vault going from 1000 to 500 because an attacker passed
  * the admin's address without the admin's signature. These tests are the same
@@ -17,34 +17,53 @@
  * RUNNING THIS REQUIRES A BUILD AND A DEPLOYMENT:
  *
  *   anchor build
- *   anchor test --skip-local-validator --provider.cluster devnet
+ *   anchor test --skip-local-validator --provider.cluster localnet
  *
- * Neither has been run on this repository yet — see contract/README.md. Until
- * they are, this file is a claim, not evidence.
+ * On this build box devnet/testnet are unreachable (DNS-whitelisted), so the
+ * local validator is the working cluster (Plan C). Swap `--provider.cluster`
+ * to devnet/testnet once a reachable RPC is available. Until a public cluster
+ * is used, the demo's "the attack really happened" claim is backed by this
+ * local run, not a Solcan link.
  */
 
-import * as anchor from '@coral-xyz/anchor';
-import { BN, type Program } from '@coral-xyz/anchor';
+import anchor from '@coral-xyz/anchor';
+import type { Program } from '@coral-xyz/anchor';
 import { Keypair, LAMPORTS_PER_SOL, SystemProgram } from '@solana/web3.js';
-import { assert } from 'chai';
-import type { XrayVault as VulnerableVault } from '../target/types/xray_vulnerable';
-import type { XrayVault as FixedVault } from '../target/types/xray_fixed';
+import chai from 'chai';
+const { BN } = anchor;
+const { assert } = chai;
+import type { PrismVault as VulnerableVault } from '../target/types/prism_vulnerable';
+import type { PrismVault as FixedVault } from '../target/types/prism_fixed';
 
 const STARTING_BALANCE = 1000;
 const WITHDRAW_AMOUNT = 500;
 const EXPECTED_AFTER = STARTING_BALANCE - WITHDRAW_AMOUNT;
 
-describe('xray — missing signer check', () => {
+describe('prism — missing signer check', () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const vulnerable = anchor.workspace.XrayVulnerable as Program<VulnerableVault>;
-  const fixed = anchor.workspace.XrayFixed as Program<FixedVault>;
+  const vulnerable = anchor.workspace.PrismVulnerable as Program<VulnerableVault>;
+  const fixed = anchor.workspace.PrismFixed as Program<FixedVault>;
 
   const admin = Keypair.generate();
   const attacker = Keypair.generate();
   const vulnerableVault = Keypair.generate();
   const fixedVault = Keypair.generate();
+
+  // The vulnerable program demands no signature, so the attacker must be the one
+  // who pays for and signs the transaction. We hand them their own provider so
+  // they are the fee payer — this is the "attacker signs, the admin does not"
+  // case the demo describes.
+  const attackerProvider = new anchor.AnchorProvider(
+    provider.connection,
+    new anchor.Wallet(attacker),
+    provider.opts,
+  );
+  const vulnerableAsAttacker = new anchor.Program(
+    vulnerable.idl,
+    attackerProvider,
+  );
 
   async function fund(keypair: Keypair) {
     const signature = await provider.connection.requestAirdrop(
@@ -85,15 +104,14 @@ describe('xray — missing signer check', () => {
   });
 
   it('vulnerable: the attacker signs, the admin does not, and it succeeds', async () => {
-    await vulnerable.methods
+    // vulnerableAsAttacker signs (and pays for) this transaction as the attacker;
+    // the admin never touches it. The program only checks the *address*.
+    await vulnerableAsAttacker.methods
       .withdraw(new BN(WITHDRAW_AMOUNT))
       .accounts({
         vault: vulnerableVault.publicKey,
-        // The admin's address is present...
         authority: admin.publicKey,
       })
-      // ...but the only signature on this transaction is the attacker's.
-      .signers([attacker])
       .rpc();
 
     const vault = await vulnerable.account.vault.fetch(vulnerableVault.publicKey);
