@@ -3,9 +3,9 @@ import { elide } from '../lib/elide';
 import { useLanguage } from '../i18n/language';
 
 /**
- * Page 5 — the attacker's whole contribution.
+ * Page 4 — the attacker's whole contribution.
  *
- * Page 4 left stage 4's caller slot blank. This page says what fills it: the
+ * Page 3 left stage 4's caller slot blank. This page says what fills it: the
  * admin's *public* address, which is visible to anyone. No forgery, no stolen
  * key — a piece of public information written into a position the program never
  * checks.

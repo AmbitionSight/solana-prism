@@ -80,8 +80,8 @@
 /* ---------- The security layer ---------- */
 
 /* Scoped to the flow layout on purpose: the crack is meant to be the
-   reveal that lands when the cards finish converging in step 4, not something
-   already visible while they are still scattered in step 3. */
+   reveal that lands when the cards finish converging on the flow page, not
+   something already visible while they are still scattered. */
 .layers-container.flow .layer-card.security-broken {
   background: var(--color-danger-bg);
   /* The visible border comes from the pseudo-element below, which draws itself.

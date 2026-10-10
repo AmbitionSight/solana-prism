@@ -2,7 +2,7 @@ import { useLanguage } from '../i18n/language';
 import type { MessageKey } from '../i18n/messages';
 
 /**
- * Page 9 — the same attack against the repaired build, and the two versions
+ * Page 8 — the same attack against the repaired build, and the two versions
  * held side by side.
  *
  * This page carries no machinery of its own: the flow above it is the same
@@ -45,7 +45,7 @@ export default function RetryRefused() {
   return (
     <section className="retry" data-testid="retry">
       {/* Copy and table side by side rather than stacked: together they are the
-          tallest footer any page carries, and stacked they pushed page 9 past
+          tallest footer any page carries, and stacked they pushed page 8 past
           the fold. Read left then right, the same order as stacked. */}
       <div className="retry__grid">
         <div className="retry__copy">

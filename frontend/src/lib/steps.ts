@@ -1,20 +1,20 @@
 /**
  * steps.ts — the demo's state-machine vocabulary.
  *
- * Steps 1-4 are a narrated, auto-advancing sequence. Steps 5-9 are the
- * interactive tail: they wait for the user, from the attack through to the
+ * Steps 1-3 are a narrated, auto-advancing sequence. Steps 4-8 are the
+ * interactive tail: they wait for the user, from the fill through to the
  * same attack being refused by the fixed contract.
  */
 
-export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /** The opening step. The demo starts here and the narration runs down from it. */
 export const FIRST_STEP: Step = 1;
 
 /** The terminal step. The demo stops here and waits for the user. */
-export const FINAL_STEP: Step = 9;
+export const FINAL_STEP: Step = 8;
 
-/** Attack sub-state within step 5. */
+/** Attack sub-state within the attack page (step 5). */
 export type AttackState = 'idle' | 'showing-tx' | 'running' | 'done';
 
 export type AttackOutcome = 'success' | 'rejected';
@@ -22,17 +22,17 @@ export type AttackOutcome = 'success' | 'rejected';
 /** How long the transaction payload card stays on screen before the dot drops. */
 export const TX_CARD_MS = 1200;
 
-/** Auto-advance delays for the narrated steps. Steps 5-9 are absent: they are manual. */
+/** Auto-advance delays for the narrated steps. Steps 4-8 are absent: they are manual. */
 export const AUTO_ADVANCE_MS: Partial<Record<Step, number>> = {
   1: 3000,
   // Long on purpose: the listing arrives first, then each region is boxed and
   // labelled with the stage it becomes, before the cards decompose.
   2: 9000,
+  // The flow page: the cards scatter from the page-2 boxes, then settle.
   3: 5000,
-  4: 5000,
 };
 
-/** The next step, or null when the narration has run out (step 9 is terminal). */
+/** The next step, or null when the narration has run out (step 8 is terminal). */
 export function nextStep(step: Step): Step | null {
   return step < FINAL_STEP ? ((step + 1) as Step) : null;
 }

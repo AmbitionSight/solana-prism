@@ -13,12 +13,12 @@ import { useLanguage } from '../i18n/language';
  *
  * The two sides are not the same, and that is the point. The vault's side is a
  * real address written at S0 and elided for display. The caller's side is
- * **empty** on page 4: on Solana the caller supplies it, and nothing in the
+ * **empty** on page 3: on Solana the caller supplies it, and nothing in the
  * declaration checks who that is. Printing the admin's address on both lines
  * would hand over the answer before the reader has seen the bug — filling that
  * blank is the attack.
  *
- * When `filled` is true (page 6 and page 9, after the attacker has supplied the
+ * When `filled` is true (page 5 and page 8, after the attacker has supplied the
  * admin's public address) the caller's slot carries that same elided address and
  * the comparison states its result, trailing the supplied row in place of the
  * platform note. The blank is never *silently* replaced: the attribute changes
@@ -79,11 +79,11 @@ export default function AddressComparison({
             aria-hidden="true"
           />
         )}
-        {/* The trailing note swaps once the slot is filled: on page 4 it is the
+        {/* The trailing note swaps once the slot is filled: on page 3 it is the
             platform fact ("anyone may put anything here"); on the attack pages
             the outcome takes its place, so the comparison stays two rows tall
             and the card never outgrows the flow's pitch. The outcome exists only
-            once both sides hold a value, and its own element is absent on page 4
+            once both sides hold a value, and its own element is absent on page 3
             — nothing to conclude yet. */}
         {filled ? (
           <span className="layer-card__compare-result">{t[spec.resultKey]}</span>

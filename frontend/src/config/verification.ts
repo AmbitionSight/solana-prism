@@ -1,5 +1,5 @@
 /**
- * verification.ts — the on-chain evidence shown in step 6.
+ * verification.ts — the on-chain evidence shown in step 5.
  *
  * Two different kinds of value live here, and the difference is the whole point.
  *

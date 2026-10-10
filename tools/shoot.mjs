@@ -82,7 +82,6 @@ try {
  * English form is *supposed* to still be on screen.
  */
 const MUST_BE_TRANSLATED = [
-  'Replay',
   'Execute',
   'Verify on-chain',
   'Attack Successful',
@@ -96,7 +95,6 @@ const MUST_BE_TRANSLATED = [
 
 /** ...and the Chinese that must actually have replaced it. */
 const MUST_APPEAR_IN_CHINESE = [
-  '重播',
   '执行攻击',
   '攻击成功',
   '未要求签名',
@@ -157,7 +155,6 @@ const SQL = {
   result: '[data-testid="attack-result"]',
   closing: '[data-testid="closing-note"]',
   fill: '[data-testid="fill-address"]',
-  replay: '.replay-btn',
   langZh: '[data-testid="lang-zh"]',
   langEn: '[data-testid="lang-en"]',
 };
@@ -181,7 +178,7 @@ const NOTE_THE_BUG_ZH = '这一行就是全部的漏洞';
 const NOTE_THE_BUG_EN = 'This line is the whole bug';
 
 const PLAN = [
-  // --- pass 1: the narrated steps, each waiting for the state it claims to show
+  // --- the narrated steps, each waiting for the state it claims to show
   { wait: `__prism.step() === 1`, after: 1300, shot: 'step1-title' },
   { wait: `__prism.step() === 2`, after: 2400, shot: 'step2-code' },
 
@@ -245,17 +242,15 @@ const PLAN = [
     },
   },
 
-  // --- page 3: the vault, and one honest withdrawal
-  { wait: `__prism.step() === 3`, after: 700, shot: 'step3-vault' },
-  // --- page 4: the flow. The cards scatter from the page-2 boxes, then settle;
+  // --- page 3: the flow. The cards scatter from the page-2 boxes, then settle;
   // `mode()` is 'flow' once they have.
-  { wait: `__prism.mode() === 'flow'`, after: 2200, probe: 'tagCards', shot: 'step4-flow' },
-  // --- page 5: the attacker fills the slot with a public address. There is no
+  { wait: `__prism.mode() === 'flow'`, after: 2200, probe: 'tagCards', shot: 'step3-flow' },
+  // --- page 4: the attacker fills the slot with a public address. There is no
   // attack control on this page, which the shot's guard asserts.
-  { wait: `__prism.step() === 5 && !__prism.has('${SQL.execute}')`, after: 500, shot: 'step5-fill' },
-  // --- page 5 -> 6 is a manual move now: the attack page waits for the reader.
-  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
-  { wait: `__prism.step() === 6 && __prism.has('${SQL.execute}')`, shot: 'step6-ready' },
+  { wait: `__prism.step() === 4 && !__prism.has('${SQL.execute}')`, after: 500, shot: 'step4-fill' },
+  // --- page 4 -> 5 is a manual move now: the attack page waits for the reader.
+  { wait: `__prism.step() === 4`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, shot: 'step5-ready' },
 
   // --- the keyboard: ↑ and ↓ move between pages by hand. Every other step here
   // drives the demo by waiting on state; this is the one place it presses a key
@@ -263,18 +258,32 @@ const PLAN = [
   // synthetic KeyboardEvent, so the browser's own default action for the arrow
   // key actually runs and the app's suppression of it is observable.
   //
-  // This used to assert `scrollable=true`: pages 5 and 6 overflowed the
-  // viewport, so an unprevented ↓ would scroll as well as page, and the page
+  // This used to assert `scrollable=true`: the fill and attack pages overflowed
+  // the viewport, so an unprevented ↓ would scroll as well as page, and the page
   // had to be scrollable for "the position stayed put" to mean anything. That
   // is no longer true — every page now fits the reference viewport, so the
   // page is NOT scrollable and "the arrows did not scroll it" is vacuous on its
   // own. Rather than delete the check or leave it claiming teeth it lacks, it is
-  // inverted into the invariant this work established: on pages 5 and 6 the
+  // inverted into the invariant this work established: on pages 4 and 5 the
   // document must not scroll at all (`scrollable=false`), and `scrollY` must be
   // 0 across the key press. `scrollable=false` can still fail — it goes red the
   // moment any of these pages regresses into overflowing the viewport, which is
   // exactly the regression that made them draggable before.
-  { wait: `__prism.step() === 6`, press: 'ArrowUp' },
+  { wait: `__prism.step() === 5`, press: 'ArrowUp' },
+  {
+    wait: `__prism.step() === 4`,
+    after: 200,
+    expect: {
+      expression: `(() => {
+        const d = document.documentElement;
+        const scrollable = d.scrollHeight > window.innerHeight;
+        return 'scrollY=' + window.scrollY + ' scrollable=' + scrollable;
+      })()`,
+      contains: 'scrollY=0 scrollable=false',
+    },
+    shot: 'key-arrow-up-step4',
+  },
+  { wait: `__prism.step() === 4`, press: 'ArrowDown' },
   {
     wait: `__prism.step() === 5`,
     after: 200,
@@ -286,34 +295,20 @@ const PLAN = [
       })()`,
       contains: 'scrollY=0 scrollable=false',
     },
-    shot: 'key-arrow-up-step5',
-  },
-  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
-  {
-    wait: `__prism.step() === 6`,
-    after: 200,
-    expect: {
-      expression: `(() => {
-        const d = document.documentElement;
-        const scrollable = d.scrollHeight > window.innerHeight;
-        return 'scrollY=' + window.scrollY + ' scrollable=' + scrollable;
-      })()`,
-      contains: 'scrollY=0 scrollable=false',
-    },
-    shot: 'key-arrow-down-step6',
+    shot: 'key-arrow-down-step5',
   },
 
-  // --- page 6: the attack, for real. The blank slot page 4 left is filled, and
+  // --- page 5: the attack, for real. The blank slot page 3 left is filled, and
   // the dot runs the vulnerable build.
   { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
-  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'step6-txcard' },
-  { wait: `__prism.has('${SQL.dot}')`, after: 1450, shot: 'step6-attack-dot' },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 1450, shot: 'step5-attack-dot' },
   {
     wait: `__prism.has('${SQL.result}')`,
     after: 700,
     probe: 'checkCards',
     expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Attack Successful' },
-    shot: 'step6-result-success',
+    shot: 'step5-result-success',
   },
   {
     // The note ships with the result, so it must be present whenever the result
@@ -325,7 +320,7 @@ const PLAN = [
       expression: `__prism.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
       contains: 'closing-present',
     },
-    shot: 'step6-closing-note',
+    shot: 'step5-closing-note',
   },
   { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
   {
@@ -341,7 +336,7 @@ const PLAN = [
       expression: `(__prism.has('.verify__panel video') || __prism.has('.verify__video-fallback')) ? 'neither-empty-nor-video' : 'EMPTY-VIDEO-BOX'`,
       contains: 'neither-empty-nor-video',
     },
-    shot: 'step6-verify-panel',
+    shot: 'step5-verify-panel',
   },
 
   // --- bilingual: the finished vulnerable state, switched to Chinese. The
@@ -361,7 +356,7 @@ const PLAN = [
       })()`,
       contains: 'zh-ok',
     },
-    shot: 'zh-step6-state',
+    shot: 'zh-step5-state',
   },
   {
     // Stage names are bilingual by design, so the English term must survive.
@@ -385,56 +380,32 @@ const PLAN = [
     shot: 'en-restored',
   },
 
-  // --- page 7: why the mistake is made (the flow stays mounted but hidden)
+  // --- page 6: why the mistake is made (the flow stays mounted but hidden)
+  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 6`, after: 500, shot: 'step6-why' },
+  // --- page 7: the fix — one declaration
   { wait: `__prism.step() === 6`, press: 'ArrowDown' },
-  { wait: `__prism.step() === 7`, after: 500, shot: 'step7-why' },
-  // --- page 8: the fix — one declaration
-  { wait: `__prism.step() === 7`, press: 'ArrowDown' },
-  { wait: `__prism.step() === 8`, after: 500, shot: 'step8-fix' },
-  // --- page 9: the same attack against the repaired build, refused. This is a
+  { wait: `__prism.step() === 7`, after: 500, shot: 'step7-fix' },
+  // --- page 8: the same attack against the repaired build, refused. This is a
   // second real run, so it needs a real refusal from the chain, not a script.
-  { wait: `__prism.step() === 8`, press: 'ArrowDown' },
-  { wait: `__prism.step() === 9 && __prism.has('${SQL.execute}')`, after: 500, shot: 'step9-retry' },
+  { wait: `__prism.step() === 7`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 8 && __prism.has('${SQL.execute}')`, after: 500, shot: 'step8-retry' },
   { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
-  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'step9-txcard' },
-  { wait: `__prism.has('${SQL.dot}')`, after: 1550, shot: 'step9-attack-blocked' },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'step8-txcard' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 1550, shot: 'step8-attack-blocked' },
   {
     wait: `__prism.has('${SQL.result}')`,
     after: 700,
     probe: 'checkCards',
     expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Transaction Rejected' },
-    shot: 'step9-result-rejected',
+    shot: 'step8-result-rejected',
   },
   { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
   {
     wait: `__prism.has('${SQL.verifyPanel}')`,
     after: 400,
     expect: { expression: `__prism.text('${SQL.verifyPanel}')`, contains: 'Same call, fixed build' },
-    shot: 'step9-verify-panel',
-  },
-
-  // --- pass 2: the whole journey again in the same page session, no refresh.
-  // "Runs twice" is the point. Replay resets to page 1, so the flow legitimately
-  // remounts — the nodes are re-tagged here, and the identity probe then runs
-  // across the page-4 -> page-6 move, which is what iron rule 1 is about.
-  { wait: `__prism.has('${SQL.replay}')`, click: SQL.replay },
-  { wait: `__prism.step() === 1 && !__prism.has('${SQL.result}')`, after: 1300, shot: 'pass2-step1-title' },
-  { wait: `__prism.step() === 2`, after: 2400, shot: 'pass2-step2-code' },
-  { wait: `__prism.mode() === 'flow'`, after: 2200, probe: 'tagCards', shot: 'pass2-step4-flow' },
-  // Page 5 is manual, so the journey only reaches the attack page on a key press.
-  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
-  {
-    wait: `__prism.step() === 6 && __prism.has('${SQL.execute}')`,
-    probe: 'checkCards',
-  },
-  { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
-  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'pass2-step6-txcard' },
-  { wait: `__prism.has('${SQL.dot}')`, after: 900, shot: 'pass2-step6-attack-dot' },
-  {
-    wait: `__prism.has('${SQL.result}')`,
-    after: 700,
-    expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Attack Successful' },
-    shot: 'pass2-step6-result-success',
+    shot: 'step8-verify-panel',
   },
 ];
 

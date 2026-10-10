@@ -346,8 +346,8 @@
 
 /* Tall enough to hold the controls *and* the result, so the stack never shifts
    while the attack plays — a layout jump mid-animation reads as a glitch.
-   Reserved from page 4, and kept just under the tallest thing that lands here
-   (page 9's two-column retry) so no page it appears on pushes past the fold. */
+   Reserved from page 3, and kept just under the tallest thing that lands here
+   (page 8's two-column retry) so no page it appears on pushes past the fold. */
 .footer-slot {
   width: 100%;
   min-height: 120px;
@@ -777,23 +777,21 @@
 }
 
 /* ==========================================================================
-   Pages 3, 5, 7, 8, 9 — the explanatory tail.
+   The explanatory tail — the fill, why, fix and retry pages.
 
-   The mini-flows on pages 3, 5 and 9 reuse the flow's node language: the same
-   card surface, radius, shadow and type as `.layer-card`. The shared look is one
-   rule naming both selectors, so the two cannot drift; only the layout differs
-   (these nodes flow normally, `.layer-card` is absolutely positioned on the
-   animated coordinate system).
+   These pages share the page furniture below. The flow's card skin lives on
+   `.layer-card`, which is absolutely positioned on the animated coordinate
+   system; the static flow nodes that once reused that skin lived on the deleted
+   vault-intro page, so the skin is now named on `.layer-card` alone.
    ========================================================================== */
 
 .layers-wrap.is-hidden {
   display: none;
 }
 
-/* ---------- The static flow node (shares `.layer-card`'s skin) ---------- */
+/* ---------- The layer card skin ---------- */
 
-.layer-card,
-.flow-node {
+.layer-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -802,79 +800,8 @@
   font-size: 14px;
 }
 
-.flow-node {
-  position: relative;
-  width: 480px;
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 20px;
-}
-
-.flow-node__tag {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-}
-
-/* Who acts colours the tag, from existing tokens only. */
-.flow-node--runtime .flow-node__tag {
-  color: var(--color-syntax-type);
-}
-
-.flow-node--code .flow-node__tag {
-  color: var(--color-syntax-keyword);
-}
-
-.flow-node__code {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.flow-node__say {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--color-text-secondary);
-}
-
-.flow-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 18px auto;
-}
-
-/* The connector between two static nodes — the flow's `.layer-connector`, laid
-   out in normal flow. Same 2px line, same border token, same 26px height. */
-.flow-link {
-  width: 2px;
-  height: 26px;
-  background: var(--color-border);
-}
-
-.flow-verdict {
-  font-weight: 600;
-  font-size: 18px;
-  text-align: center;
-  padding: 10px 0;
-}
-
-.flow-verdict--good {
-  color: var(--color-success);
-}
-
-.flow-verdict--bad {
-  color: var(--color-danger);
-}
-
 /* ---------- Shared page furniture ---------- */
 
-.page-intro,
 .fill-address,
 .why,
 .fix,
@@ -924,7 +851,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ---------- Page 5 — the fill line ---------- */
+/* ---------- Page 4 — the fill line ---------- */
 
 .fill-line {
   display: flex;
@@ -962,7 +889,7 @@
   font-weight: 600;
 }
 
-/* ---------- The two-pane comparison (pages 5 and 7) ---------- */
+/* ---------- The two-pane comparison (pages 4 and 6) ---------- */
 
 .two-panes {
   display: grid;
@@ -1030,7 +957,7 @@
   font-weight: 600;
 }
 
-/* ---------- The comparison table (pages 7 and 9) ---------- */
+/* ---------- The comparison table (pages 6 and 8) ---------- */
 
 .cmp-table {
   width: 100%;
@@ -1055,7 +982,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ---------- Page 8 — the one-line diff ---------- */
+/* ---------- Page 7 — the one-line diff ---------- */
 
 .diff {
   width: 100%;
@@ -1097,9 +1024,9 @@
   color: var(--color-text);
 }
 
-/* Page 9's footer, side by side: the copy in one column, the table in the
+/* Page 8's footer, side by side: the copy in one column, the table in the
    other. Stacked, the two together are the tallest thing any page puts below
-   the flow and push page 9 past the fold; as two columns the section is as tall
+   the flow and push page 8 past the fold; as two columns the section is as tall
    as its taller half. Collapses to one column when there is no room. */
 .retry__grid {
   width: 100%;

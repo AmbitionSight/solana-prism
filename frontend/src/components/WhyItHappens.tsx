@@ -1,7 +1,7 @@
 import { useLanguage } from '../i18n/language';
 
 /**
- * Page 7 — why a competent person writes this bug.
+ * Page 6 — why a competent person writes this bug.
  *
  * The mistake is not carelessness. `require(msg.sender == owner)` is a correct,
  * sufficient identity check in Solidity, because the protocol computes

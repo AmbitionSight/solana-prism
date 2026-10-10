@@ -1,9 +1,9 @@
 import { useLanguage } from '../i18n/language';
 
 /**
- * Page 8 — the repair is one declaration.
+ * Page 7 — the repair is one declaration.
  *
- * The instinct after page 6 is to add a check. There is nothing to add: the
+ * The instinct after the attack is to add a check. There is nothing to add: the
  * `require!` line was correct, it compares exactly the right two values, and it
  * keeps working. What was wrong is the declaration above it, which told the
  * runtime to demand nothing. So the diff is a single line, and the copy says so

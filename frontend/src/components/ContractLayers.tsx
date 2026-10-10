@@ -38,7 +38,7 @@ interface ContractLayersProps {
   isFixed: boolean;
   attackState: AttackState;
   /**
-   * Whether stage 4's caller slot is filled. False on page 4, where the blank is
+   * Whether stage 4's caller slot is filled. False on page 3, where the blank is
    * the lesson; true from the attack page on, where the attacker's supplied
    * address is the reveal.
    */

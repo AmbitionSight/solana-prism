@@ -66,23 +66,34 @@ try {
 
 const SQL = {
   execute: '[data-testid="execute-btn"]',
-  fixToggle: '[data-testid="fix-toggle-fixed"]',
   verifyToggle: '[data-testid="verify-toggle"]',
   verifyPanel: '[data-testid="verify-panel"]',
   dot: '[data-testid="attack-dot"]',
   result: '[data-testid="attack-result"]',
-  replay: '.replay-btn',
   langZh: '[data-testid="lang-zh"]',
   langEn: '[data-testid="lang-en"]',
 };
 
 /**
+ * The arrow keys, as CDP `Input.dispatchKeyEvent` needs them. The recorder used
+ * to reach the fixed build through a build-switch control, and to restart the
+ * narration through a Replay button; both are gone. Paging from the vulnerable
+ * attack to the repaired-build retry is now a real key press, exactly as a
+ * reader does it.
+ */
+const KEY_CODES = {
+  ArrowUp: 38,
+  ArrowDown: 40,
+  ArrowLeft: 37,
+  ArrowRight: 39,
+};
+
+/**
  * Condition-waited beats. `after` is a settle delay for pacing, never a guess.
  *
- * The language switch is shown by switching and then pressing Replay, rather
- * than by toggling mid-step: step 2 is only 4 seconds long, so squeezing
- * "English comments → Chinese comments → back" into it either overruns the step
- * or gives each language about a second on screen.
+ * Pages 4 through 8 are manual: the flow page (3) auto-advances to the fill page
+ * (4) and stops there, so the journey pages by arrow key from the fill onward,
+ * waiting on each page's state between presses.
  */
 const PLAN = [
   // --- English: the whole flow
@@ -90,14 +101,12 @@ const PLAN = [
   { wait: `__prism.step() === 2`, after: 3900 },
   { wait: `__prism.mode() === 'decomposed'`, after: 4700 },
   { wait: `__prism.mode() === 'flow'`, after: 4300 },
+  // The flow page auto-advances to the manual fill page, which then waits.
+  { wait: `__prism.step() === 4`, after: 900 },
+
+  // Vulnerable path — the fill page hands over to the attack page by hand.
+  { wait: `__prism.step() === 4`, press: 'ArrowDown' },
   { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, after: 900 },
-
-  // Vulnerable path
-  { click: SQL.execute },
-  { wait: `__prism.has('${SQL.result}')`, after: 1600 },
-
-  // Fixed path
-  { click: SQL.fixToggle },
   { click: SQL.execute },
   { wait: `__prism.has('${SQL.result}')`, after: 1600 },
 
@@ -105,14 +114,19 @@ const PLAN = [
   { click: SQL.verifyToggle },
   { wait: `__prism.has('${SQL.verifyPanel}')`, after: 2400 },
 
-  // --- Chinese: switch, then replay so the narration itself runs in Chinese
+  // --- page on to the repaired build (pages 6, 7, 8) and run the fixed attack
+  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 6`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 7`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 8 && __prism.has('${SQL.execute}')`, after: 900 },
+  { click: SQL.execute },
+  { wait: `__prism.has('${SQL.result}')`, after: 1600 },
+
+  // --- Chinese: switch and hold on the repaired state, then switch back. The
+  // narration cannot be re-run from here — the Replay button is gone, and this
+  // recorder no longer resets to page 1.
   { wait: `__prism.has('${SQL.langZh}')`, click: SQL.langZh },
-  { wait: `document.documentElement.lang === 'zh-CN'`, after: 1600 },
-  { wait: `__prism.has('${SQL.replay}')`, click: SQL.replay },
-  { wait: `__prism.step() === 1`, after: 2400 },
-  { wait: `__prism.step() === 2`, after: 3200 },
-  { wait: `__prism.mode() === 'decomposed'`, after: 2600 },
-  { wait: `__prism.mode() === 'flow'`, after: 2600 },
+  { wait: `document.documentElement.lang === 'zh-CN'`, after: 3200 },
 
   // --- back to English to close. The hold is long on purpose: the screencast
   // only emits frames when the page repaints, so a short tail can end up with
@@ -290,6 +304,21 @@ async function main() {
              if (!el) return false; el.click(); return true; })()`,
         );
         if (!clicked) console.warn(`  warning: ${action.click} not found`);
+      }
+      if (action.press) {
+        const code = KEY_CODES[action.press];
+        if (code === undefined) {
+          console.warn(`  warning: press ${action.press} -> no virtual key code`);
+        } else {
+          const keyEvent = {
+            key: action.press,
+            code: action.press,
+            windowsVirtualKeyCode: code,
+            nativeVirtualKeyCode: code,
+          };
+          await send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyEvent });
+          await send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyEvent });
+        }
       }
     }
 

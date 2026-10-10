@@ -14,7 +14,7 @@
 /*
  * The pitch was retuned so the whole six-node flow fits a 1280x820 viewport
  * under the footer each page carries: at the old 96 + 26 the flow alone was
- * 706px, which pushed pages 4, 5, 6 and 9 past the fold and made them scroll —
+ * 706px, which pushed pages 3, 4, 5 and 8 past the fold and made them scroll —
  * the demo is paged, not scrolled, so that had to go.
  *
  * LAYER_HEIGHT = 68. The card's intrinsic content is now ~39px (a 12px sentence,

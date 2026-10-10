@@ -30,7 +30,7 @@ interface AttackResultProps {
 }
 
 /**
- * Step 5's payoff line.
+ * The attack's payoff line.
  *
  * Same rendering either way: what changes is where the verdict comes from. With
  * no explicit outcome it is derived from the selected build, exactly as before;

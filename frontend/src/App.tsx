@@ -19,7 +19,6 @@ import Step1Title from './components/Step1Title';
 import Step2Code from './components/Step2Code';
 import TheFix from './components/TheFix';
 import TxCard, { type TxPayload } from './components/TxCard';
-import VaultIntro from './components/VaultIntro';
 import VerifyPanel from './components/VerifyPanel';
 import WalletButton from './components/WalletButton';
 import WhyItHappens from './components/WhyItHappens';
@@ -43,34 +42,34 @@ import './styles/animations.css';
 type BlockedResult = Extract<ChainResult, { kind: 'exhausted' | 'notConfigured' | 'failed' }>;
 
 /**
- * Page 9 attacks the repaired build — the retry the whole lesson has been
+ * Page 8 attacks the repaired build — the retry the whole lesson has been
  * building to. Which build is under attack is now a property of the page, not of
- * a manual switch: the vulnerable build is pages 4-8, the repaired one is page 9.
+ * a manual switch: the vulnerable build is pages 3-7, the repaired one is page 8.
  */
-const FIXED_FROM_STEP: Step = 9;
+const FIXED_FROM_STEP: Step = 8;
 
 /** The attack page, where the caller's slot on stage 4 is filled in. */
-const SLOT_FILLED_FROM_STEP: Step = 6;
+const SLOT_FILLED_FROM_STEP: Step = 5;
 
 /**
- * How long page 4's cards hold their scattered layout before they settle into
+ * How long page 3's cards hold their scattered layout before they settle into
  * the flow. The decomposition is the page's own event: the cards start on the
- * page-2 code boxes, fly apart, then converge — all within page 4.
+ * page-2 code boxes, fly apart, then converge — all within page 3.
  */
 const DECOMPOSE_MS = 1600;
 
 /**
- * `initialStep` exists for one reason: step 5 is entered by timers, and a test
- * that renders to a string runs no effects, so it cannot wait for them. Passing
- * the final step directly lets a test hold the demo in the state the default
- * path must keep behaving in. The app itself never passes it, so the demo still
- * opens on step 1.
+ * `initialStep` exists for one reason: the narrated pages are entered by timers,
+ * and a test that renders to a string runs no effects, so it cannot wait for
+ * them. Passing a later step directly lets a test hold the demo in the state the
+ * default path must keep behaving in. The app itself never passes it, so the
+ * demo still opens on step 1.
  */
 export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const { t } = useLanguage();
   const [step, setStep] = useState<Step>(initialStep);
   /**
-   * Whether page 4's cards have settled into the flow yet. They start scattered
+   * Whether page 3's cards have settled into the flow yet. They start scattered
    * (from the page-2 code boxes) and converge a beat later, so the decomposition
    * happens on the page that shows the flow rather than across a page change.
    */
@@ -111,7 +110,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
    */
   const runToken = useRef(0);
 
-  // Steps 1-4 narrate themselves; step 5 has no entry in AUTO_ADVANCE_MS and
+  // Steps 1-3 narrate themselves; step 4 has no entry in AUTO_ADVANCE_MS and
   // therefore waits for the user.
   useEffect(() => {
     const delay = AUTO_ADVANCE_MS[step];
@@ -123,19 +122,19 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     return () => window.clearTimeout(id);
   }, [step]);
 
-  // Page 4's decomposition happens in place: the cards first land on the page-2
+  // Page 3's decomposition happens in place: the cards first land on the page-2
   // code boxes, then fly apart, then settle into the flow. The scatter is not a
   // separate page any more, so this timer is what ends it.
   useEffect(() => {
-    if (step !== 4 || flowSettled) return;
+    if (step !== 3 || flowSettled) return;
     const id = window.setTimeout(() => setFlowSettled(true), DECOMPOSE_MS);
     return () => window.clearTimeout(id);
   }, [step, flowSettled]);
 
   /**
-   * Which build the flow is drawn for. The repair is page 8's story, and page 9
-   * attacks the repaired build, so from page 9 the security node reads green and
-   * demands a signature. Pages 4-8 show the shipped, vulnerable build.
+   * Which build the flow is drawn for. The repair is page 7's story, and page 8
+   * attacks the repaired build, so from page 8 the security node reads green and
+   * demands a signature. Pages 3-7 show the shipped, vulnerable build.
    */
   const isFixed = step >= FIXED_FROM_STEP;
 
@@ -219,7 +218,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
 
       // Leaving a page takes the run with it — a chain answer that lands after
       // the move belongs to a page nobody is on any more. The same reset the
-      // Replay and build-switch paths use, so there is only one of it.
+      // execute path uses, so there is only one of it.
       setAttackState('idle');
       clearRealRun();
       setStep(next);
@@ -379,16 +378,16 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   /** Where step 2's stage boxes sat, handed to the flow so the cards start there. */
   const regionRects = useRef<Record<string, DOMRect>>({});
 
-  // The flow's layout, all on one page now: page 4 seeds the cards onto the
+  // The flow's layout, all on one page now: page 3 seeds the cards onto the
   // page-2 code boxes, scatters them, then settles them into the flow. Every
   // later page keeps the settled flow — the same component, the same nodes.
   const layersMode: LayersMode =
-    step < 4 ? 'hidden' : step === 4 && !flowSettled ? 'decomposed' : 'flow';
+    step < 3 ? 'hidden' : step === 3 && !flowSettled ? 'decomposed' : 'flow';
 
-  // Pages 7 and 8 are not part of the flow's story: the flow stays mounted (its
-  // DOM identity is load-bearing across pages 4-9) but is taken out of the
+  // Pages 6 and 7 are not part of the flow's story: the flow stays mounted (its
+  // DOM identity is load-bearing across pages 3-8) but is taken out of the
   // layout while the two-pane comparison and the diff are read.
-  const flowHidden = step === 7 || step === 8;
+  const flowHidden = step === 6 || step === 7;
 
   // Stage 4's caller slot is blank until the attack supplies the admin's address.
   const slotFilled = step >= SLOT_FILLED_FROM_STEP;
@@ -402,8 +401,8 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   // are the signatures ("ATTACKER ✓ / ADMIN ✗").
   const showTxCard = attackState === 'showing-tx';
 
-  // The attack controls, on the two pages that run an attack: page 6 (the
-  // vulnerable build) and page 9 (the repaired one). Rendered from one place so
+  // The attack controls, on the two pages that run an attack: page 5 (the
+  // vulnerable build) and page 8 (the repaired one). Rendered from one place so
   // the two pages cannot drift, and so the Execute button — and therefore the
   // real run — exists on exactly those pages and no others.
   const attackControls = (
@@ -466,9 +465,8 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
             }}
           />
         )}
-        {step === 3 && <VaultIntro />}
 
-        {step >= 4 && (
+        {step >= 3 && (
           <>
             <div className={`layers-wrap${flowHidden ? ' is-hidden' : ''}`}>
               <ContractLayers
@@ -482,14 +480,14 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
               {showTxCard && <TxCard payload={payload ?? undefined} />}
             </div>
 
-            {/* Reserved from page 4 so the stack never shifts while the attack
+            {/* Reserved from page 3 so the stack never shifts while the attack
                 plays — a layout jump mid-animation would read as a glitch. */}
             <div className="footer-slot">
-              {step === 5 && <FillAddress />}
-              {(step === 6 || step === 9) && attackControls}
-              {step === 7 && <WhyItHappens />}
-              {step === 8 && <TheFix />}
-              {step === 9 && <RetryRefused />}
+              {step === 4 && <FillAddress />}
+              {(step === 5 || step === 8) && attackControls}
+              {step === 6 && <WhyItHappens />}
+              {step === 7 && <TheFix />}
+              {step === 8 && <RetryRefused />}
 
               {attackState === 'done' && (
                 <>

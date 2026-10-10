@@ -42,7 +42,7 @@ import type { LayerNameKey, MessageKey } from '../i18n/messages';
  * be as stale as one written into the copy.
  *
  * The result key is present in the data, but the card renders it only when the
- * caller's slot is filled. On page 4 that slot is blank, so the comparison has
+ * caller's slot is filled. On page 3 that slot is blank, so the comparison has
  * no outcome to show yet; the attack page fills it, and the result appears with
  * it.
  */
@@ -60,7 +60,7 @@ export interface ComparisonSpec {
   suppliedNoteKey: MessageKey;
   /**
    * What holding the two values against each other concludes. The card shows it
-   * only once the caller's slot is filled — page 4, where the slot is blank, has
+   * only once the caller's slot is filled — page 3, where the slot is blank, has
    * no outcome to state; the attack page fills it and the result appears with
    * it. Kept here rather than in the component so the comparison stays data.
    */

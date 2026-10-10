@@ -189,27 +189,9 @@ export interface Messages {
   closingLinkSolend: string;
   ariaClosingRegion: string;
 
-  /* ---- The nine-page narrative tail (pages 3, 5, 7, 8, 9) ---- */
+  /* ---- The eight-page narrative tail (pages 4, 6, 7, 8) ---- */
 
-  /* Page 3 — what the contract actually is: a vault, and one honest withdrawal.
-     The mini-flow reuses the flow's node language, so only the tags, the plain
-     sentences and the one runtime line are copy; the code lines (`withdraw(500)`,
-     `vault.balance -= 500`) are identifiers and stay outside the catalogue. */
-  vaultTitle: string;
-  vaultLede: string;
-  vaultNormalHeading: string;
-  vaultTagAdmin: string;
-  vaultTagRuntime: string;
-  vaultTagCode: string;
-  vaultAdminSay: string;
-  /** The runtime node's line is a sentence, not an identifier, so it is copy. */
-  vaultRuntimeCode: string;
-  vaultRuntimeSay: string;
-  vaultCodeSay: string;
-  vaultVerdict: string;
-  vaultNote: string;
-
-  /* Page 5 — the payoff of the blank left on page 4: the caller simply writes
+  /* Page 4 — the payoff of the blank left on page 3: the caller simply writes
      the admin's public address into the slot. The address itself is config
      (`VERIFICATION.adminPubkey`), elided at render; only the prose is copy. */
   fillTitle: string;
@@ -221,11 +203,11 @@ export interface Messages {
   fillNowBody: string;
 
   /* The comparison's outcome, shown only once the caller's slot is filled — the
-     attack page, where the addresses actually match. Absent on page 4, where the
+     attack page, where the addresses actually match. Absent on page 3, where the
      slot is still blank. */
   compareResult: string;
 
-  /* Page 7 — why the mistake is made: Solidity's check is right, and the hand
+  /* Page 6 — why the mistake is made: Solidity's check is right, and the hand
      writes the same shape in Rust where it proves nothing. */
   whyTitle: string;
   whyEthTitle: string;
@@ -245,14 +227,14 @@ export interface Messages {
   whyConclusion: string;
   whyNote: string;
 
-  /* Page 8 — the fix: one declaration, not a line of logic. */
+  /* Page 7 — the fix: one declaration, not a line of logic. */
   fixTitle: string;
   fixLede: string;
   fixBody: string;
   fixBodyDeclaration: string;
   fixNote: string;
 
-  /* Page 9 — the same attack against the fixed build, refused, and the two
+  /* Page 8 — the same attack against the fixed build, refused, and the two
      versions held side by side. */
   retryTitle: string;
   retryNote: string;
@@ -382,21 +364,6 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSealevel: 'Anchor docs · Sealevel Attacks',
     closingLinkSolend: 'Solend incident, 2021-08-19',
     ariaClosingRegion: 'Closing note',
-
-    vaultTitle: 'It is a vault.',
-    vaultLede:
-      'Someone puts money in, and only that person can take it out. The contract records their address — that is the "admin".',
-    vaultNormalHeading: 'A normal withdrawal',
-    vaultTagAdmin: 'Admin',
-    vaultTagRuntime: 'Runtime',
-    vaultTagCode: 'Contract code',
-    vaultAdminSay: 'The admin signs, and calls withdraw.',
-    vaultRuntimeCode: 'checks what the declaration asked for',
-    vaultRuntimeSay: 'The contract asked: the admin must sign → he did ✓',
-    vaultCodeSay: 'The addresses match → the balance drops by 500.',
-    vaultVerdict: 'The withdrawal succeeds',
-    vaultNote:
-      'This scene anchors the whole section. Without it, nothing that follows is legible.',
 
     fillTitle: 'He simply put this address in.',
     fillLede:
@@ -552,19 +519,6 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSealevel: 'Anchor 文档 · Sealevel Attacks',
     closingLinkSolend: 'Solend 事件（2021-08-19）',
     ariaClosingRegion: '结语',
-
-    vaultTitle: '它是一个金库。',
-    vaultLede: '有人把钱放进去，只有这个人能取出来。合约里记着他的地址，那就是「管理员」。',
-    vaultNormalHeading: '正常的一次取钱',
-    vaultTagAdmin: '管理员',
-    vaultTagRuntime: '运行时',
-    vaultTagCode: '合约代码',
-    vaultAdminSay: '管理员签名，调用 withdraw。',
-    vaultRuntimeCode: '检查声明里要求了什么签名',
-    vaultRuntimeSay: '合约要求：管理员必须签 → 他签了 ✓',
-    vaultCodeSay: '地址匹配 → 余额减掉 500。',
-    vaultVerdict: '取钱成功',
-    vaultNote: '这一幕是整段的锚点。没有它，后面发生什么都看不懂。',
 
     fillTitle: '他只是把这个地址填了进去。',
     fillLede: '这个地址，在链上人人可见。管理员的公钥不是秘密 —— 公钥从来不是秘密。',

@@ -43,7 +43,7 @@ function Row({ labelKey, value, href }: RowProps) {
 }
 
 /**
- * Step 6 — the on-chain evidence, collapsed behind a button so it never
+ * Step 5 — the on-chain evidence, collapsed behind a button so it never
  * interrupts the animation.
  *
  * The panel has two voices and picks between them by asking `isDeployed()`, not
