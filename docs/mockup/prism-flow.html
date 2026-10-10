@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solana Prism — 流程稿</title>
+<style>
+  :root {
+    --bg: #fff;
+    --fg: #1d1d1f;
+    --muted: #6e6e73;
+    --line: #e5e5e7;
+    --card: #fff;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+    --danger: #d1242f;
+    --danger-bg: #fff5f5;
+    --ok: #1d8348;
+    --ok-bg: #f2fbf5;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+            "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fafafa; color: var(--fg);
+    font-family: var(--sans); line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 880px; margin: 0 auto 40px; padding: 48px 40px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
+  .wrap { padding: 48px 20px; }
+  .num {
+    display: inline-block; font-family: var(--mono); font-size: 12px;
+    color: var(--muted); letter-spacing: .08em; margin-bottom: 8px;
+  }
+  h1 { font-size: 30px; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 600; }
+  h2 { font-size: 22px; letter-spacing: -.01em; margin: 0 0 16px; font-weight: 600; }
+  h3 { font-size: 15px; margin: 28px 0 10px; font-weight: 600; }
+  p  { margin: 10px 0; }
+  .lede { font-size: 17px; color: var(--muted); margin: 8px 0 20px; }
+  .muted { color: var(--muted); }
+  code, .mono { font-family: var(--mono); font-size: 13px; }
+  .big {
+    font-size: 40px; font-weight: 600; letter-spacing: -.02em;
+    text-align: center; padding: 90px 0; margin: 0;
+  }
+  .note {
+    border-left: 3px solid var(--line); padding: 2px 0 2px 14px;
+    color: var(--muted); font-size: 14px; margin: 14px 0;
+  }
+  .status {
+    display: flex; align-items: baseline; gap: 14px; font-family: var(--mono);
+    font-size: 12px; color: var(--muted); margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .status b { color: var(--fg); font-weight: 600; }
+  .live::before { content: "● "; color: var(--ok); }
+
+  pre {
+    background: #fbfbfd; border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; overflow-x: auto; font-family: var(--mono);
+    font-size: 13px; line-height: 1.75; margin: 0;
+  }
+  .c { color: #8a8a8e; }
+  .k { color: #9b2393; }
+  .t { color: #0b4f9e; }
+  .bug { background: var(--danger-bg); box-shadow: inset 3px 0 0 var(--danger); }
+
+  /* ---------- flow ---------- */
+  .flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 18px 0; }
+  .node {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+    padding: 14px 18px; box-shadow: var(--shadow); position: relative;
+  }
+  .node .tag {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .node .tag.rt  { color: #0b4f9e; }
+  .node .tag.app { color: #9b2393; }
+  .node .body { font-family: var(--mono); font-size: 14px; margin-top: 6px; }
+  .node .say { font-family: var(--sans); font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .link { width: 2px; height: 26px; background: var(--line); margin: 0 auto; }
+  .gap  {
+    border: 1.5px dashed #c9c9ce; background: #fcfcfd; color: var(--muted);
+    border-radius: 12px; padding: 14px 18px;
+  }
+  .gap .body { color: var(--muted); }
+  .verdict {
+    text-align: center; font-weight: 600; font-size: 20px; padding: 16px 0;
+  }
+  .verdict.bad { color: var(--danger); }
+  .verdict.good { color: var(--ok); }
+
+  /* ---------- table ---------- */
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 14px 0; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  td.mono, th.mono { font-family: var(--mono); font-size: 13px; }
+
+  /* ---------- side by side ---------- */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } }
+  .pane { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .pane h4 { margin: 0 0 10px; font-size: 13px; font-family: var(--mono); color: var(--muted);
+             text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .pane.bad  { border-color: #f3c9cd; background: var(--danger-bg); }
+  .pane.good { border-color: #c8e6d2; background: var(--ok-bg); }
+
+  .sig { font-family: var(--mono); font-size: 13px; }
+  .sig .no { color: var(--danger); font-weight: 700; }
+  .sig .yes { color: var(--ok); }
+
+  .fill { font-family: var(--mono); font-size: 15px; margin: 12px 0; }
+  .slot { display: inline-block; border: 1px dashed #c9c9ce; border-radius: 6px;
+          padding: 3px 10px; color: var(--muted); }
+  .slot.filled { border-style: solid; border-color: #f3c9cd; background: var(--danger-bg);
+                 color: var(--danger); font-weight: 600; }
+  .arrow { color: var(--muted); margin: 0 8px; }
+
+  .diff-add { background: var(--ok-bg); }
+  .diff-del { background: var(--danger-bg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════ 1 ══════════════ -->
+<section class="page">
+  <p class="num">01</p>
+  <p class="big">什么是智能合约？</p>
+  <p class="lede" style="text-align:center">
+    接下来你会看到其中一个。它很小 —— 只有两个功能。
+  </p>
+</section>
+
+<!-- ══════════════ 2 ══════════════ -->
+<section class="page">
+  <p class="num">02 — 合约</p>
+  <div class="status">
+    <b>prism_vulnerable</b>
+    <span>7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2</span>
+    <span class="live">running on testnet</span>
+  </div>
+  <p class="lede">下面这份就是在链上跑的那一份，逐字。</p>
+<pre><span class="c">//! prism_vulnerable — the build the demo attacks.</span>
+
+<span class="k">use</span> anchor_lang::prelude::*;
+
+<span class="k">declare_id!</span>(<span class="t">"7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2"</span>);
+
+<span class="k">#[program]</span>
+<span class="k">pub mod</span> prism_vulnerable {
+    <span class="k">pub fn</span> initialize(ctx: Context&lt;Initialize&gt;) -&gt; Result&lt;()&gt; {
+        <span class="k">let</span> vault = &amp;<span class="k">mut</span> ctx.accounts.vault;
+        vault.authority = ctx.accounts.authority.key();
+        vault.balance = 1000;
+        Ok(())
+    }
+
+    <span class="k">pub fn</span> withdraw(ctx: Context&lt;Withdraw&gt;, amount: <span class="t">u64</span>) -&gt; Result&lt;()&gt; {
+        <span class="k">let</span> vault = &amp;<span class="k">mut</span> ctx.accounts.vault;
+        <span class="c">// The address matches, so this passes — nobody ever checked who signed.</span>
+        <span class="k">require!</span>(
+            vault.authority == ctx.accounts.authority.key(),
+            ErrorCode::RequireViolated
+        );
+        vault.balance -= amount;
+        Ok(())
+    }
+}
+
+<span class="k">#[derive(Accounts)]</span>
+<span class="k">pub struct</span> Withdraw&lt;<span class="t">'info</span>&gt; {
+    <span class="k">#[account(mut)]</span>
+    <span class="k">pub</span> vault: Account&lt;<span class="t">'info</span>, Vault&gt;,
+<span class="bug">    <span class="c">/// CHECK: address only — no signature required. This is the bug.</span></span>
+<span class="bug">    <span class="k">pub</span> authority: <span class="t">AccountInfo</span>&lt;<span class="t">'info</span>&gt;,</span>
+}
+
+<span class="k">#[account]</span>
+<span class="k">pub struct</span> Vault { <span class="k">pub</span> authority: <span class="t">Pubkey</span>, <span class="k">pub</span> balance: <span class="t">u64</span> }</pre>
+</section>
+
+<!-- ══════════════ 3 ══════════════ -->
+<section class="page">
+  <p class="num">03 — 这个合约是干什么的</p>
+  <h2>它是一个金库。</h2>
+  <p>有人把钱放进去，只有这个人能取出来。合约里记着他的地址，那就是「管理员」。</p>
+
+  <h3>正常的一次取钱</h3>
+  <div class="flow">
+    <div class="node"><span class="tag">管理员</span>
+      <div class="body">签名，调用 withdraw(500)</div></div>
+    <div class="link"></div>
+    <div class="node"><span class="tag rt">运行时</span>
+      <div class="body">检查合约要求了什么签名</div>
+      <div class="say">合约要求：管理员必须签 → 他签了 ✓</div></div>
+    <div class="link"></div>
+    <div class="node"><span class="tag app">合约代码</span>
+      <div class="body">对比地址 → 匹配 → balance -= 500</div></div>
+    <div class="link"></div>
+    <div class="verdict good">取钱成功</div>
+  </div>
+  <p class="note">这一幕是整段的锚点。没有它，后面发生什么都看不懂。</p>
+</section>
+
+<!-- ══════════════ 4 ══════════════ -->
+<section class="page">
+  <p class="num">04 — 拆解</p>
+  <h2>把它拆成一次调用里发生的每一步。</h2>
+
+  <div class="flow">
+    <div class="node"><span class="tag">你</span>
+      <div class="body">签名，付手续费</div>
+      <div class="say">这一步两个版本都有 —— 手续费总得有人付。</div></div>
+    <div class="link"></div>
+    <div class="node"><span class="tag rt">运行时 · 声明说了算</span>
+      <div class="body">合约要求了哪些签名？他们的签名在吗？</div>
+      <div class="say">这一格不是合约代码写的 —— 是运行时替它执行的。合约只负责「声明要什么」。</div></div>
+    <div class="link"></div>
+    <div class="node"><span class="tag app">合约代码</span>
+      <div class="body">require!(vault.authority == authority.key())</div>
+      <div class="say">比的是两个<strong>公开的值</strong>。</div></div>
+    <div class="link"></div>
+    <div class="node"><span class="tag app">合约代码</span>
+      <div class="body">vault.balance -= 500</div></div>
+  </div>
+
+  <p class="note"><strong>停在第二格。</strong> 这一格是整个演示的关键：它由<strong>声明</strong>决定检查什么。声明里要了，它才查；声明里没要，它是空的。</p>
+</section>
+
+<!-- ══════════════ 5 ══════════════ -->
+<section class="page">
+  <p class="num">05 — 攻击者要做什么</p>
+  <h2>他只是把这个地址填了进去。</h2>
+
+  <div class="fill">
+    authority: <span class="slot">？？？</span>
+    <span class="arrow">→</span>
+    authority: <span class="slot filled">DMkwnXZ6…GU7T</span>
+  </div>
+
+  <p>这个地址，在链上<strong>人人可见</strong>。管理员的公钥不是秘密 —— 公钥从来不是秘密。</p>
+  <p class="lede">没有破解。没有伪造。没有窃取密钥。<br>他只是把一个公开信息，写进了那个位置。</p>
+
+  <div class="two">
+    <div class="pane">
+      <h4>平时需要什么才能动这个金库</h4>
+      <ul>
+        <li>管理员的<strong>私钥</strong>（用来签名）</li>
+      </ul>
+    </div>
+    <div class="pane bad">
+      <h4>现在只需要什么</h4>
+      <ul>
+        <li>管理员的<strong>地址</strong>（公开信息）</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 6 ══════════════ -->
+<section class="page">
+  <p class="num">06 — 攻击</p>
+  <h2>交易发出去了。</h2>
+
+  <div class="flow">
+    <div class="node"><span class="tag">你</span>
+      <div class="body">签名，付手续费</div></div>
+    <div class="link"></div>
+    <div class="gap"><span class="tag rt">运行时</span>
+      <div class="body">合约要求了哪些签名？</div>
+      <div class="say">声明里写的：<strong>无要求</strong></div></div>
+    <div class="link"></div>
+    <div class="node"><span class="tag app">合约代码</span>
+      <div class="body">地址匹配 ✓ → balance -= 500</div></div>
+    <div class="link"></div>
+    <div class="verdict bad">攻击成功</div>
+  </div>
+
+  <h3>这笔交易上有几个签名？</h3>
+  <table>
+    <tr><th>账户</th><th>签名</th><th>谁</th></tr>
+    <tr><td class="mono">7T6ze6xy…BTWmw</td><td class="sig"><span class="yes">✓</span></td><td>攻击者（也就是付手续费的人）</td></tr>
+    <tr><td class="mono">DMkwnXZ6…GU7T</td><td class="sig"><span class="no">✗</span></td><td>管理员 —— <strong>从来没有</strong></td></tr>
+  </table>
+  <p class="note">链上可查：那笔交易，账户数据从 1000 变成 500。管理员一个字都没签。</p>
+</section>
+
+<!-- ══════════════ 7 ══════════════ -->
+<section class="page">
+  <p class="num">07 — 为什么会犯这个错</p>
+  <h2>因为你在以太坊里这么写过，而它是对的。</h2>
+
+  <div class="two">
+    <div class="pane good">
+      <h4>Solidity · 以太坊</h4>
+      <pre style="font-size:12px"><span class="k">require</span>(msg.sender == owner);</pre>
+      <p style="font-size:14px;margin-top:12px">
+        <code>msg.sender</code> 是<strong>协议根据交易签名算出来的</strong>。<br>
+        协议层已经验证过签名了，所以「比对地址」<strong>就是</strong>在验证身份。
+      </p>
+      <p style="font-size:14px"><strong>这行代码正确、充分、没问题。</strong></p>
+    </div>
+    <div class="pane bad">
+      <h4>Rust · Solana</h4>
+      <pre style="font-size:12px"><span class="k">require!</span>(vault.authority ==
+         ctx.accounts.authority.key());</pre>
+      <p style="font-size:14px;margin-top:12px">
+        Solana <strong>没有 <code>msg.sender</code></strong>。<br>
+        这里的 <code>authority</code> 只是<strong>别人递进来的一个公钥</strong>。
+      </p>
+      <p style="font-size:14px"><strong>它什么都不证明。</strong></p>
+    </div>
+  </div>
+
+  <table>
+    <tr><th></th><th>以太坊</th><th>Solana</th></tr>
+    <tr><td>状态在哪</td><td>在合约<strong>里面</strong></td><td>在<strong>别人递进来的账户</strong>里</td></tr>
+    <tr><td>调用者是谁</td><td>协议告诉你</td><td><strong>不告诉你</strong> —— 除非你声明 <code>Signer</code></td></tr>
+  </table>
+
+  <p class="big" style="font-size:22px;padding:28px 0;text-align:left;font-weight:600;line-height:1.6">
+    以太坊里，「你是谁」是协议告诉你的。<br>
+    Solana 里，「你是谁」<strong>得你自己要求</strong>。
+  </p>
+
+  <p class="note">所以一个写惯 Solidity 的人，手会自己敲出那行 <code>require!</code> —— 它长得和 Solidity 的检查一模一样，而且看起来更稳妥。它编译通过、测试通过、评审也容易滑过去。</p>
+</section>
+
+<!-- ══════════════ 8 ══════════════ -->
+<section class="page">
+  <p class="num">08 — 修复</p>
+  <h2>改一行。</h2>
+  <p class="lede">不是加一行检查，是改一行<strong>声明</strong>。</p>
+
+<pre><span class="diff-del">-     pub authority: AccountInfo&lt;'info&gt;,</span>
+<span class="diff-add">+     pub authority: Signer&lt;'info&gt;,</span></pre>
+
+  <p>就这。漏洞不在那行 <code>require!</code> 里 —— 那行<strong>本来就是对的</strong>，它确实该比对地址。</p>
+  <p>漏洞在这一行声明：它向运行时<strong>什么都没要</strong>。</p>
+  <p class="note">两个版本，全文只差这一行。</p>
+</section>
+
+<!-- ══════════════ 9 ══════════════ -->
+<section class="page">
+  <p class="num">09 — 同一笔攻击，再试一次</p>
+  <h2>打修复版。</h2>
+
+  <div class="flow">
+    <div class="node"><span class="tag">你</span>
+      <div class="body">签名，付手续费</div></div>
+    <div class="link"></div>
+    <div class="node" style="border-color:#c8e6d2;background:var(--ok-bg)">
+      <span class="tag rt">运行时</span>
+      <div class="body">合约要求了哪些签名？</div>
+      <div class="say">声明里写的：<strong>authority 必须签名</strong></div>
+      <div class="say" style="color:var(--danger)">检查：管理员的签名在吗？ → <strong>不在</strong></div>
+    </div>
+    <div class="link"></div>
+    <div class="verdict good">交易被拒绝</div>
+  </div>
+
+  <p><strong>合约代码一行都没有执行。</strong> 攻击者的圆点撞在第二格上就停住了 —— 那是运行时替他挡的。</p>
+
+  <h3>两版并排</h3>
+  <table>
+    <tr><th></th><th>漏洞版</th><th>修复版</th></tr>
+    <tr><td>第二格「运行时」里写着</td><td>无要求</td><td>authority 必须签名</td></tr>
+    <tr><td>交易上的签名数</td><td class="mono">1</td><td class="mono">1（不够）</td></tr>
+    <tr><td>结果</td><td style="color:var(--danger)"><strong>攻击成功</strong></td><td style="color:var(--ok)"><strong>交易被拒</strong></td></tr>
+  </table>
+
+  <p class="big" style="font-size:20px;padding:24px 0;text-align:left;font-weight:600;line-height:1.6">
+    两版的差别，只有那一格里写的东西。
+  </p>
+</section>
+
+<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0 60px">
+  Solana Prism · 流程稿 · 1–9 页
+</p>
+
+</div>
+</body>
+</html>
