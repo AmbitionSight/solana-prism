@@ -21,6 +21,7 @@ import WalletButton from './components/WalletButton';
 import { VERIFICATION } from './config/verification';
 import { useLanguage } from './i18n/language';
 import { controlStatus, executeChainRun, verdictOf, type ChainResult } from './lib/devnetRun';
+import { resolveDemoTarget, type DemoTargetResolution } from './lib/demoTarget';
 import { attackPorts, createVaultReader } from './lib/solanaChain';
 import { detectProvider, type SolanaProvider } from './lib/wallet';
 import './styles/app.css';
@@ -62,11 +63,48 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const [dotLanded, setDotLanded] = useState(false);
 
   /**
+   * What the animated path names when there is no wallet — resolved once, at
+   * page load.
+   *
+   * `null` means not settled yet. The resolution is an RPC round trip, and
+   * rendering the card before it lands would paint one address and swap it for
+   * another. Step 5 is only reachable after steps 1-4 auto-advance, so in
+   * practice it settles long before anyone gets there.
+   */
+  const [demoTarget, setDemoTarget] = useState<DemoTargetResolution | null>(null);
+
+  /**
+   * Why the animated path cannot honestly run, set when Execute is pressed.
+   *
+   * Read from the same `demoTarget` the card does, so the sentence and the card
+   * can never disagree about what is attackable.
+   */
+  const [demoBlocked, setDemoBlocked] = useState<'exhausted' | 'notConfigured' | null>(null);
+
+  /**
    * Bumped whenever the page moves on. A chain answer that arrives after that
    * belongs to a run nobody is waiting for any more, and acting on it would put
    * one run's verdict under another run's animation.
    */
   const runToken = useRef(0);
+
+  /**
+   * Resolve the animated path's real target once, at page load.
+   *
+   * `resolveDemoTarget` reports its own failures as states rather than throwing,
+   * so this guard is only about unmount: a resolution landing after the page is
+   * gone must not set state.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    const connection = new Connection(VERIFICATION.rpcEndpoint, 'confirmed');
+    void resolveDemoTarget(createVaultReader(connection)).then((resolved) => {
+      if (!cancelled) setDemoTarget(resolved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Steps 1-4 narrate themselves; step 5 has no entry in AUTO_ADVANCE_MS and
   // therefore waits for the user.
@@ -110,12 +148,25 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setChainResult(null);
     setDotLanded(false);
     setChainBusy(false);
+    setDemoBlocked(null);
   }, []);
 
   const handleExecute = useCallback(() => {
     clearRealRun();
+    // An empty pool and a missing authority are real states, and neither is
+    // attackable. The animated path says so with the same sentence the real path
+    // uses, rather than starting a beat whose transaction card would have no
+    // honest address to name.
+    if (demoTarget?.kind === 'exhausted') {
+      setDemoBlocked('exhausted');
+      return;
+    }
+    if (demoTarget?.kind === 'notConfigured') {
+      setDemoBlocked('notConfigured');
+      return;
+    }
     setAttackState('showing-tx');
-  }, [clearRealRun]);
+  }, [clearRealRun, demoTarget]);
 
   const handleAttackEnd = useCallback(() => {
     // With no real run in flight this is the verdict, exactly as before.
@@ -212,6 +263,13 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const chainVerdict = chainResult ? verdictOf(chainResult) : null;
   const chainStatus = controlStatus(chainResult, payload !== null, chainBusy);
 
+  // The card only comes up when there is a real address to put on it: a run in
+  // flight, or a target the mount-time resolution settled on. Before it settles
+  // (`demoTarget === null`) there is no card — a blank beat, never a swapped
+  // address, because resolving starts at page load and step 5 is minutes away.
+  const txTarget = demoTarget?.kind === 'target' ? demoTarget.target : undefined;
+  const showTxCard = attackState === 'showing-tx' && (payload !== null || txTarget !== undefined);
+
   return (
     // data-step is the machine-readable current step. The visible 01/05 counter
     // was removed, so the verification harness reads this instead of scraping
@@ -249,7 +307,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
                 onAttackEnd={handleAttackEnd}
                 originRects={regionRects.current}
               />
-              {attackState === 'showing-tx' && <TxCard payload={payload ?? undefined} />}
+              {showTxCard && <TxCard payload={payload ?? undefined} demoTarget={txTarget} />}
             </div>
 
             {/* Reserved from step 3 so the stack never shifts while the attack
@@ -277,6 +335,14 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
                     status={chainStatus}
                     onRun={handleRealRun}
                   />
+                  {/* The animated path telling the same story the real path
+                      does, when there is nothing it can honestly attack. */}
+                  {demoBlocked === 'exhausted' && (
+                    <p className="attack-result__body">{t.chainExhausted}</p>
+                  )}
+                  {demoBlocked === 'notConfigured' && (
+                    <p className="attack-result__body">{t.demoNoTarget}</p>
+                  )}
                 </div>
               )}
 

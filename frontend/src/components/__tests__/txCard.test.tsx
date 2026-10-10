@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import TxCard, { type TxPayload } from '../TxCard';
 import { MESSAGES } from '../../i18n/messages';
+import { VERIFICATION } from '../../config/verification';
+import { vaultAddress } from '../../lib/devnet';
+import { elide } from '../../lib/elide';
 import { baselines, render } from './harness';
 
 /**
  * The transaction card is where the demo's argument is easiest to fake: the two
  * addresses on it used to be hardcoded ellipses that no transaction ever had.
- * In a real run they must be this run's addresses, and in the animated run they
- * must still be exactly what they were.
+ * In a real run they must be this run's addresses, and with no wallet they must
+ * be the resolved demo target's — never an invented one.
  */
 
 const VAULT = '7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2';
@@ -16,16 +19,30 @@ const SIGNER = '9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq';
 
 const payload: TxPayload = { vault: VAULT, authority: ADMIN, signer: SIGNER };
 
-describe('TxCard — 没有 payload 时与改动前逐字节一致', () => {
+describe('TxCard — 缺省渲染不再编造地址', () => {
   it('markup 与基线完全相同', () => {
     expect(render(<TxCard />)).toBe(baselines().txCard);
   });
 
-  it('基线里确实是那两个写死的省略地址', () => {
-    // Guards the baseline itself: a fixture that had been re-captured after the
-    // change would make the comparison above vacuous.
-    expect(baselines().txCard).toContain('7xKm…9mPQ');
-    expect(baselines().txCard).toContain('ADMiN…x7wQ');
+  it('卡片上不会出现编造的地址', () => {
+    const html = render(<TxCard />);
+    expect(html).not.toContain('…9mPQ');
+    expect(html).not.toContain('ADMiN');
+  });
+
+  it('有真实目标时用的是那一份地址', () => {
+    const html = render(
+      <TxCard
+        demoTarget={{
+          programId: VERIFICATION.vulnerableProgramId,
+          vault: vaultAddress(1).toBase58(),
+          authority: VERIFICATION.adminPubkey,
+        }}
+      />,
+    );
+    expect(html).toContain(elide(vaultAddress(1).toBase58()));
+    expect(html).toContain(elide(VERIFICATION.adminPubkey));
+    expect(html).toContain(MESSAGES.en.txNoteProgram);
   });
 });
 

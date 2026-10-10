@@ -73,12 +73,22 @@ export interface Messages {
 
   /* Transaction card */
   txTitle: string;
-  txNoteAttackerOwned: string;
+  txNoteProgram: string;
+  txNoteVaultTarget: string;
   txNoteAdminPresent: string;
   txNoteSigned: string;
   txNoteSignatureAbsent: string;
   ariaSignaturePresent: string;
   ariaSignatureAbsent: string;
+  /**
+   * The animated path with no honest authority to name.
+   *
+   * Parallel to `chainExhausted`: both say the demo has nothing it can attack,
+   * and neither dresses that up as a run. This one is for a missing admin
+   * address rather than an empty pool, which is a state this repository is not
+   * in but must not silently ignore.
+   */
+  demoNoTarget: string;
 
   /* The real chain, opt-in. Every string here is only ever rendered when a
      wallet is connected and the selected build is actually deployed, so none of
@@ -185,12 +195,14 @@ export const MESSAGES: Record<Language, Messages> = {
     ariaLanguage: 'Language',
 
     txTitle: 'Transaction',
-    txNoteAttackerOwned: 'attacker-owned',
+    txNoteProgram: 'the deployed build',
+    txNoteVaultTarget: 'the vault being drained',
     txNoteAdminPresent: 'admin address present',
     txNoteSigned: 'signed',
     txNoteSignatureAbsent: 'signature absent',
     ariaSignaturePresent: 'signature present',
     ariaSignatureAbsent: 'signature absent',
+    demoNoTarget: 'There is nothing it could honestly attack right now.',
 
     walletConnect: 'Connect wallet',
     walletDisconnect: 'Disconnect',
@@ -272,12 +284,14 @@ export const MESSAGES: Record<Language, Messages> = {
     ariaLanguage: '语言',
 
     txTitle: '交易',
-    txNoteAttackerOwned: '攻击者所有',
+    txNoteProgram: '已部署的那一份',
+    txNoteVaultTarget: '被掏空的那个 vault',
     txNoteAdminPresent: '管理员地址在场',
     txNoteSigned: '已签名',
     txNoteSignatureAbsent: '签名缺席',
     ariaSignaturePresent: '签名已提供',
     ariaSignatureAbsent: '签名缺席',
+    demoNoTarget: '现在没有一个它敢如实指着说「就它」的目标。',
 
     walletConnect: '连接钱包',
     walletDisconnect: '断开',

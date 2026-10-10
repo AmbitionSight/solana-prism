@@ -14,6 +14,12 @@ import type { SolanaProvider } from '../../lib/wallet';
  * so the "unchanged" guards compare against something the change could not have
  * written: the fixture was produced by the pre-change code, and the guards that
  * read it run in the suite.
+ *
+ * One key was re-captured deliberately: `txCard`'s default render really did
+ * change, because the card no longer shows the placeholder addresses
+ * (`7xKm…9mPQ`, `ADMiN…x7wQ`) it used to. That is the point of the change, so
+ * its guard now pins the placeholder-free render instead of the old one. The
+ * other three keys were not touched.
  */
 
 export interface DefaultRenders {
