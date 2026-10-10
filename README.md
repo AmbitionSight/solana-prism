@@ -1,130 +1,104 @@
-# Solana Contract X-Ray
+<h1 align="center">Solana Prism</h1>
 
-**English** | [中文](README.zh-CN.md)
+<p align="center">
+<img alt="Solana" src="https://img.shields.io/badge/Solana-24292F?style=flat-square&logo=solana&logoColor=white">
+<img alt="Anchor 0.30" src="https://img.shields.io/badge/Anchor-0.30-24292F?style=flat-square&logo=rust&logoColor=white">
+<img alt="React 18.3" src="https://img.shields.io/badge/React-18.3-24292F?style=flat-square&logo=react&logoColor=white">
+<img alt="TypeScript 5.8" src="https://img.shields.io/badge/TypeScript-5.8-24292F?style=flat-square&logo=typescript&logoColor=white">
+<img alt="Vite 6" src="https://img.shields.io/badge/Vite-6-24292F?style=flat-square&logo=vite&logoColor=white">
+<img alt="Vitest 3.2" src="https://img.shields.io/badge/Vitest-3.2-24292F?style=flat-square&logo=vitest&logoColor=white">
+<img alt="node: >=20.10" src="https://img.shields.io/badge/node-%3E%3D20.10-24292F?style=flat-square&logo=nodedotjs&logoColor=white">
+</p>
 
-An interactive web demo that takes one Solana instruction apart into
-the five stages it actually executes, and shows — at the stage where it belongs —
-why a missing signer check lets an attacker drain a vault without ever holding the
-admin's key.
+<p align="center"><strong>English</strong> · <a href="README.zh-CN.md">中文</a></p>
 
-## The execution order it teaches
+Solana Prism is a security lesson for Solana smart contracts. It takes one
+`withdraw` instruction apart along the execution path the bug actually travels —
+five stages — and animates why a missing signer check lets an attacker drain a
+vault without ever holding the admin's key, and why the repair is one changed
+account declaration rather than one more line of checking.
 
-```
-① Instruction          withdraw(ctx, amount: 500)          what was called
-② Accounts             vault · authority                   who was handed over
-③ Account Declaration  authority: AccountInfo<'info>       what the program demands  ← the flaw
-④ Manual Check         require!(vault.authority == ...)    what the handler checks itself
-⑤ State Change         vault.balance -= amount             what gets written
-```
+<p align="center">
+<img src="docs/screenshots/contact-sheet.png" alt="The six steps" width="900">
+</p>
 
-Stage ③ is where this bug lives — **not** stage ④.
+## What's inside
 
-On Solana you *declare* what an account must be and the runtime enforces it
-**before your handler runs**. Declaring `AccountInfo<'info>` asks for nothing, so
-the attacker passes the admin's address and it is accepted; declaring
-`Signer<'info>` demands a signature, and the same call is refused before stage ④
-or ⑤ ever execute. That contrast — declared constraints are enforced for free,
-hand-written checks only if you remember to write them — is the lesson.
+- **The demo** — six interactive steps, from the title screen to on-chain
+  verification, in English and Chinese.
+- **The contract and its tests** — two real Anchor programs
+  (`prism_vulnerable` / `prism_fixed`) that differ by a single declaration, with
+  the attack stated as assertions in `tests/prism.ts`.
+- **The verification toolchain** — `tools/` holds a walkthrough harness that
+  asserts against the live page in headless Chrome, and a recorder.
 
-An earlier version of this demo stacked five abstract "layers" (Instruction /
-Account State / Access Control / Business Logic / Runtime). That model mixed a
-code construct, some data, two concerns and a platform as if they were peers, put
-them in an order that matched no execution path, and painted the crack on the
-`require!` line while the actual repair is the account declaration. It has been
-replaced.
-
-## The six steps
-
-1. **Title** — "What is a smart contract?" fades in and out.
-2. **Code** — the contract, highlighted by our own tokenizer. It leads with
-   `#[derive(Accounts)]`, because that declaration *is* the subject. Then each
-   region is boxed and labelled with the stage it becomes, sweeping down the
-   listing in source order — so the labels read **2, 3, 1, 4, 5**, and the jump
-   from source order to execution order is visible on the code itself.
-3. **Decompose** — those boxes become the five stages and fan out.
-4. **Stack** — the stages converge into execution order; stage ③ cracks (red
-   dashed, *No signature required*).
-5. **Attack** — pick *Vulnerable* or *Fixed* and press Execute. The transaction
-   payload appears first, because the whole point is that the admin's **address**
-   is present while the admin's **signature** is absent. Then the dot drops:
-   through stage ③ (*Attack Successful*), or stopped at it
-   (*Transaction Rejected*).
-6. **Verify** — the evidence behind the animation. With nothing deployed yet,
-   this step says so instead of showing a link that goes nowhere.
-
-The result is followed by a closing note, because the animation answers *what
-happened* and leaves two questions open. It states the sentence the source is
-really about — the repair is a declaration, not a line of logic — names one
-incident from the same family (Solend, August 2021: an authorization check that
-was too weak, defeated by a lending market the attacker had created and owned;
-about $2M put at risk and caught in time), and links out: the Anchor docs'
-Sealevel Attacks reference, the description of `AccountInfo` as an unchecked
-account in the Anchor account-types reference, and the incident case file, with
-the attribution stated on the page because it is a relay of Solend's own report
-rather than the report itself. The first row of links is the other half of the
-claim: the two programs and the attack test, served from this site verbatim, so
-a reader can check that the animation dissects what this repository actually
-contains.
-
-Press **Replay** to run the whole thing again without reloading.
-
-## Languages
-
-The demo opens in English and can be switched to Chinese from the top right.
-The switch is not skin-deep:
-
-- The **Rust is identical in both languages** — only the two comments change,
-  which is the whole point of the step-2 listing.
-- Layer names render **bilingually in Chinese** (`访问控制 Access Control`) so a
-  reader can map what they are learning onto the term used everywhere else.
-- On-chain field names and identifiers (`vault`, `authority`, `ATTACKER`,
-  `ADMIN`, `accounts:`, `signatures:`) stay in English on purpose — they are
-  literal names from a real transaction, and translating them would put the demo
-  out of step with what a viewer sees on Solscan.
-- `aria-label`s and `<html lang>` switch too, so screen readers follow along.
-
-Both languages implement one `Messages` interface, so **a forgotten translation
-is a compile error**, and `no-hardcoded-copy.test.ts` scans the components for
-any user-visible string that never made it into the catalogue.
-
-The choice is deliberately not persisted: the demo always opens in English, so
-there is never a stale setting waiting on stage.
-
-![The six steps](docs/screenshots/contact-sheet.png)
-
-A walkthrough of the whole flow — the vulnerable attack, the fixed build refusing
-it, the evidence panel, and the language switch — is in
-[`docs/screenshots/walkthrough.mp4`](docs/screenshots/walkthrough.mp4). It is
-generated by `tools/record.mjs`, so it can be re-recorded after any change rather
-than going stale — **but it has not been re-recorded since the closing note was
-added**, so the recording and `contact-sheet.png` show the flow without that note
-at the end of step 5. Re-recording needs Node >= 22 and `ffmpeg`, and was
-deliberately deferred rather than forgotten.
-
-## Stack
-
-Vite + React 18 + TypeScript, plain CSS with custom properties, CSS transitions
-and keyframes, Vitest. No Tailwind, no animation library, no UI library, no
-state-management library, no syntax-highlighting library — the three-colour
-highlighter and both attack animations are ours.
-
-## Running it
+## Quick start
 
 ```bash
 cd frontend
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 97 tests
+npm test
 npm run build    # tsc -b && vite build
 ```
 
-Node **20.10.0 or newer** to run the app. Vite is pinned to `6.x` on purpose:
-Vite 7 requires Node `^20.19.0 || >=22.12.0`, and the `^6.3.5` caret caps below
-7.0.0 so it will not drift to a version that cannot run here.
+Node **20.10.0 or newer** to run the app. Vite is pinned to 6.x (Vite 7 needs
+`^20.19.0 || >=22.12.0`). The scripts under `tools/` additionally need **Node
+>= 22**.
 
-The verification harness (`tools/shoot.mjs`) additionally needs **Node >= 22**
-for the global `WebSocket`; it says so plainly if run on an older Node. The app
-itself does not.
+## The lesson
+
+```
+1 Instruction          withdraw(ctx, amount: 500)          what was called
+2 Accounts             vault · authority                   who was handed over
+3 Account Declaration  authority: AccountInfo<'info>       what the program demands  ← the flaw
+4 Manual Check         require!(vault.authority == ...)    what the handler checks itself
+5 State Change         vault.balance -= amount             what gets written
+```
+
+The flaw is in stage 3, **not** stage 4. On Solana you *declare* what an account
+must be and the runtime enforces it before your handler runs: declaring
+`AccountInfo<'info>` asks for nothing, so the attacker hands over the admin's
+address and it is accepted, while declaring `Signer<'info>` demands a signature
+and the same call is refused before stage 4 or 5 ever execute. Declared
+constraints are enforced for free; hand-written checks only if you remember to
+write them. That is the lesson.
+
+These five stages are the split *this* attack path makes, not Solana's fixed
+execution model. A different vulnerability splits differently: overflow,
+precision and rounding crack in arithmetic; CPI abuse needs a cross-program
+invocation stage; an unverified PDA bump needs an address-derivation stage.
+**Stages are a property of the vulnerability, not of Solana.** The stage list is
+data (`config/layers.ts`) and the render pipeline takes its length from that
+array rather than assuming five.
+
+## The six steps
+
+1. **Title** — "What is a smart contract?" fades in and out.
+2. **Code** — the contract, highlighted by our own tokenizer. Each region is
+   boxed and labelled with the stage it becomes, swept in source order, so the
+   labels read **2, 3, 1, 4, 5**.
+3. **Decompose** — the boxes fan out into the five stages.
+4. **Stack** — they converge into execution order; stage 3 cracks (red dashed,
+   *No signature required*).
+5. **Attack** — pick *Vulnerable* or *Fixed* and execute. The transaction payload
+   appears first (the admin's **address** present, the **signature** absent), then
+   the dot drops: through stage 3 (*Attack Successful*), or stopped at it
+   (*Transaction Rejected*).
+6. **Verify** — the on-chain evidence behind the animation: the two program ids,
+   the attack transaction, the refusal the repaired build returns, and the vault
+   the attack consumed.
+
+The result is followed by a closing note: the repair is a declaration, not a line
+of logic, with a reference to an incident from the same family (Solend, August
+2021: an authorization check too weak, defeated by a lending market the attacker
+had created and owned, about $2M put at risk) and links to the Anchor Sealevel
+Attacks reference and the incident case file. Press **Replay** to run the whole
+thing again without reloading.
+
+A recording of the full flow is in
+[`docs/screenshots/walkthrough.mp4`](docs/screenshots/walkthrough.mp4), generated
+by `tools/record.mjs`. It predates the closing note, so step 5 ends without it.
 
 ## Layout
 
@@ -134,153 +108,57 @@ frontend/src/
   lib/keyframes.ts    the attack animations, generated from geometry
   lib/steps.ts        the step state machine
   lib/highlight.ts    hand-written Rust tokenizer
-  lib/code.ts         the step-2 listing — Rust fixed, comments per language
-  i18n/messages.ts    every user-visible string, both languages
-  i18n/language.ts    the language context + useLanguage()
-  config/layers.ts    the five layers — the demo is generated from this array
-  config/verification.ts  on-chain evidence — all PENDING, nothing is deployed
+  lib/code.ts         the step-2 listing; comments follow the language
+  i18n/               every user-visible string, both languages
+  config/layers.ts    the stage list — the demo is generated from this array
+  config/verification.ts  on-chain evidence, real values from testnet
   components/         Step1Title, Step2Code, ContractLayers, LayerCard, TxCard,
                       AttackDot, FixToggle, AttackResult, ClosingNote,
                       VerifyPanel, LanguageToggle
   styles/             global.css (tokens) · app.css · animations.css
 
-frontend/public/source/
-  xray_vulnerable.rs.txt · xray_fixed.rs.txt · xray.test.ts.txt
-                      byte-for-byte copies of contract/, served under .txt so a
-                      browser displays them instead of downloading them. The
-                      closing note links to them, and source-assets.test.ts fails
-                      if a copy drifts from contract/ or if a link points at a
-                      file that is not served.
-
-contract/               the Anchor programs the step-2 listing is taken from
-  programs/xray_vulnerable   authority declared as AccountInfo — the bug
-  programs/xray_fixed        authority declared as Signer — the one-line fix
-  tests/xray.ts              the attack, as assertions
+frontend/public/source/   byte-for-byte copies of contract/, linked from the closing note
+contract/            the Anchor programs the step-2 listing is taken from
+  programs/prism_vulnerable   authority declared as AccountInfo — the bug
+  programs/prism_fixed        authority declared as Signer — the one-line fix
+  tests/prism.ts              the attack, as assertions
+tools/               the walkthrough and recording scripts
 ```
 
-Two rules hold this together. Both are checked mechanically, at the level that
-can actually catch a violation:
-
-- **No animation coordinate is written in CSS.** Offsets are computed in
-  `geometry.ts` and arrive as custom properties; the attack keyframes are
-  generated at runtime. Three checks cover this and they are not equivalent:
-  `keyframes.test.ts` validates the values the generator *produces*,
-  `no-hardcoded-pixels.test.ts` reads the stylesheets **and the generator's own
-  source** and fails on a pixel literal inside a `transform`, and the harness
-  below measures the rendered result in a real browser. A value-only check would
-  pass for a hard-coded-but-correct implementation, which is why the
-  source-level one exists.
-
-  Its scope is deliberate: it scans every declaration (so a coordinate hidden
-  behind a custom property is still caught) and understands the 3D, matrix and
-  perspective forms — each of which an earlier version missed while the suite
-  stayed green. It does **not** police pixel values in non-transform properties
-  (`top`, `left`, `margin`) on static chrome, or inline `style={{}}` in TSX.
-  That scope is sufficient because the layer and attack coordinate system is
-  entirely transform-based.
-
-  > `test: { css: true }` in `frontend/vite.config.ts` is **load-bearing, not
-  > cosmetic**. With Vitest's default, a `?raw` CSS import resolves to an empty
-  > string, so the guard silently reads nothing and passes. Removing it re-breaks
-  > the rule without failing a single test.
-- **Steps 3, 4 and 5 share one set of DOM nodes.** They differ only by class
-  name and transform inputs, so the cards travel between layouts instead of
-  being re-created. This cannot be proved by reading the source, so the harness
-  proves it empirically: it tags the five live nodes and fails if the tags do
-  not survive a layout change.
-- **The provenance copies are checked against their sources.** The three files
-  under `frontend/public/source/` are compared byte for byte with `contract/` by
-  `source-assets.test.ts`, which also fails if a link in `ClosingNote.tsx` points
-  at a file that is not served. Both halves were falsified: a trailing space
-  appended to a copy produced a failure naming the offset, both bytes and both
-  lengths, and a renamed link target produced one naming the missing file.
-
-Every guard above has been **falsified on purpose** — a mutation was introduced
-and the check confirmed to fail — because a check that cannot fail is worse than
-no check at all. Two of them originally could not. The closing note's guard in
-the harness was falsified the same way, by pointing its selector at a
-`data-testid` that does not exist and watching it report a timed-out `waitFor`
-before `step5-closing-note`.
-
-## Verification
-
-`npm test` covers geometry, the step machine, the keyframe generator, the
-tokenizer, the verification config and its deployed/undeployed states, the
-no-hand-written-coordinates guard, and the byte-for-byte provenance check on the
-copies the closing note links to.
-
-For the visuals there is a real-time screenshot harness:
-
-```bash
-npm run dev -- --port 5199 &
-node tools/shoot.mjs http://localhost:5199/ .shots-real   # needs Node >= 22
-```
-
-It drives headless Chrome over the DevTools Protocol and clicks real elements.
-Every step **waits on a predicate against the live page** rather than sleeping
-for a guessed duration, and each capture logs the step/mode it actually observed
-— guessed sleeps produced both false failures and mislabelled frames. It fails
-on a missing selector, a wrong result string, layer cards that were remounted, or
-any console error (`Runtime.consoleAPICalled`, `Runtime.exceptionThrown`,
-`Log.entryAdded`, collected from page load).
-
-Chrome's `--virtual-time-budget` is deliberately *not* used: it fast-forwards
-`setTimeout` while CSS animations keep running on the real clock, so the captured
-frame does not match the state the app believes it is in.
-
-To re-record the walkthrough:
-
-```bash
-node tools/record.mjs http://localhost:5199/ docs/screenshots/walkthrough.mp4 \
-  --fps=30 --width=1920 --height=1080        # needs Node >= 22 and ffmpeg
-```
-
-It captures the page's own compositor output over the DevTools Protocol — no
-window chrome, no desktop — and drives the flow with the same state predicates
-as the harness, so the video cannot drift out of sync with the app. Frames
-arrive only when the page repaints, so they are resampled to a constant frame
-rate rather than replayed at whatever rate they happened to arrive.
+Three invariants are held by mechanical checks: no animation coordinate is
+written in CSS, steps 3–5 share one set of DOM nodes, and the provenance copies
+match `contract/` byte for byte. Every guard has had a mutation injected into it
+to confirm it goes red; two of them originally would not. Full write-up in
+[`docs/verification.md`](docs/verification.md).
 
 ## Status
 
-**The front end is finished. The contract is written but has never been built or
-deployed.**
+**The front end is finished, and both programs are deployed and live on
+testnet.** The attack has been run against them for real:
 
-Phase 0–2 is complete: the six-step demo runs end to end, needs no chain, and is
-demonstrable as it stands. The Anchor programs in `contract/` are the source the
-step-2 listing is taken from, and `tests/xray.ts` states the attack as
-assertions — but **neither has ever been compiled**, because producing Solana
-bytecode needs `cargo-build-sbf` and platform-tools, which are published for
-Linux and macOS only. There is no Windows build. So there is no `.so`, no program
-id, no transaction signature, and nothing on Devnet.
+| | |
+|---|---|
+| `prism_vulnerable` | `7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2` |
+| `prism_fixed` | `9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq` |
+| attack transaction | `2d4hd6Sn…tEEW` — **succeeded**, balance 1000 → 500 |
+| the same call, repaired | `4WqnSCg8…LvuF` — **refused**, `Custom(3010)`, balance unchanged |
 
-`config/verification.ts` is therefore not "waiting to be filled in" — it is
-accurate. Every field is `PENDING` because nothing exists to put there.
+A pool of 30 vaults — plus one owned by the repaired build — is prepared
+on-chain, so a visitor with a wallet can run the attack themselves instead of
+watching an animation. `config/verification.ts` carries every value; the verify
+panel derives its wording from that data rather than from a flag, and so it is
+now claiming deployment because there is one.
 
-### What that means for step 6
+Building Solana bytecode needs `cargo-build-sbf` and platform-tools, published
+for Linux and macOS only — there is no Windows build. This was built and
+deployed on a Linux box. That machine cannot resolve `*.solana.com` (this
+network's DNS poisons it), so the deploy ran through a reverse SSH tunnel to the
+host's HTTP proxy, against `https://api.testnet.solana.com`. See
+[`contract/README.md`](contract/README.md).
 
-The verify panel does not claim otherwise. It asks `isDeployed()`, which is
-derived from the data rather than stored as a flag, and with nothing deployed it
-says plainly that the animation is faithful to the source in this repository and
-that there is no program id or transaction behind it. The moment real values are
-filled in, the wording switches by itself.
+## More
 
-That is guarded, because it is the one sentence here that must not be wrong:
-
-- `isDeployed()` is tested in both states, not just the one this repo is in.
-- A test scans `VerifyPanel.tsx` and fails if the deployed claim ever appears
-  outside the `deployed ?` branch.
-- Both guards were falsified on introduction — the claim was un-gated on purpose
-  and the suite went red, naming the offending line.
-
-### To finish it
-
-On any Linux or macOS machine, a Linux container, or Solana Playground:
-`anchor build`, then `anchor test --skip-local-validator --provider.cluster devnet`,
-then paste the two program ids and the attack signature into
-`config/verification.ts`. See [`contract/README.md`](contract/README.md) — including
-a bytecode-version check worth reading before you trust a deployment.
-
-The full plan is in [`docs/solana-xray-plan.md`](docs/solana-xray-plan.md); the
-front-end execution plan and its decisions are in
-[`docs/superpowers/plans/2026-10-10-solana-xray-frontend.md`](docs/superpowers/plans/2026-10-10-solana-xray-frontend.md).
+- Testing and guards, in full: [`docs/verification.md`](docs/verification.md)
+- The full plan: [`docs/solana-prism-plan.md`](docs/solana-prism-plan.md)
+- Front-end execution plan and decision record:
+  [`docs/superpowers/plans/2026-10-10-solana-prism-frontend.md`](docs/superpowers/plans/2026-10-10-solana-prism-frontend.md)

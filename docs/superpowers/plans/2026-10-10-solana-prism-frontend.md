@@ -1,4 +1,4 @@
-# Solana Contract X-Ray — 前端执行计划 (Phase 0-2)
+# Solana Prism — 前端执行计划 (Phase 0-2)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development 或 superpowers:executing-plans 逐任务实施。步骤用 `- [ ]` 复选框跟踪。
 
@@ -9,9 +9,9 @@
 **Tech Stack:** Vite + React 18 + TypeScript / 纯 CSS + CSS 变量 / CSS transitions + keyframes / Vitest / Vercel。禁用 Tailwind、动画库、UI 库、状态管理库、语法高亮库。
 
 **施工前提（已就位）:**
-- 仓库根: `C:\Users\Ambit\Desktop\test\solana-xray`，分支 `feat/xray`
+- 仓库根: `C:\Users\Ambit\Desktop\test\solana-prism`，分支 `feat/prism`
 - git 身份(repo-local): `ambitionsight <ambitionsight@qq.com>`
-- 规格书已入库: `docs/solana-xray-plan.md` (v4.1)
+- 规格书已入库: `docs/solana-prism-plan.md` (v4.1)
 
 ---
 
@@ -162,7 +162,7 @@ L3 的"人眼"终审由你（用户）在 CHECKPOINT 2 执行；我提供可复�
 
 | # | 任务 | 主要产物 | 验证 | 提交 |
 |---|---|---|---|---|
-| 0.1 | 仓库与分支 | `.gitignore`、`docs/solana-xray-plan.md` | `git branch --show-current` → `feat/xray` | `chore: init repo, spec, gitignore` |
+| 0.1 | 仓库与分支 | `.gitignore`、`docs/solana-prism-plan.md` | `git branch --show-current` → `feat/prism` | `chore: init repo, spec, gitignore` |
 | 0.2 | 脚手架 + Vitest 基线 | `frontend/**`、`smoke.test.ts` | `npm test` 1 passed | `chore: scaffold vite react-ts + vitest` |
 | 0.3 | 设计令牌 | `src/styles/global.css` | `npm run build` 通过 | `feat(styles): design tokens` |
 | 1.1 | geometry **RED→GREEN** | `lib/geometry.ts` + 测试 | 先见红(模块不存在)，后全绿 | `feat(lib): geometry with tests` |
@@ -229,7 +229,7 @@ feat(config): verification placeholders with tests                <- RED 已见
 
 | # | 问题 | 修复 |
 |---|---|---|
-| C1 | 控制台错误门禁**永远不会失败**：`window.__xrayErrors` 全库无人赋值，`connect()` 又丢弃所有事件消息。评审同时实测到真实报错（favicon 404）| harness 改为在 `connect()` 内收集 `Runtime.consoleAPICalled` / `Runtime.exceptionThrown` / `Log.entryAdded`；`index.html` 加内联空图标消除 404。**已用"故意 `console.error` → 门禁 FAIL → 撤回"证明该门禁确实会失败** |
+| C1 | 控制台错误门禁**永远不会失败**：`window.__prismErrors` 全库无人赋值，`connect()` 又丢弃所有事件消息。评审同时实测到真实报错（favicon 404）| harness 改为在 `connect()` 内收集 `Runtime.consoleAPICalled` / `Runtime.exceptionThrown` / `Log.entryAdded`；`index.html` 加内联空图标消除 404。**已用"故意 `console.error` → 门禁 FAIL → 撤回"证明该门禁确实会失败** |
 | C2 | `'结束时淡出'` 是假绿：`toContain('opacity:0')` 被 0% 帧满足 | 改为解析关键帧、断言**最后一帧**；并新增 `opacityAt()`（含 CSS 插值语义）断言两次撞击时仍为 1 |
 | M1 | 修复版两条弹跳是**幽灵**：opacity 从 6% 一路插值到 100%，实测第一次撞击时只有 0.207 | 在 88% 处重申 `opacity:1`，只在最后一次弹跳后淡出。**已用变异测试证明新断言会失败（算出 0.5106）** |
 | M2 | `prefers-reduced-motion` 下第 1、2 步**整屏空白**（动画瞬间结束 + `fill-mode:both` 钉在 opacity:0 的末帧）| 在 reduced-motion 块内单独覆写这三个选择器为 `animation:none; opacity:1`（不能用一刀切 `animation:none`，否则 `.code-card__line` 基线 opacity:0 永远不可见）。**已用 `Emulation.setEmulatedMedia` 实测两步 opacity 均为 1** |
@@ -241,7 +241,7 @@ feat(config): verification placeholders with tests                <- RED 已见
 
 harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 harness 互相劫持对方浏览器）、CDP 每条命令加超时。
 
-> **更正（第二轮自查）**: 关于 profile 泄漏，第一版"修复"是**不成立的**。原写法只做 `chrome.kill()`（仅对根进程发信号，渲染子进程仍占着 profile 目录），`taskkill /T /F` 虽被调用却**没有 await** —— 删除循环在 2.5s 内重试 5 次全部失败后放弃，而 taskkill 要到 +4s 才真正杀掉进程树。因为时序相关，多数运行"看起来正常"，直到一次干净克隆验证时又漏出一个 `xray-shoot-*` 目录才暴露。
+> **更正（第二轮自查）**: 关于 profile 泄漏，第一版"修复"是**不成立的**。原写法只做 `chrome.kill()`（仅对根进程发信号，渲染子进程仍占着 profile 目录），`taskkill /T /F` 虽被调用却**没有 await** —— 删除循环在 2.5s 内重试 5 次全部失败后放弃，而 taskkill 要到 +4s 才真正杀掉进程树。因为时序相关，多数运行"看起来正常"，直到一次干净克隆验证时又漏出一个 `prism-shoot-*` 目录才暴露。
 > 现改为：**先 await `taskkill /T /F` 杀整棵树 → 再等 exit → 再删除（10 次重试）**，失败时打印警告而不是静默吞掉。已连跑两次 harness，profiles 0 / chrome 进程 0。
 
 **修复后的独立行为验证（CDP 实测，8/8 通过）** —— 前一轮评审只能靠读代码判断的几条，这里改成实测：
@@ -378,7 +378,7 @@ harness 自身的进程问题也修了：端口按 pid 偏移（避免两个 har
 重构后 harness 报 `IRON RULE 1 VIOLATED ... REMOUNTED`，实为**误报**，暴露了两个真问题：
 
 1. 我在第 2 步的等待谓词里写死了**旧的英文注释文本**；文本改了之后该 wait 超时 20s，而超时后会 `continue` 跳过动作——于是 `tagCards` 从未执行。
-2. `checkCards` 在 `window.__xrayCards` 未定义时，把"从未打过标记"误报成"节点被重建"。**两者含义完全不同**：前者证明不了任何事。
+2. `checkCards` 在 `window.__prismCards` 未定义时，把"从未打过标记"误报成"节点被重建"。**两者含义完全不同**：前者证明不了任何事。
 
 已修：`checkCards` 先判断基线是否存在，缺失时单独报 `NO TAG -- tagCards never ran`，harness 把它归为"基线缺失"而非"铁律违反"。另更新了所有写死的旧文案断言。
 
@@ -451,7 +451,7 @@ step 2 的五个代码框位置由 `getBoundingClientRect()` 在 `Step2Code` 的
 - **不持久化**（用户选择）: 每次打开都是英语，舞台上不会出现上次遗留的语言。
 - **层名中英对照**（用户选择）: 英文模式只显示 `Access Control`；中文模式显示 `访问控制 Access Control`，英文部分用 `--color-text-tertiary` 弱化。由 `bilingualName()` 返回 `{primary, secondary}`，中文副名直接取英文词条，**不重复写一遍英文**（英文改了中文会自动跟上）。标签列由 180px 放宽到 210px，否则 `业务逻辑 Business Logic` 会被 `nowrap` 截断。
 - **代码列表抽到 `src/lib/code.ts`**: `CodeLine = {code} | {comment, indent}`，`codeLines(language)` 是纯函数。这样"代码本身与语言无关、只有注释变"成为结构上的事实，而不是约定。
-- **删除步进指示器**: 原任务 2.1 要求渲染 `data-testid="step-indicator"`。指示器被移除后，当前步骤改由 `.app` 上的 `data-step` 暴露（机器可读，且不占用视觉）。harness 的 `__xray.step()` 随之改为读 `data-step`。
+- **删除步进指示器**: 原任务 2.1 要求渲染 `data-testid="step-indicator"`。指示器被移除后，当前步骤改由 `.app` 上的 `data-step` 暴露（机器可读，且不占用视觉）。harness 的 `__prism.step()` 随之改为读 `data-step`。
 - **`config/layers.ts` 形状变更**: `name: string` → `nameKey: LayerNameKey`。这是对主计划"层级由数据驱动"那份配置的改动，已在此记录。
 
 ### 三层验证（重点是"有没有漏翻"）

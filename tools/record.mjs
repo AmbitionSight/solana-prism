@@ -49,7 +49,7 @@ const COMMAND_TIMEOUT_MS = 20000;
 
 const PAGE_HELPERS = `
 try {
-  window.__xray = {
+  window.__prism = {
     step: () => {
       const el = document.querySelector('.app');
       const n = el ? parseInt(el.dataset.step ?? '', 10) : NaN;
@@ -86,38 +86,38 @@ const SQL = {
  */
 const PLAN = [
   // --- English: the whole flow
-  { wait: `__xray.step() === 1`, after: 2900 },
-  { wait: `__xray.step() === 2`, after: 3900 },
-  { wait: `__xray.mode() === 'decomposed'`, after: 4700 },
-  { wait: `__xray.mode() === 'stacked'`, after: 4300 },
-  { wait: `__xray.step() === 5 && __xray.has('${SQL.execute}')`, after: 900 },
+  { wait: `__prism.step() === 1`, after: 2900 },
+  { wait: `__prism.step() === 2`, after: 3900 },
+  { wait: `__prism.mode() === 'decomposed'`, after: 4700 },
+  { wait: `__prism.mode() === 'stacked'`, after: 4300 },
+  { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, after: 900 },
 
   // Vulnerable path
   { click: SQL.execute },
-  { wait: `__xray.has('${SQL.result}')`, after: 1600 },
+  { wait: `__prism.has('${SQL.result}')`, after: 1600 },
 
   // Fixed path
   { click: SQL.fixToggle },
   { click: SQL.execute },
-  { wait: `__xray.has('${SQL.result}')`, after: 1600 },
+  { wait: `__prism.has('${SQL.result}')`, after: 1600 },
 
   // Evidence
   { click: SQL.verifyToggle },
-  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 2400 },
+  { wait: `__prism.has('${SQL.verifyPanel}')`, after: 2400 },
 
   // --- Chinese: switch, then replay so the narration itself runs in Chinese
-  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  { wait: `__prism.has('${SQL.langZh}')`, click: SQL.langZh },
   { wait: `document.documentElement.lang === 'zh-CN'`, after: 1600 },
-  { wait: `__xray.has('${SQL.replay}')`, click: SQL.replay },
-  { wait: `__xray.step() === 1`, after: 2400 },
-  { wait: `__xray.step() === 2`, after: 3200 },
-  { wait: `__xray.mode() === 'decomposed'`, after: 2600 },
-  { wait: `__xray.mode() === 'stacked'`, after: 2600 },
+  { wait: `__prism.has('${SQL.replay}')`, click: SQL.replay },
+  { wait: `__prism.step() === 1`, after: 2400 },
+  { wait: `__prism.step() === 2`, after: 3200 },
+  { wait: `__prism.mode() === 'decomposed'`, after: 2600 },
+  { wait: `__prism.mode() === 'stacked'`, after: 2600 },
 
   // --- back to English to close. The hold is long on purpose: the screencast
   // only emits frames when the page repaints, so a short tail can end up with
   // the switch-back happening after the last captured frame.
-  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  { wait: `__prism.has('${SQL.langEn}')`, click: SQL.langEn },
   { wait: `document.documentElement.lang === 'en'`, after: 3200 },
 ];
 
@@ -189,7 +189,7 @@ async function shutDownChrome(chrome, profile) {
 }
 
 async function main() {
-  const workDir = join(tmpdir(), `xray-record-${Date.now()}`);
+  const workDir = join(tmpdir(), `prism-record-${Date.now()}`);
   const rawDir = join(workDir, 'raw');
   const frameDir = join(workDir, 'frames');
   await mkdir(rawDir, { recursive: true });

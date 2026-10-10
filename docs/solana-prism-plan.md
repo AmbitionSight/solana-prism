@@ -1,4 +1,4 @@
-# Solana Contract X-Ray — Superpowers 实施计划 (v4 · 前端先行)
+# Solana Prism — Superpowers 实施计划 (v4 · 前端先行)
 
 > **本文档遵循 Superpowers 工程方法论**: 隔离工作区 → 任务级计划(含完整代码与验证) → TDD(先红后绿) → 子代理派发 → 两段式评审 → 收尾。
 >
@@ -14,7 +14,7 @@
 
 ## A. 设计文档(已确认规格)
 
-**项目**: Solana Contract X-Ray — Apple 风格交互网页。把 Anchor 合约动画拆解为层级结构(TCP/IP 风格), 教学 Missing Signer Check, 再用 Devnet 真实交易验证。层级数据驱动。
+**项目**: Solana Prism — Apple 风格交互网页。把 Anchor 合约动画拆解为层级结构(TCP/IP 风格), 教学 Missing Signer Check, 再用 Devnet 真实交易验证。层级数据驱动。
 
 **演示流程(6 步)**:
 1. 标题「What is a smart contract?」淡入淡出 (3s, 自动)
@@ -74,10 +74,10 @@ Buffer                                        1.5h
 ### 任务 0.1: 仓库与隔离分支
 - 执行:
   ```bash
-  mkdir solana-xray && cd solana-xray
-  git init && git checkout -b feat/xray
+  mkdir solana-prism && cd solana-prism
+  git init && git checkout -b feat/prism
   ```
-- **验证**: `git branch --show-current` 输出 `feat/xray`
+- **验证**: `git branch --show-current` 输出 `feat/prism`
 
 ### 任务 0.2: 前端脚手架 + Vitest 基线
 - 执行:
@@ -214,7 +214,7 @@ Buffer                                        1.5h
 - Step1: 48px/600 居中, opacity 0.8s 淡入; Step2: 代码卡片(背景 `--color-bg-code`, radius 12px, padding 24px, max-width 720px), 手写 token 高亮(关键字红 `--color-syntax-keyword` / 类型蓝 `--color-syntax-type` / 注释灰 `--color-syntax-comment`), 展示精简版 withdraw 代码:
   ```rust
   #[program]
-  pub mod xray_vault {
+  pub mod prism_vault {
       pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
           let vault = &mut ctx.accounts.vault;
           // 检查 authority 地址是否匹配
@@ -329,23 +329,23 @@ Buffer                                        1.5h
 > - 纪律: 一次只排一个环境的坑, 不双线作战
 
 ### 任务 3.1: Anchor 工作区(双 program)
-- 执行: `anchor init contract --no-git && cd contract && anchor new xray_fixed`, 把默认 program 重命名 `xray_vulnerable`(同步改 Anchor.toml/Cargo.toml)
+- 执行: `anchor init contract --no-git && cd contract && anchor new prism_fixed`, 把默认 program 重命名 `prism_vulnerable`(同步改 Anchor.toml/Cargo.toml)
 - **验证**: `anchor build` 编译出两个 `.so`
 
 ### 任务 3.2(RED): 攻击测试
-- **文件路径**: `contract/tests/xray.ts` — 两个用例:
+- **文件路径**: `contract/tests/prism.ts` — 两个用例:
   1. `vulnerable: 非签名者冒充 authority 提款 — 成功(记录漏洞)`: authority 传 admin 地址但由 attacker 签名, 断言 vault.balance 从 1000 变 500
   2. `fixed: 非签名者冒充 — 被拒绝`: 同调用对 fixed, 断言抛错匹配 `/signature|Signer/i`
 - **验证(RED)**: `anchor test` 两用例失败, 失败原因为程序未实现而非测试语法错 → 提交 `test: attack tests (RED)`
 
 ### 任务 3.3(GREEN-1): 漏洞版
-- **文件路径**: `contract/programs/xray_vulnerable/src/lib.rs`:
+- **文件路径**: `contract/programs/prism_vulnerable/src/lib.rs`:
   ```rust
   use anchor_lang::prelude::*;
   declare_id!("VuLnXR1ayVuLnXR1ayVuLnXR1ayVuLnXR1ay111111111");
 
   #[program]
-  pub mod xray_vulnerable {
+  pub mod prism_vulnerable {
       use super::*;
       pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
           let vault = &mut ctx.accounts.vault;
@@ -382,7 +382,7 @@ Buffer                                        1.5h
 - **验证**: `anchor test` 用例 1 绿, 用例 2 仍红 → 提交
 
 ### 任务 3.4(GREEN-2): 修复版
-- 同 3.3, 差异: `declare_id!` 换值, `pub mod xray_fixed`, `Withdraw.authority: Signer<'info>`(强制签名)
+- 同 3.3, 差异: `declare_id!` 换值, `pub mod prism_fixed`, `Withdraw.authority: Signer<'info>`(强制签名)
 - 若部署报 program id 不一致: `anchor keys list` 查真实 id 回填 declare_id! 与 Anchor.toml(一次只改一个变量)
 - **验证**: `anchor test` **全绿** → 提交
 

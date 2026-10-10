@@ -54,7 +54,7 @@ const WAIT_TIMEOUT_MS = 20000;
 /** Predicates the plan below is written against. Installed before navigation. */
 const PAGE_HELPERS = `
 try {
-  window.__xray = {
+  window.__prism = {
     step: () => {
       const el = document.querySelector('.app');
       const n = el ? parseInt(el.dataset.step ?? '', 10) : NaN;
@@ -119,16 +119,16 @@ const MUST_APPEAR_IN_CHINESE = [
 const PROBES = {
   tagCards: `(() => {
     const cards = [...document.querySelectorAll('.layer-card')];
-    cards.forEach((el, i) => { el.__xrayTag = 'card-' + i; });
-    window.__xrayCards = cards;
+    cards.forEach((el, i) => { el.__prismTag = 'card-' + i; });
+    window.__prismCards = cards;
     return cards.length + ' tagged';
   })()`,
 
   checkCards: `(() => {
-    if (!Array.isArray(window.__xrayCards)) return 'NO TAG -- tagCards never ran';
+    if (!Array.isArray(window.__prismCards)) return 'NO TAG -- tagCards never ran';
     const cards = [...document.querySelectorAll('.layer-card')];
-    const recalled = window.__xrayCards;
-    const tagged = cards.filter((el, i) => el.__xrayTag === 'card-' + i).length;
+    const recalled = window.__prismCards;
+    const tagged = cards.filter((el, i) => el.__prismTag === 'card-' + i).length;
     const sameNodes = cards.length > 0
       && cards.length === recalled.length
       && cards.every((el, i) => el === recalled[i]);
@@ -153,8 +153,8 @@ const SQL = {
 
 const PLAN = [
   // --- pass 1: the narrated steps, each waiting for the state it claims to show
-  { wait: `__xray.step() === 1`, after: 1300, shot: 'step1-title' },
-  { wait: `__xray.step() === 2`, after: 2400, shot: 'step2-code' },
+  { wait: `__prism.step() === 1`, after: 1300, shot: 'step1-title' },
+  { wait: `__prism.step() === 2`, after: 2400, shot: 'step2-code' },
 
   // The code-to-stage mapping: each region boxed and labelled in turn.
   // NOTE: the labels exist in the DOM from the start and are animated up from
@@ -176,82 +176,82 @@ const PLAN = [
 
   // The headline of the bilingual feature: the Rust is identical, only the
   // comments change. Checked in the browser rather than only in the unit test.
-  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  { wait: `__prism.has('${SQL.langZh}')`, click: SQL.langZh },
   {
     wait: `document.body.innerText.includes('漏洞就在这里')`,
     after: 500,
     expect: {
-      expression: `__xray.text('.code-card')`,
+      expression: `__prism.text('.code-card')`,
       contains: '只查地址，不要求签名',
     },
     shot: 'zh-step2-code',
   },
-  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  { wait: `__prism.has('${SQL.langEn}')`, click: SQL.langEn },
   {
     wait: `document.body.innerText.includes('This is the bug')`,
     after: 400,
     expect: {
-      expression: `__xray.text('.code-card')`,
+      expression: `__prism.text('.code-card')`,
       contains: 'no signature required',
     },
   },
 
-  { wait: `__xray.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'step3-scatter' },
-  { wait: `__xray.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'step4-stacked' },
-  { wait: `__xray.step() === 5 && __xray.has('${SQL.execute}')`, shot: 'step5-ready' },
+  { wait: `__prism.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'step3-scatter' },
+  { wait: `__prism.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'step4-stacked' },
+  { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, shot: 'step5-ready' },
 
   // --- pass 1: vulnerable path
-  { wait: `__xray.has('${SQL.execute}')`, click: SQL.execute },
-  { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard' },
-  { wait: `__xray.has('${SQL.dot}')`, after: 1450, shot: 'step5-attack-dot' },
+  { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 1450, shot: 'step5-attack-dot' },
   {
-    wait: `__xray.has('${SQL.result}')`,
+    wait: `__prism.has('${SQL.result}')`,
     after: 700,
     probe: 'checkCards',
-    expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Attack Successful' },
+    expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Attack Successful' },
     shot: 'step5-result-success',
   },
   {
     // The note ships with the result, so it must be present whenever the result
     // is — and it must be the real copy, not an empty shell that satisfies a
     // selector. The text check is what makes that distinction.
-    wait: `__xray.has('${SQL.closing}')`,
+    wait: `__prism.has('${SQL.closing}')`,
     after: 400,
     expect: {
-      expression: `__xray.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
+      expression: `__prism.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
       contains: 'closing-present',
     },
     shot: 'step5-closing-note',
   },
 
   // --- pass 1: fixed path
-  { wait: `__xray.has('${SQL.fixToggleFixed}')`, click: SQL.fixToggleFixed },
-  { wait: `!__xray.has('${SQL.result}')`, click: SQL.execute },
-  { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard-fixed' },
-  { wait: `__xray.has('${SQL.dot}')`, after: 1550, shot: 'step5-attack-blocked' },
+  { wait: `__prism.has('${SQL.fixToggleFixed}')`, click: SQL.fixToggleFixed },
+  { wait: `!__prism.has('${SQL.result}')`, click: SQL.execute },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'step5-txcard-fixed' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 1550, shot: 'step5-attack-blocked' },
   {
-    wait: `__xray.has('${SQL.result}')`,
+    wait: `__prism.has('${SQL.result}')`,
     after: 700,
     probe: 'checkCards',
-    expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Transaction Rejected' },
+    expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Transaction Rejected' },
     shot: 'step5-result-rejected',
   },
-  { wait: `__xray.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
+  { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
   {
     // The condition IS the predicate. Waiting only for the panel and then
     // sleeping would pass on a sleep rather than on the invariant — measured:
     // for ~20ms after the click the panel exists with neither child, which is
     // the very state this is supposed to reject.
     wait:
-      `__xray.has('${SQL.verifyPanel}') && ` +
-      `(__xray.has('.verify__panel video') || __xray.has('.verify__video-fallback'))`,
+      `__prism.has('${SQL.verifyPanel}') && ` +
+      `(__prism.has('.verify__panel video') || __prism.has('.verify__video-fallback'))`,
     after: 400,
     // Durable invariant: the panel must show either the recording or the
     // "added in Phase 4" note — never an empty black <video> box. Note that a
     // static host's SPA fallback answers 200 text/html for a missing .mp4, so
     // this also guards the content-type check in VerifyPanel.
     expect: {
-      expression: `(__xray.has('.verify__panel video') || __xray.has('.verify__video-fallback')) ? 'neither-empty-nor-video' : 'EMPTY-VIDEO-BOX'`,
+      expression: `(__prism.has('.verify__panel video') || __prism.has('.verify__video-fallback')) ? 'neither-empty-nor-video' : 'EMPTY-VIDEO-BOX'`,
       contains: 'neither-empty-nor-video',
     },
     shot: 'step5-verify-panel',
@@ -259,26 +259,26 @@ const PLAN = [
 
   // --- pass 2: the whole 1->6 journey again in the same page session, which is
   // what CHECKPOINT 2 means by "runs twice with no refresh"
-  { wait: `__xray.has('${SQL.replay}')`, click: SQL.replay },
-  { wait: `__xray.step() === 1 && !__xray.has('${SQL.result}')`, after: 1300, shot: 'pass2-step1-title' },
-  { wait: `__xray.step() === 2`, after: 2400, shot: 'pass2-step2-code' },
-  { wait: `__xray.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'pass2-step3-scatter' },
-  { wait: `__xray.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'pass2-step4-stacked' },
-  { wait: `__xray.has('${SQL.execute}')`, click: SQL.execute },
-  { wait: `__xray.has('${SQL.txCard}')`, after: 500, shot: 'pass2-step5-txcard' },
-  { wait: `__xray.has('${SQL.dot}')`, after: 900, shot: 'pass2-step5-attack-dot' },
+  { wait: `__prism.has('${SQL.replay}')`, click: SQL.replay },
+  { wait: `__prism.step() === 1 && !__prism.has('${SQL.result}')`, after: 1300, shot: 'pass2-step1-title' },
+  { wait: `__prism.step() === 2`, after: 2400, shot: 'pass2-step2-code' },
+  { wait: `__prism.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'pass2-step3-scatter' },
+  { wait: `__prism.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'pass2-step4-stacked' },
+  { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'pass2-step5-txcard' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 900, shot: 'pass2-step5-attack-dot' },
   {
-    wait: `__xray.has('${SQL.result}')`,
+    wait: `__prism.has('${SQL.result}')`,
     after: 700,
-    expect: { expression: `__xray.text('${SQL.result}')`, contains: 'Attack Successful' },
+    expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Attack Successful' },
     shot: 'pass2-step5-result-success',
   },
 
   // --- bilingual: the same finished state, switched to Chinese. The verify
   // panel is opened first so its labels are on screen for the check too.
-  { wait: `__xray.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
-  { wait: `__xray.has('${SQL.verifyPanel}')`, after: 600 },
-  { wait: `__xray.has('${SQL.langZh}')`, click: SQL.langZh },
+  { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
+  { wait: `__prism.has('${SQL.verifyPanel}')`, after: 600 },
+  { wait: `__prism.has('${SQL.langZh}')`, click: SQL.langZh },
   {
     wait: `document.documentElement.lang === 'zh-CN'`,
     after: 500,
@@ -297,9 +297,9 @@ const PLAN = [
   },
   {
     // Stage names are bilingual by design, so the English term must survive.
-    expect: { expression: `__xray.text('.layers-container')`, contains: '账户声明 Account Declaration' },
+    expect: { expression: `__prism.text('.layers-container')`, contains: '账户声明 Account Declaration' },
   },
-  { wait: `__xray.has('${SQL.langEn}')`, click: SQL.langEn },
+  { wait: `__prism.has('${SQL.langEn}')`, click: SQL.langEn },
   {
     wait: `document.documentElement.lang === 'en'`,
     after: 400,
@@ -425,7 +425,7 @@ async function shutDownChrome(chrome, profile) {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
-  const profile = join(tmpdir(), `xray-shoot-${Date.now()}`);
+  const profile = join(tmpdir(), `prism-shoot-${Date.now()}`);
 
   const chrome = spawn(
     CHROME,
@@ -535,7 +535,7 @@ async function main() {
       }
 
       if (action.shot) {
-        const where = `step ${await evaluate('__xray.step()')} / mode ${await evaluate('__xray.mode()')}`;
+        const where = `step ${await evaluate('__prism.step()')} / mode ${await evaluate('__prism.mode()')}`;
         const { data } = await send('Page.captureScreenshot', { format: 'png' });
         await writeFile(join(OUT_DIR, `${action.shot}.png`), Buffer.from(data, 'base64'));
         console.log(`shot  ${action.shot.padEnd(26)} ${where}`);
