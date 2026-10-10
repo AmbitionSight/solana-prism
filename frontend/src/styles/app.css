@@ -44,6 +44,15 @@
   border-color: var(--color-text-tertiary);
 }
 
+/* Press states. Every tappable thing on Apple's surfaces gives slightly under a
+   press; without one, a control reads as an image of a control. */
+.replay-btn:active,
+.lang-toggle__option:active,
+.fix-toggle__option:active,
+.verify__toggle:active {
+  transform: scale(0.97);
+}
+
 /* Same segmented shape as the Vulnerable/Fixed switch, so the two read as the
    same kind of control. Each option is labelled in its own language. */
 .lang-toggle {
@@ -99,8 +108,9 @@
 .step1__title {
   font-size: 48px;
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: var(--tracking-title);
+  /* Headlines want tight leading; 1.15 leaves them looking loose at this size. */
+  line-height: 1.05;
   text-align: center;
   animation: title-in-out var(--step-duration, 3000ms) var(--ease-apple) both;
 }
@@ -134,7 +144,9 @@
   width: 100%;
   max-width: 720px;
   padding: 24px;
-  background: var(--color-bg-code);
+  /* White, lifted off the tinted page. A code block tinted the same as the page
+     would sit flush with it and stop reading as a card at all. */
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -413,7 +425,7 @@
   max-width: 640px;
   padding: 24px;
   text-align: left;
-  background: var(--color-bg-code);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   animation: rise-in var(--duration-normal) var(--ease-apple) both;
@@ -487,7 +499,11 @@
   z-index: 10;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.72);
+  /* Blurred, not merely tinted: a flat scrim is the giveaway that an overlay is
+     a div rather than a sheet of material. */
+  background: var(--color-scrim);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   animation: txcard-fade var(--duration-normal) var(--ease-apple) both;
 }
 
@@ -505,7 +521,7 @@
   padding: 18px 22px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   box-shadow:
     0 2px 6px rgba(0, 0, 0, 0.06),
     0 18px 40px rgba(0, 0, 0, 0.12);
@@ -589,7 +605,7 @@
 .txcard__note {
   margin-left: auto;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-secondary);
 }
 
@@ -624,6 +640,25 @@
     opacity: 0;
     transform: translateY(var(--nudge-enter));
   }
+}
+
+/* ---------- Press states ----------
+   Collected at the end so they win over each control's own transition shorthand.
+   Every interactive thing on an Apple surface gives slightly under a press;
+   without the transition the scale snaps, which reads as a glitch, not a press. */
+.replay-btn,
+.lang-toggle__option,
+.fix-toggle__option,
+.verify__toggle,
+.execute-btn {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-apple);
+}
+
+.execute-btn:active:not(:disabled) {
+  /* Composes with the hover lift rather than replacing it. */
+  transform: translateY(var(--nudge-hover)) scale(0.97);
 }
 
 
