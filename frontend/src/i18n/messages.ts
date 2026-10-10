@@ -72,6 +72,21 @@ export interface Messages {
   verifyPending: string;
   verifyVideoNote: string;
   ariaVerifyRegion: string;
+
+  /* Closing note — why the repair works, what it costs to miss it, and where
+     the code the demo dissects actually lives. */
+  closingFixIsDeclaration: string;
+  closingRealWorld: string;
+  closingSourceNote: string;
+  closingLinksLabel: string;
+  closingLinkSourceVulnerable: string;
+  closingLinkSourceFixed: string;
+  closingLinkSourceTests: string;
+  closingLinkSealevel: string;
+  closingLinkSealevelRepo: string;
+  closingLinkAccountTypes: string;
+  closingLinkSolend: string;
+  ariaClosingRegion: string;
 }
 
 export type MessageKey = keyof Messages;
@@ -133,6 +148,22 @@ export const MESSAGES: Record<Language, Messages> = {
     verifyPending: 'not deployed yet',
     verifyVideoNote: 'Recorded walkthrough (demo-verify.mp4) is added once there is something real to record.',
     ariaVerifyRegion: 'On-chain verification',
+
+    closingFixIsDeclaration:
+      "The repair is a declaration, not a line of logic: Signer<'info> makes the runtime demand a signature before your handler runs, and AccountInfo<'info> demands nothing.",
+    closingRealWorld:
+      'This is not hypothetical — the Anchor docs treat this class of attack as required reading before mainnet. In August 2021 Solend was attacked through the same gap in another form: an authorization check was too weak, and the attacker passed a lending market they had created and owned themselves. About $2M was put at risk, and the team caught it before any funds were taken.',
+    closingSourceNote:
+      'Incident details relayed from the Solend incident report (SLND-INCDT-01) via the Quadriga case file.',
+    closingLinksLabel: 'Where this comes from',
+    closingLinkSourceVulnerable: 'the vulnerable program, verbatim',
+    closingLinkSourceFixed: 'the fixed program, verbatim',
+    closingLinkSourceTests: 'the attack, as assertions',
+    closingLinkSealevel: 'Anchor docs · Sealevel Attacks',
+    closingLinkSealevelRepo: 'sealevel-attacks source',
+    closingLinkAccountTypes: 'Anchor docs · Account Types',
+    closingLinkSolend: 'Solend incident, 2021-08-19',
+    ariaClosingRegion: 'Closing note',
   },
 
   zh: {
@@ -182,6 +213,21 @@ export const MESSAGES: Record<Language, Messages> = {
     verifyPending: '尚未部署',
     verifyVideoNote: '录屏（demo-verify.mp4）要等真的跑通之后才有东西可录。',
     ariaVerifyRegion: '链上验证',
+
+    closingFixIsDeclaration:
+      "修复是一个声明，而不是一行逻辑：Signer<'info> 让你的 handler 跑起来之前，运行时就已经要求签名；AccountInfo<'info> 什么都没要求。",
+    closingRealWorld:
+      '这不是假想：Anchor 官方文档把这类攻击列为上主网前的必读。2021 年 8 月，Solend 被同一族问题的另一面击中——授权校验不够强，攻击者传入了一个自己创建并拥有的 Lending Market。约 $2M 一度处于风险中，团队在资金被拿走之前拦下了。',
+    closingSourceNote: '事件细节转引自 Solend 自己的事件报告（SLND-INCDT-01），经 Quadriga 案例页。',
+    closingLinksLabel: '出处与延伸',
+    closingLinkSourceVulnerable: '漏洞版程序原文',
+    closingLinkSourceFixed: '修复版程序原文',
+    closingLinkSourceTests: '把攻击写成断言的测试',
+    closingLinkSealevel: 'Anchor 文档 · Sealevel Attacks',
+    closingLinkSealevelRepo: 'sealevel-attacks 源码',
+    closingLinkAccountTypes: 'Anchor 文档 · Account Types',
+    closingLinkSolend: 'Solend 事件（2021-08-19）',
+    ariaClosingRegion: '结语',
   },
 };
 

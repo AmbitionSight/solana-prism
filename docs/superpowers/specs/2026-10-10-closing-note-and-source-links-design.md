@@ -61,21 +61,15 @@
   - **第二行 = 延伸**（`closingLinkSealevel`、`closingLinkSealevelRepo`、`closingLinkAccountTypes`、`closingLinkSolend`），指向 §4 的四个外部 URL。
 - 链接一律 `target="_blank" rel="noreferrer"`。本地源码链接用相对路径（`/source/...`），外部链接为绝对 URL。
 
-### 3.4 样式
-
-- 复用既有设计令牌与卡片外观（`global.css` 的 `--color-*` / `--radius-card` / `--shadow-card` / `--font-mono` 等），样式追加在 `app.css` 现有 `.footer-slot` 相关段落之后，不新建样式文件。
-- **不得引入任何坐标像素**：本块是静态排版，不参与层叠/攻击坐标系，因此不产生 `transform` 位移；`no-hardcoded-pixels.test.ts` 的适用范围（`transform` 内的像素与生成器源码）不因本块扩大，也不得为绕开它而把坐标写进非 transform 属性。
-- 字体层级：结论段与结果文案同级，现实代价段次之，来源说明更小。具体数值由实现时与既有段落对齐决定，不在此规格中固定（避免与 design token 重复定义）。
-
 ### 3.3 文案（最终稿，实现时照抄，不得改写）
 
 新增键与其取值：
 
 | 键 | en | zh |
 |---|---|---|
-| `closingFixIsDeclaration` | The repair is a declaration, not a line of logic: `Signer<'info>` makes the runtime demand a signature before your handler runs, and `AccountInfo<'info>` demands nothing. | 修复是一个声明，而不是一行逻辑：`Signer<'info>` 让你的 handler 跑起来之前，运行时就已经要求签名；`AccountInfo<'info>` 什么都没要求。 |
+| `closingFixIsDeclaration` | The repair is a declaration, not a line of logic: Signer<'info> makes the runtime demand a signature before your handler runs, and AccountInfo<'info> demands nothing. | 修复是一个声明，而不是一行逻辑：Signer<'info> 让你的 handler 跑起来之前，运行时就已经要求签名；AccountInfo<'info> 什么都没要求。 |
 | `closingRealWorld` | This is not hypothetical — the Anchor docs treat this class of attack as required reading before mainnet. In August 2021 Solend was attacked through the same gap in another form: an authorization check was too weak, and the attacker passed a lending market they had created and owned themselves. About $2M was put at risk, and the team caught it before any funds were taken. | 这不是假想：Anchor 官方文档把这类攻击列为上主网前的必读。2021 年 8 月，Solend 被同一族问题的另一面击中——授权校验不够强，攻击者传入了一个自己创建并拥有的 Lending Market。约 $2M 一度处于风险中，团队在资金被拿走之前拦下了。 |
-| `closingSourceNote` | Incident details relayed from Solend's own incident report (SLND-INCDT-01) via the Quadriga case file. | 事件细节转引自 Solend 自己的事件报告（SLND-INCDT-01），经 Quadriga 案例页。 |
+| `closingSourceNote` | Incident details relayed from the Solend incident report (SLND-INCDT-01) via the Quadriga case file. | 事件细节转引自 Solend 自己的事件报告（SLND-INCDT-01），经 Quadriga 案例页。 |
 | `closingLinksLabel` | Where this comes from | 出处与延伸 |
 | `closingLinkSourceVulnerable` | the vulnerable program, verbatim | 漏洞版程序原文 |
 | `closingLinkSourceFixed` | the fixed program, verbatim | 修复版程序原文 |
@@ -85,6 +79,15 @@
 | `closingLinkAccountTypes` | Anchor docs · Account Types | Anchor 文档 · Account Types |
 | `closingLinkSolend` | Solend incident, 2021-08-19 | Solend 事件（2021-08-19） |
 | `ariaClosingRegion` | Closing note | 结语 |
+
+`closingFixIsDeclaration` 的取值里没有 markdown 反引号：反引号在网页上会被当字面量渲染出来。由于 `Signer<'info>` 自带单引号，这两条取值在 `messages.ts` 里用双引号书写。
+
+### 3.4 样式
+
+- 复用既有设计令牌与卡片外观（`global.css` 的 `--color-*` / `--radius-card` / `--shadow-card` / `--font-mono` 等），样式追加在 `app.css` 现有 `.footer-slot` 相关段落之后，不新建样式文件。
+- **不得引入任何坐标像素**：本块是静态排版，不参与层叠/攻击坐标系，因此不产生 `transform` 位移；`no-hardcoded-pixels.test.ts` 的适用范围（`transform` 内的像素与生成器源码）不因本块扩大，也不得为绕开它而把坐标写进非 transform 属性。
+- **不得使用 `--color-text-tertiary`**：`global.css` 已声明它是 2.5:1、不满足 WCAG AA、仅供装饰，来源说明与链接属于承载含义的文案，只能用 `--color-text-secondary`（仓库注释称其为"文案允许的最浅一档"）。
+- 字体层级：结论段与结果文案同级，现实代价段次之，来源说明更小。具体数值由实现时与既有段落对齐决定，不在此规格中固定（避免与 design token 重复定义）。
 
 `closingRealWorld` 里"too weak"的措辞是刻意的：Solend 那次事故的根因是**授权校验不足、攻击者传入了自己创建并拥有的 Lending Market**，严格说不是字面意义的"缺签名校验"，而是同一族问题的另一面。**文案不得改写成"Solend 因缺失签名校验被黑"**，那是不实陈述。
 
