@@ -7,6 +7,7 @@ import {
   solscanAccountUrl,
   solscanTxUrl,
 } from '../verification';
+import { POOL_SIZE } from '../../lib/devnet';
 import { MESSAGES } from '../../i18n/messages';
 
 const PANEL_SOURCES = import.meta.glob(['../../components/VerifyPanel.tsx'], {
@@ -37,13 +38,13 @@ describe('verification config', () => {
     expect(isFilled('')).toBe(false);
   });
 
-  it('Solscan 交易链接指向 devnet', () => {
-    expect(solscanTxUrl('SIG123')).toBe('https://solscan.io/tx/SIG123?cluster=devnet');
+  it('Solscan 交易链接指向 testnet', () => {
+    expect(solscanTxUrl('SIG123')).toBe('https://solscan.io/tx/SIG123?cluster=testnet');
   });
 
-  it('Solscan 账户链接指向 devnet', () => {
+  it('Solscan 账户链接指向 testnet', () => {
     expect(solscanAccountUrl('ADDR123')).toBe(
-      'https://solscan.io/account/ADDR123?cluster=devnet',
+      'https://solscan.io/account/ADDR123?cluster=testnet',
     );
   });
 
@@ -67,10 +68,41 @@ describe('isDeployed — 由数据推导，不是开关', () => {
     expect(isDeployed({ vulnerableProgramId: PENDING, attackTxSignature: 'Sig' })).toBe(false);
   });
 
-  it('本仓库此刻尚未部署', () => {
-    expect(isDeployed()).toBe(false);
-    expect(isFilled(VERIFICATION.vulnerableProgramId)).toBe(false);
-    expect(isFilled(VERIFICATION.attackTxSignature)).toBe(false);
+  it('本仓库此刻已部署: program id、真实签名与拒绝错误都在', () => {
+    // Both program ids come from the build; the signature and the error come
+    // from the testnet run. `isDeployed` reads only the data, so this assertion
+    // is the same derivation the panel performs — not a flag somebody flipped.
+    expect(isDeployed()).toBe(true);
+    expect(isFilled(VERIFICATION.vulnerableProgramId)).toBe(true);
+    expect(isFilled(VERIFICATION.attackTxSignature)).toBe(true);
+    expect(isFilled(VERIFICATION.attackTxError)).toBe(true);
+  });
+
+  it('两个 program id 就是构建产出的那两把, 不是相近的地址', () => {
+    expect(VERIFICATION.vulnerableProgramId).toBe('7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2');
+    expect(VERIFICATION.fixedProgramId).toBe('9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq');
+  });
+
+  it('RPC 端点绕开被封的 solana.com', () => {
+    // api.testnet.solana.com is DNS-poisoned on this network; the demo carries
+    // the endpoint that works as data instead of hardcoding it in the client.
+    expect(VERIFICATION.rpcEndpoint).toBe('https://testnet.rpcpool.com');
+  });
+
+  it('poolSize 与 devnet.ts 的 POOL_SIZE 是同一个数', () => {
+    // Two copies of the pool size would eventually disagree, and the scan would
+    // stop short of the pool or walk past it.
+    expect(VERIFICATION.poolSize).toBe(POOL_SIZE);
+  });
+
+  it('ADMIN 公钥是建池时真正写进每个 vault 的那一个', () => {
+    // Not a guess: every vault in the pool carries this as its authority, so a
+    // typo here would make the scan find nothing and read as an empty pool.
+    expect(VERIFICATION.adminPubkey).toBe('DMkwnXZ6Gy7X8fkzSyBCdCuk3E2CFrwCmhV9A44qGU7T');
+  });
+
+  it('faucet 地址是配置项, 不在代码里散落', () => {
+    expect(VERIFICATION.faucetUrl).toMatch(/^https:\/\//);
   });
 
   it('金库余额是合约写出来的值，不是读出来的值', () => {

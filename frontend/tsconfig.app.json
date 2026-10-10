@@ -7,6 +7,16 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
+    /* Load-bearing once `@solana/web3.js` arrived. With no `types` list,
+       TypeScript auto-includes every directory under node_modules/@types, and
+       web3.js drags in @types/node — plus @types/connect and @types/ws. That
+       would quietly make `Buffer` a global and turn `setTimeout` into
+       `NodeJS.Timeout` in app code: exactly the leak node-shims.d.ts exists to
+       prevent, and one that compiles green while it happens. An empty list is
+       correct here: React's types arrive through imports, and vite/client
+       through the triple-slash reference in vite-env.d.ts. */
+    "types": [],
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

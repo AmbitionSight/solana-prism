@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Connection } from '@solana/web3.js';
 import {
   AUTO_ADVANCE_MS,
   TX_CARD_MS,
@@ -9,23 +10,63 @@ import {
 import AttackResult from './components/AttackResult';
 import ClosingNote from './components/ClosingNote';
 import ContractLayers, { type LayersMode } from './components/ContractLayers';
+import DevnetRun from './components/DevnetRun';
 import FixToggle from './components/FixToggle';
 import LanguageToggle from './components/LanguageToggle';
 import Step1Title from './components/Step1Title';
 import Step2Code from './components/Step2Code';
-import TxCard from './components/TxCard';
+import TxCard, { type TxPayload } from './components/TxCard';
 import VerifyPanel from './components/VerifyPanel';
+import WalletButton from './components/WalletButton';
+import { VERIFICATION } from './config/verification';
 import { useLanguage } from './i18n/language';
+import { controlStatus, executeChainRun, verdictOf, type ChainResult } from './lib/devnetRun';
+import { attackPorts, createVaultReader } from './lib/solanaChain';
+import { detectProvider, type SolanaProvider } from './lib/wallet';
 import './styles/app.css';
 import './styles/animations.css';
 
-export default function App() {
+/**
+ * `initialStep` exists for one reason: step 5 is entered by timers, and a test
+ * that renders to a string runs no effects, so it cannot wait for them. Passing
+ * the final step directly lets a test hold the demo in the state the default
+ * path must keep behaving in. The app itself never passes it, so the demo still
+ * opens on step 1.
+ */
+export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const { t } = useLanguage();
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<Step>(initialStep);
   const [isFixed, setIsFixed] = useState(false);
   const [attackState, setAttackState] = useState<AttackState>('idle');
   /** Bumped on replay so the auto-advance timers restart from step 1. */
   const [runId, setRunId] = useState(0);
+
+  /**
+   * The wallet, detected once and held here rather than inside the button: the
+   * real-run layer needs the same provider to sign with, and two detections
+   * could disagree.
+   */
+  const [provider] = useState<SolanaProvider | null>(() => detectProvider());
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  /**
+   * The real run. `payload` is set the moment there is something real to
+   * submit — which is also what puts the transaction card on screen — and
+   * `result` is the chain's answer, which may arrive long after.
+   */
+  const [payload, setPayload] = useState<TxPayload | null>(null);
+  const [chainResult, setChainResult] = useState<ChainResult | null>(null);
+  /** True from the click until the chain answers, including the pool scan. */
+  const [chainBusy, setChainBusy] = useState(false);
+  /** Whether the dot's drop has finished — the real verdict waits for it. */
+  const [dotLanded, setDotLanded] = useState(false);
+
+  /**
+   * Bumped whenever the page moves on. A chain answer that arrives after that
+   * belongs to a run nobody is waiting for any more, and acting on it would put
+   * one run's verdict under another run's animation.
+   */
+  const runToken = useRef(0);
 
   // Steps 1-4 narrate themselves; step 5 has no entry in AUTO_ADVANCE_MS and
   // therefore waits for the user.
@@ -47,25 +88,129 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [attackState]);
 
-  const handleExecute = useCallback(() => setAttackState('showing-tx'), []);
-  const handleAttackEnd = useCallback(() => setAttackState('done'), []);
+  // The animated run's verdict is the animation, so it lands on the animation's
+  // own end — unchanged. A real run's verdict is the chain's, so it waits for
+  // both: the drop has to finish before a finding can be shown under it.
+  useEffect(() => {
+    if (attackState !== 'running') return;
+    if (!chainResult || !dotLanded) return;
+    setAttackState('done');
+  }, [attackState, chainResult, dotLanded]);
 
-  const handleFixChange = useCallback((next: boolean) => {
-    setIsFixed(next);
-    setAttackState('idle');
+  /**
+   * Take the page back off the chain.
+   *
+   * Called whenever the demo restarts or switches build, so a run that is still
+   * planning cannot land under the new state — and so the next drop is the
+   * animation's verdict again rather than a stale one from the chain.
+   */
+  const clearRealRun = useCallback(() => {
+    runToken.current += 1;
+    setPayload(null);
+    setChainResult(null);
+    setDotLanded(false);
+    setChainBusy(false);
   }, []);
+
+  const handleExecute = useCallback(() => {
+    clearRealRun();
+    setAttackState('showing-tx');
+  }, [clearRealRun]);
+
+  const handleAttackEnd = useCallback(() => {
+    // With no real run in flight this is the verdict, exactly as before.
+    if (!payload) {
+      setAttackState('done');
+      return;
+    }
+    setDotLanded(true);
+  }, [payload]);
+
+  const handleFixChange = useCallback(
+    (next: boolean) => {
+      setIsFixed(next);
+      setAttackState('idle');
+      clearRealRun();
+    },
+    [clearRealRun],
+  );
 
   const replay = useCallback(() => {
     setStep(1);
     setIsFixed(false);
     setAttackState('idle');
     setRunId((id) => id + 1);
-  }, []);
+    clearRealRun();
+  }, [clearRealRun]);
+
+  /**
+   * Run the real attack.
+   *
+   * Nothing here decides what is true: `lib/devnetRun.ts` picks the vault and
+   * reports the outcome, and this only moves the same `attackState` machine the
+   * animated path uses. A pool that turns out to be empty ends the attempt
+   * before the animation starts, because there is nothing to animate.
+   */
+  const handleRealRun = useCallback(() => {
+    if (!provider || !walletAddress) return;
+
+    const token = (runToken.current += 1);
+    const connection = new Connection(VERIFICATION.rpcEndpoint, 'confirmed');
+    const stale = () => runToken.current !== token;
+
+    setChainBusy(true);
+    setPayload(null);
+    setChainResult(null);
+    setDotLanded(false);
+
+    void executeChainRun(
+      {
+        config: {
+          isFixed,
+          vulnerableProgramId: VERIFICATION.vulnerableProgramId,
+          fixedProgramId: VERIFICATION.fixedProgramId,
+          adminPubkey: VERIFICATION.adminPubkey,
+          poolSize: VERIFICATION.poolSize,
+        },
+        read: createVaultReader(connection),
+        portsFor: (programId) => attackPorts(connection, provider, programId),
+        cancelled: stale,
+      },
+      {
+        onTarget: (target) => {
+          if (stale()) return;
+          setPayload({
+            vault: target.vault.toBase58(),
+            authority: target.authority.toBase58(),
+            // `withdraw` declares no signer, so the only signature on this
+            // transaction is the visitor's own — which is the whole reason a
+            // visitor can run the real attack without the admin's key.
+            signer: walletAddress,
+          });
+          setAttackState('showing-tx');
+        },
+        onResult: (result) => {
+          if (stale()) return;
+          setChainBusy(false);
+          setChainResult(result);
+        },
+      },
+    ).catch((error: unknown) => {
+      // Looking for a vault is itself a chain call, and it can fail — an
+      // unreachable RPC is the ordinary case. That is a run that never got
+      // started, so it is reported as such rather than as a refusal.
+      if (stale()) return;
+      setChainBusy(false);
+      setChainResult({ kind: 'failed', reason: messageOf(error) });
+    });
+  }, [provider, walletAddress, isFixed]);
 
   /** Where step 2's stage boxes sat, handed to step 3 so the cards start there. */
   const regionRects = useRef<Record<string, DOMRect>>({});
 
   const layersMode: LayersMode = step >= 4 ? 'stacked' : step === 3 ? 'decomposed' : 'hidden';
+  const chainVerdict = chainResult ? verdictOf(chainResult) : null;
+  const chainStatus = controlStatus(chainResult, payload !== null, chainBusy);
 
   return (
     // data-step is the machine-readable current step. The visible 01/05 counter
@@ -76,6 +221,11 @@ export default function App() {
         <button type="button" className="replay-btn" onClick={replay}>
           {t.replay}
         </button>
+        <WalletButton
+          provider={provider}
+          address={walletAddress}
+          onAddressChange={setWalletAddress}
+        />
         <LanguageToggle />
       </div>
 
@@ -99,7 +249,7 @@ export default function App() {
                 onAttackEnd={handleAttackEnd}
                 originRects={regionRects.current}
               />
-              {attackState === 'showing-tx' && <TxCard />}
+              {attackState === 'showing-tx' && <TxCard payload={payload ?? undefined} />}
             </div>
 
             {/* Reserved from step 3 so the stack never shifts while the attack
@@ -117,14 +267,37 @@ export default function App() {
                   >
                     {t.execute}
                   </button>
+                  <DevnetRun
+                    isFixed={isFixed}
+                    providerPresent={provider !== null}
+                    connected={walletAddress !== null}
+                    programId={
+                      isFixed ? VERIFICATION.fixedProgramId : VERIFICATION.vulnerableProgramId
+                    }
+                    status={chainStatus}
+                    onRun={handleRealRun}
+                  />
                 </div>
               )}
 
               {attackState === 'done' && (
                 <>
-                  <AttackResult isFixed={isFixed} />
+                  <AttackResult
+                    isFixed={isFixed}
+                    outcome={chainVerdict?.verdict ?? undefined}
+                    detail={chainVerdict?.detail}
+                  />
+                  {/* What the real evidence does and does not show. Both lines
+                      are only reachable through a real run: with no chain answer
+                      there is no verdict here to annotate. */}
+                  {chainVerdict?.verdict === 'success' && (
+                    <p className="attack-result__body">{t.chainNotLamports}</p>
+                  )}
+                  {chainVerdict?.verdict === 'rejected' && (
+                    <p className="attack-result__body">{t.chainTxFailed}</p>
+                  )}
                   <ClosingNote />
-                  <VerifyPanel />
+                  <VerifyPanel runSignature={chainVerdict?.signature} />
                 </>
               )}
             </div>
@@ -133,4 +306,15 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+/** An exception's own words. Nothing here decides whether it was a refusal. */
+function messageOf(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }

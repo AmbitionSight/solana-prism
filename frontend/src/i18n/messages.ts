@@ -14,7 +14,21 @@
  * annotations around them are translated.
  */
 
+import { clusterLabel } from '../config/verification';
+
 export type Language = 'en' | 'zh';
+
+/**
+ * Fill a template's `{cluster}` slot with the configured cluster's name.
+ *
+ * Three sentences name the chain, and a name written out in longhand goes stale
+ * the moment the configuration changes — which is what happened when this demo
+ * moved from devnet to testnet and the copy still said "Devnet". The claim
+ * sentence especially: it is the one thing here that must not be wrong.
+ */
+export function formatCluster(template: string, cluster?: string): string {
+  return template.replace('{cluster}', clusterLabel(cluster));
+}
 
 export interface Messages {
   /* Step 1 */
@@ -62,6 +76,33 @@ export interface Messages {
   ariaSignaturePresent: string;
   ariaSignatureAbsent: string;
 
+  /* The real chain, opt-in. Every string here is only ever rendered when a
+     wallet is connected and the selected build is actually deployed, so none of
+     them can be read as a claim about a deployment that does not exist. */
+  walletConnect: string;
+  walletDisconnect: string;
+  walletConnected: string;
+  walletMissing: string;
+  executeOnDevnet: string;
+  chainRunning: string;
+  chainNeedSol: string;
+  chainExhausted: string;
+  chainFixedNotDeployed: string;
+  chainTxFailed: string;
+  /**
+   * Not in the design spec's table, deliberately added here.
+   *
+   * `chainTxFailed` says the runtime refused the transaction, which is true of a
+   * run that reached the chain and was rejected — and false of one that never
+   * got there. `lib/chainRun.ts` keeps those two apart on purpose ("conflating
+   * them would turn an RPC outage into a security claim"), so the state it calls
+   * `failed` needs wording of its own rather than a borrowed accusation.
+   */
+  chainAttemptFailed: string;
+  chainRealSignature: string;
+  chainNotLamports: string;
+  ariaWallet: string;
+
   /* Attack result */
   resultSuccessTitle: string;
   resultSuccessBody: string;
@@ -92,8 +133,6 @@ export interface Messages {
   closingLinkSourceFixed: string;
   closingLinkSourceTests: string;
   closingLinkSealevel: string;
-  closingLinkSealevelRepo: string;
-  closingLinkAccountTypes: string;
   closingLinkSolend: string;
   ariaClosingRegion: string;
 }
@@ -147,6 +186,21 @@ export const MESSAGES: Record<Language, Messages> = {
     ariaSignaturePresent: 'signature present',
     ariaSignatureAbsent: 'signature absent',
 
+    walletConnect: 'Connect wallet',
+    walletDisconnect: 'Disconnect',
+    walletConnected: 'Connected',
+    walletMissing: 'No Solana wallet detected in this browser.',
+    executeOnDevnet: 'Execute on {cluster}',
+    chainRunning: 'Sending the transaction…',
+    chainNeedSol: 'This needs a little {cluster} SOL for fees.',
+    chainExhausted: 'The prepared vault pool is used up. Re-run the pool script to refill it.',
+    chainFixedNotDeployed: 'The repaired build is not deployed, so this refusal is the animation.',
+    chainTxFailed: 'The transaction was rejected by the runtime.',
+    chainAttemptFailed: 'Could not complete the attempt, so there is no verdict.',
+    chainRealSignature: "this run's signature",
+    chainNotLamports: "The vault's balance is a number in its account, not lamports moved.",
+    ariaWallet: 'Wallet',
+
     resultSuccessTitle: 'Attack Successful',
     resultSuccessBody: 'Vault drained. The attacker never signed.',
     resultRejectedTitle: 'Transaction Rejected',
@@ -154,7 +208,7 @@ export const MESSAGES: Record<Language, Messages> = {
 
     verifyToggle: 'Verify on-chain',
     verifyClaimDeployed:
-      'This is not an animation. The exploit is real, deployed, and reproducible on Devnet.',
+      'This is not an animation. The exploit is real, deployed, and reproducible on {cluster}.',
     verifyClaimNotDeployed:
       'Nothing here has been deployed yet. The animation is a faithful walkthrough of the contract source in this repository — but until those programs are built and deployed, there is no program id or transaction behind it.',
     verifyVulnerableProgram: 'Vulnerable program',
@@ -169,7 +223,7 @@ export const MESSAGES: Record<Language, Messages> = {
     closingFixIsDeclaration:
       "The repair is a declaration, not a line of logic: Signer<'info> makes the runtime demand a signature before your handler runs, and AccountInfo<'info> demands nothing.",
     closingRealWorld:
-      'This is not hypothetical — the Anchor docs treat this class of attack as required reading before mainnet. In August 2021 Solend was attacked through the same gap in another form: an authorization check was too weak, and the attacker passed a lending market they had created and owned themselves. About $2M was put at risk, and the team caught it before any funds were taken.',
+      "Solend, 2021-08-19 — the same family of mistake in another form: an authorization check too weak, bypassed with a lending market the attacker had created and owned. About $2M was at risk; the attacker took nothing. The only funds that moved were about $16k of wrongful liquidations — five accounts, hit by Solend's own liquidator — all refunded.",
     closingSourceNote:
       'Incident details relayed from the Solend incident report (SLND-INCDT-01) via the Quadriga case file.',
     closingLinksLabel: 'Where this comes from',
@@ -177,8 +231,6 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSourceFixed: 'the fixed program, verbatim',
     closingLinkSourceTests: 'the attack, as assertions',
     closingLinkSealevel: 'Anchor docs · Sealevel Attacks',
-    closingLinkSealevelRepo: 'sealevel-attacks source',
-    closingLinkAccountTypes: 'Anchor docs · Account Types',
     closingLinkSolend: 'Solend incident, 2021-08-19',
     ariaClosingRegion: 'Closing note',
   },
@@ -219,13 +271,28 @@ export const MESSAGES: Record<Language, Messages> = {
     ariaSignaturePresent: '签名已提供',
     ariaSignatureAbsent: '签名缺席',
 
+    walletConnect: '连接钱包',
+    walletDisconnect: '断开',
+    walletConnected: '已连接',
+    walletMissing: '此浏览器未检测到 Solana 钱包。',
+    executeOnDevnet: '在 {cluster} 上执行',
+    chainRunning: '正在发送交易…',
+    chainNeedSol: '这需要一点 {cluster} SOL 付手续费。',
+    chainExhausted: '预备的 vault 池已用尽。重跑建池脚本即可补充。',
+    chainFixedNotDeployed: '修复版未部署，因此这里的拒绝来自动画。',
+    chainTxFailed: '交易被运行时拒绝。',
+    chainAttemptFailed: '这次尝试没能完成，因此没有链上结论。',
+    chainRealSignature: '本次运行的签名',
+    chainNotLamports: 'vault 的余额是账户里的一个数字，并不涉及 lamport 转移。',
+    ariaWallet: '钱包',
+
     resultSuccessTitle: '攻击成功',
     resultSuccessBody: '金库已被掏空。攻击者自始至终没有签名。',
     resultRejectedTitle: '交易被拒绝',
     resultRejectedBody: '缺少签名者。访问被拒绝。',
 
     verifyToggle: '链上验证',
-    verifyClaimDeployed: '这不是动画。这个漏洞是真实的、已部署的，可以在 Devnet 上复现。',
+    verifyClaimDeployed: '这不是动画。这个漏洞是真实的、已部署的，可以在 {cluster} 上复现。',
     verifyClaimNotDeployed:
       '这里还没有任何东西被部署。动画忠实还原了本仓库中的合约源码，但在程序完成编译与部署之前，它没有对应的程序 ID 和交易。',
     verifyVulnerableProgram: '漏洞版程序',
@@ -240,15 +307,13 @@ export const MESSAGES: Record<Language, Messages> = {
     closingFixIsDeclaration:
       "修复是一个声明，而不是一行逻辑：Signer<'info> 让你的 handler 跑起来之前，运行时就已经要求签名；AccountInfo<'info> 什么都没要求。",
     closingRealWorld:
-      '这不是假想：Anchor 官方文档把这类攻击列为上主网前的必读。2021 年 8 月，Solend 被同一族问题的另一面击中——授权校验不够强，攻击者传入了一个自己创建并拥有的 Lending Market。约 $2M 一度处于风险中，团队在资金被拿走之前拦下了。',
+      'Solend，2021-08-19——同一族问题的另一面：授权校验太弱，被一个攻击者自己创建并拥有的 Lending Market 绕过。约 $2M 一度处于风险中，攻击者一分钱都没拿走。唯一动过的资金是约 $16k 的误清算——5 个账户，是 Solend 自己的清算机器人下的手——已全额补偿。',
     closingSourceNote: '事件细节转引自 Solend 自己的事件报告（SLND-INCDT-01），经 Quadriga 案例页。',
     closingLinksLabel: '出处与延伸',
     closingLinkSourceVulnerable: '漏洞版程序原文',
     closingLinkSourceFixed: '修复版程序原文',
     closingLinkSourceTests: '把攻击写成断言的测试',
     closingLinkSealevel: 'Anchor 文档 · Sealevel Attacks',
-    closingLinkSealevelRepo: 'sealevel-attacks 源码',
-    closingLinkAccountTypes: 'Anchor 文档 · Account Types',
     closingLinkSolend: 'Solend 事件（2021-08-19）',
     ariaClosingRegion: '结语',
   },

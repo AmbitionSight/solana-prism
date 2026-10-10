@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Solana Contract X-Ray — Design Tokens & Reset
+   Solana Prism — Design Tokens & Reset
    Single source of truth for color, type, motion, elevation.
    Every pixel value in animation CSS must come from lib/geometry.ts,
    never from this file.
