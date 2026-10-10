@@ -46,7 +46,7 @@ export interface ContractLayer {
   scatter: { x: number; y: number };
 }
 
-/** The vulnerable `xray_vault` withdraw path, top stage first. */
+/** The vulnerable `prism_vulnerable` withdraw path, top stage first. */
 export const VAULT_LAYERS: ContractLayer[] = [
   {
     id: 'S1',

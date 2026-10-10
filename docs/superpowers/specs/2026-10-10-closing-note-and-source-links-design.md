@@ -1,15 +1,17 @@
-# Solana X-Ray — 结语块、出处链接与延伸阅读（设计规格）
+# Solana Prism — 结语块、出处链接与延伸阅读（设计规格）
 
 > 状态：已与用户确认，待复核后转实施计划。
 > 日期：2026-10-10
-> 适用仓库：`solana-xray`（分支 `feat/xray`）
+> 适用仓库：`solana-prism`（分支 `feat/prism`）
+>
+> **2026-10-10 修订**：§3.2 的第二行链接（原为四条）、§3.3 的 `closingRealWorld` 一行、§8 的"现实代价口径"一行，均已被 [`2026-10-10-closing-note-trim-design.md`](./2026-10-10-closing-note-trim-design.md) 取代。实现时以修订规格为准；本文件其余条款继续有效。
 
 ## 1. 问题
 
 前端功能完整、93 项测试全绿，但存在一个**立意层面的缺口**：全站解释性文案仅由 `i18n/messages.ts` 中那些字符串构成（1 个标题、2 句代码注释、5 个阶段名、2 个徽章、4 句结果文案、验证面板文案），不足以回答观众看完动画后必然产生的两个问题：
 
 1. **为什么这样修？** README 里那句核心结论——"声明的约束由运行时免费强制，手写检查只有你记得写才有"——**屏幕上没有**。动画讲的是*发生了什么*，没有讲*为什么* `Signer<'info>` 就解决了。
-2. **凭什么信？** README 声称 step 2 的代码列表是 `contract/programs/xray_vulnerable/src/lib.rs` 逐字复制，但页面没有任何链接指向它，观众无法自行核对。
+2. **凭什么信？** README 声称 step 2 的代码列表是 `contract/programs/prism_vulnerable/src/lib.rs` 逐字复制，但页面没有任何链接指向它，观众无法自行核对。
 3. **所以呢？** 没有任何现实代价的落点，也没有延伸阅读。Public Goods 赛道的"教育入口"叙事在页面上没有出口。
 
 本设计补上这三件事，且**不新增步骤、不改动验证面板**。
@@ -57,7 +59,7 @@
 - 纯展示组件，**无 props、无 state、无副作用**。不接触 `isDeployed()`，因此它的存在与部署状态无关，不需要 deployed/undeployed 两态测试。
 - 全部文案经 `useLanguage()` 的 `t` 取用；不得出现任何硬编码用户可见字符串（既有 `no-hardcoded-copy.test.ts` 会扫）。
 - 结构：`<section role="region" aria-label={t.ariaClosingRegion}>`，内含结论段、现实代价段、来源说明（小字）、`closingLinksLabel` 标签与两行链接：
-  - **第一行 = 本仓库原文**（`closingLinkSourceVulnerable`、`closingLinkSourceFixed`、`closingLinkSourceTests`），指向 `/source/*.rs.txt` 与 `/source/xray.test.ts.txt`；
+  - **第一行 = 本仓库原文**（`closingLinkSourceVulnerable`、`closingLinkSourceFixed`、`closingLinkSourceTests`），指向 `/source/*.rs.txt` 与 `/source/prism.test.ts.txt`；
   - **第二行 = 延伸**（`closingLinkSealevel`、`closingLinkSealevelRepo`、`closingLinkAccountTypes`、`closingLinkSolend`），指向 §4 的四个外部 URL。
 - 链接一律 `target="_blank" rel="noreferrer"`。本地源码链接用相对路径（`/source/...`），外部链接为绝对 URL。
 
@@ -99,7 +101,7 @@
 | 该清单的源码 | `https://github.com/coral-xyz/sealevel-attacks` | 由上述官方页面直接链接；本机无法打开 github.com，未直接验证渲染 |
 | `AccountInfo` = unchecked 的官方说明 | `https://www.anchor-lang.com/docs/references/account-types` | **HTTP 200**（`/docs/account-types` 会 302 到此地址），页内明确写 `AccountInfo` 是 unchecked account，并列有 `Signer` 条目 |
 | Solend 事件 | `https://www.quadrigainitiative.com/cryptocurrencyhackscamfraudwiki/index.php?title=Solend_Insecure_Authentication_Check` | **HTTP 200**，逐句引用了 Solend 事件报告 SLND-INCDT-01（`$2M at risk`、`subvert an auth check`、`arbitrary Lending Market created and owned by them`、5 名用户误清算约 $16K 已赔付） |
-| 本地源码原文 | `/source/xray_vulnerable.rs.txt`、`/source/xray_fixed.rs.txt`、`/source/xray.test.ts.txt` | 随构建产出，同源，永不死链 |
+| 本地源码原文 | `/source/prism_vulnerable.rs.txt`、`/source/prism_fixed.rs.txt`、`/source/prism.test.ts.txt` | 随构建产出，同源，永不死链 |
 
 **已废弃的两个候选**（记录原因，避免后人重新踩）：
 
@@ -116,9 +118,9 @@
 
 | 源 | 副本 |
 |---|---|
-| `contract/programs/xray_vulnerable/src/lib.rs` | `frontend/public/source/xray_vulnerable.rs.txt` |
-| `contract/programs/xray_fixed/src/lib.rs` | `frontend/public/source/xray_fixed.rs.txt` |
-| `contract/tests/xray.ts` | `frontend/public/source/xray.test.ts.txt` |
+| `contract/programs/prism_vulnerable/src/lib.rs` | `frontend/public/source/prism_vulnerable.rs.txt` |
+| `contract/programs/prism_fixed/src/lib.rs` | `frontend/public/source/prism_fixed.rs.txt` |
+| `contract/tests/prism.ts` | `frontend/public/source/prism.test.ts.txt` |
 
 **为什么是 `.rs.txt` 而不是 `.rs`**：`public/` 下的文件由 Vite 原样托管，MIME 由服务器按扩展名推断；`.rs` 不保证映射到 `text/plain`，浏览器可能改为**下载**文件而不是直接显示。本链接的整个目的是"让观众点开就能读到源码"，只有 `.txt` 结尾能确保在浏览器内直接查看，且不依赖任何服务器的 MIME 配置。文件名保留 `.rs` 前缀，不隐瞒内容类型。
 

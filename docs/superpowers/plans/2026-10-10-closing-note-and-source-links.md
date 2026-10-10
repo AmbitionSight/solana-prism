@@ -10,13 +10,15 @@
 
 **Spec:** [`docs/superpowers/specs/2026-10-10-closing-note-and-source-links-design.md`](../specs/2026-10-10-closing-note-and-source-links-design.md)
 
+> **2026-10-10 后续修订**：本计划里的 `closingRealWorld` 文案与第二行两条链接（`closingLinkSealevelRepo`、`closingLinkAccountTypes`）已被 [`2026-10-10-closing-note-trim-design.md`](../specs/2026-10-10-closing-note-trim-design.md) 取代。本文件是按当时规格执行的历史记录，**不要照着它把旧文案或旧链接加回来**。
+
 ---
 
 ## Context an engineer needs before starting
 
 Read this section even if you think you know the repo.
 
-**How to run things.** All frontend commands run from `solana-xray/frontend/`. `npm test` runs Vitest once. `npx tsc -b` type-checks. Do **not** run `npm run build` — in this environment it fails when the Vite plugin tries to trash `dist/`, which is an environment artifact, not a code failure; use `npx vite build --emptyOutDir false` if you genuinely need a build.
+**How to run things.** All frontend commands run from `solana-prism/frontend/`. `npm test` runs Vitest once. `npx tsc -b` type-checks. Do **not** run `npm run build` — in this environment it fails when the Vite plugin tries to trash `dist/`, which is an environment artifact, not a code failure; use `npx vite build --emptyOutDir false` if you genuinely need a build.
 
 **Two Node versions matter.** The system `node` is **v20.10.0**, which is enough for the app and for Vitest but *not* for the CDP harness (`tools/shoot.mjs` needs the global `WebSocket` from Node ≥ 22 and exits with a clear message otherwise). A Node **v24.21.0** lives at:
 
@@ -45,9 +47,9 @@ Use that one for Task 4. `ffmpeg` is on PATH and Chrome is at `C:\Program Files\
 | Action | Path | Responsibility |
 |---|---|---|
 | Modify | `frontend/src/i18n/messages.ts` | Add 12 keys to the `Messages` interface and both language catalogues. Interface first, so the compiler is the failing test. |
-| Create | `frontend/public/source/xray_vulnerable.rs.txt` | Verbatim copy of `contract/programs/xray_vulnerable/src/lib.rs`. Served, not imported. |
-| Create | `frontend/public/source/xray_fixed.rs.txt` | Verbatim copy of `contract/programs/xray_fixed/src/lib.rs`. |
-| Create | `frontend/public/source/xray.test.ts.txt` | Verbatim copy of `contract/tests/xray.ts`. |
+| Create | `frontend/public/source/prism_vulnerable.rs.txt` | Verbatim copy of `contract/programs/prism_vulnerable/src/lib.rs`. Served, not imported. |
+| Create | `frontend/public/source/prism_fixed.rs.txt` | Verbatim copy of `contract/programs/prism_fixed/src/lib.rs`. |
+| Create | `frontend/public/source/prism.test.ts.txt` | Verbatim copy of `contract/tests/prism.ts`. |
 | Create | `frontend/src/__tests__/source-assets.test.ts` | Guards the two things that would make the provenance links lie: copy drift, and link targets that do not exist. |
 | Create | `frontend/src/components/ClosingNote.tsx` | The closing note. Presentational only: no props, no state, no `isDeployed()` coupling. |
 | Modify | `frontend/src/App.tsx` | Import and render `<ClosingNote />` between `AttackResult` and `VerifyPanel`. |
@@ -153,7 +155,7 @@ Expected: PASS. The `messages` suite asserts both catalogues have identical key 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd solana-xray
+cd solana-prism
 git add frontend/src/i18n/messages.ts docs/superpowers/specs/2026-10-10-closing-note-and-source-links-design.md
 git commit -m "feat(i18n): copy for the closing note, and a spec fix for its backticks"
 ```
@@ -166,9 +168,9 @@ The demo's claim is that the animation dissects the real source in this reposito
 
 **Files:**
 - Create: `frontend/src/__tests__/source-assets.test.ts`
-- Create: `frontend/public/source/xray_vulnerable.rs.txt`
-- Create: `frontend/public/source/xray_fixed.rs.txt`
-- Create: `frontend/public/source/xray.test.ts.txt`
+- Create: `frontend/public/source/prism_vulnerable.rs.txt`
+- Create: `frontend/public/source/prism_fixed.rs.txt`
+- Create: `frontend/public/source/prism.test.ts.txt`
 
 - [ ] **Step 1: Write the guard test first**
 
@@ -193,19 +195,19 @@ import { fileURLToPath } from 'node:url';
 
 const PAIRS = [
   {
-    title: 'xray_vulnerable.rs.txt mirrors contract/programs/xray_vulnerable/src/lib.rs',
-    copy: '../../public/source/xray_vulnerable.rs.txt',
-    source: '../../../contract/programs/xray_vulnerable/src/lib.rs',
+    title: 'prism_vulnerable.rs.txt mirrors contract/programs/prism_vulnerable/src/lib.rs',
+    copy: '../../public/source/prism_vulnerable.rs.txt',
+    source: '../../../contract/programs/prism_vulnerable/src/lib.rs',
   },
   {
-    title: 'xray_fixed.rs.txt mirrors contract/programs/xray_fixed/src/lib.rs',
-    copy: '../../public/source/xray_fixed.rs.txt',
-    source: '../../../contract/programs/xray_fixed/src/lib.rs',
+    title: 'prism_fixed.rs.txt mirrors contract/programs/prism_fixed/src/lib.rs',
+    copy: '../../public/source/prism_fixed.rs.txt',
+    source: '../../../contract/programs/prism_fixed/src/lib.rs',
   },
   {
-    title: 'xray.test.ts.txt mirrors contract/tests/xray.ts',
-    copy: '../../public/source/xray.test.ts.txt',
-    source: '../../../contract/tests/xray.ts',
+    title: 'prism.test.ts.txt mirrors contract/tests/prism.ts',
+    copy: '../../public/source/prism.test.ts.txt',
+    source: '../../../contract/tests/prism.ts',
   },
 ];
 
@@ -263,11 +265,11 @@ If the contract files cannot be read from inside `frontend/`, stop and report it
 - [ ] **Step 3: Make the copies**
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray
+cd C:\Users\Ambit\Desktop\test\solana-prism
 New-Item -ItemType Directory -Force frontend\public\source | Out-Null
-Copy-Item contract\programs\xray_vulnerable\src\lib.rs frontend\public\source\xray_vulnerable.rs.txt
-Copy-Item contract\programs\xray_fixed\src\lib.rs      frontend\public\source\xray_fixed.rs.txt
-Copy-Item contract\tests\xray.ts                        frontend\public\source\xray.test.ts.txt
+Copy-Item contract\programs\prism_vulnerable\src\lib.rs frontend\public\source\prism_vulnerable.rs.txt
+Copy-Item contract\programs\prism_fixed\src\lib.rs      frontend\public\source\prism_fixed.rs.txt
+Copy-Item contract\tests\prism.ts                        frontend\public\source\prism.test.ts.txt
 ```
 
 Cross-check the copies against the hashes recorded when this plan was written:
@@ -280,9 +282,9 @@ Expected SHA256, in this order:
 
 | File | SHA256 |
 |---|---|
-| `xray_vulnerable.rs.txt` | `2BBB1046E9577453B7A044442A681CAFB8BA16AA392406B2B63B22C3BC03E955` |
-| `xray_fixed.rs.txt` | `563518E7AE5235064533AB7FA36F1BDD1992F998CB790A20FCDFA8B28ACBD486` |
-| `xray.test.ts.txt` | `2929FEB855B2FEA5B708E2867B41496405EA0847782B99475049A0942577C27C` |
+| `prism_vulnerable.rs.txt` | `2BBB1046E9577453B7A044442A681CAFB8BA16AA392406B2B63B22C3BC03E955` |
+| `prism_fixed.rs.txt` | `563518E7AE5235064533AB7FA36F1BDD1992F998CB790A20FCDFA8B28ACBD486` |
+| `prism.test.ts.txt` | `2929FEB855B2FEA5B708E2867B41496405EA0847782B99475049A0942577C27C` |
 
 Why `.rs.txt` and not `.rs`: `public/` is served as static files and the MIME type comes from the extension. Chrome is not guaranteed to render `.rs` as text — it may download it instead, and the entire point of these links is that a reader can open them and read the source. `.txt` guarantees an inline text view on any static host, with no MIME configuration. The `.rs` prefix keeps the filename honest about what the content is.
 
@@ -296,17 +298,17 @@ Expected: the three comparison cases now PASS; the link case still FAILS with `E
 A byte comparison that has never been seen to fail has not been shown to work.
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray
-Add-Content -Path frontend\public\source\xray_vulnerable.rs.txt -Value " " -NoNewline
+cd C:\Users\Ambit\Desktop\test\solana-prism
+Add-Content -Path frontend\public\source\prism_vulnerable.rs.txt -Value " " -NoNewline
 cd frontend
 npm test -- source-assets
 ```
 
-Expected: FAIL on `xray_vulnerable.rs.txt mirrors contract/programs/xray_vulnerable/src/lib.rs` with a message naming the offset (the appended byte) and both lengths. Then restore exactly — do not hand-edit back:
+Expected: FAIL on `prism_vulnerable.rs.txt mirrors contract/programs/prism_vulnerable/src/lib.rs` with a message naming the offset (the appended byte) and both lengths. Then restore exactly — do not hand-edit back:
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray
-Copy-Item contract\programs\xray_vulnerable\src\lib.rs frontend\public\source\xray_vulnerable.rs.txt -Force
+cd C:\Users\Ambit\Desktop\test\solana-prism
+Copy-Item contract\programs\prism_vulnerable\src\lib.rs frontend\public\source\prism_vulnerable.rs.txt -Force
 cd frontend
 npm test -- source-assets
 ```
@@ -316,7 +318,7 @@ Expected: the three comparison cases are green again.
 - [ ] **Step 6: Commit only after the falsification is undone**
 
 ```bash
-cd solana-xray
+cd solana-prism
 git status --short          # the three .txt copies and the new test file; nothing else
 git add frontend/public/source frontend/src/__tests__/source-assets.test.ts
 git commit -m "feat: serve the dissected contracts verbatim, with a drift guard that was falsified"
@@ -360,9 +362,9 @@ interface EndingLink {
 
 /** The Rust this demo dissects, served verbatim from public/source/. */
 const SOURCE_LINKS: EndingLink[] = [
-  { labelKey: 'closingLinkSourceVulnerable', href: '/source/xray_vulnerable.rs.txt' },
-  { labelKey: 'closingLinkSourceFixed', href: '/source/xray_fixed.rs.txt' },
-  { labelKey: 'closingLinkSourceTests', href: '/source/xray.test.ts.txt' },
+  { labelKey: 'closingLinkSourceVulnerable', href: '/source/prism_vulnerable.rs.txt' },
+  { labelKey: 'closingLinkSourceFixed', href: '/source/prism_fixed.rs.txt' },
+  { labelKey: 'closingLinkSourceTests', href: '/source/prism.test.ts.txt' },
 ];
 
 /**
@@ -535,10 +537,10 @@ If `npm test` cannot run in your environment with `spawn EPERM` from esbuild, th
 Start the dev server and ask for one of them:
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray\frontend
+cd C:\Users\Ambit\Desktop\test\solana-prism\frontend
 Start-Job -ScriptBlock { Set-Location $using:PWD; npm run dev -- --port 5199 } | Out-Null
 Start-Sleep -Seconds 6
-$r = Invoke-WebRequest -Uri "http://localhost:5199/source/xray_vulnerable.rs.txt" -UseBasicParsing
+$r = Invoke-WebRequest -Uri "http://localhost:5199/source/prism_vulnerable.rs.txt" -UseBasicParsing
 "status=$($r.StatusCode) type=$($r.Headers['Content-Type']) length=$($r.Content.Length)"
 ```
 
@@ -549,7 +551,7 @@ Leave the dev server running for Task 4.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd solana-xray
+cd solana-prism
 git add frontend/src/components/ClosingNote.tsx frontend/src/App.tsx frontend/src/styles/app.css
 git commit -m "feat(ui): a closing note that says why the fix is a declaration, and cites its sources"
 ```
@@ -581,10 +583,10 @@ Immediately after the existing vulnerable-path result step (the one whose `shot`
     // The note ships with the result, so it must be present whenever the result
     // is — and it must be the real copy, not an empty shell that satisfies a
     // selector. The text check is what makes that distinction.
-    wait: `__xray.has('${SQL.closing}')`,
+    wait: `__prism.has('${SQL.closing}')`,
     after: 400,
     expect: {
-      expression: `__xray.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
+      expression: `__prism.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
       contains: 'closing-present',
     },
     shot: 'step5-closing-note',
@@ -596,7 +598,7 @@ Immediately after the existing vulnerable-path result step (the one whose `shot`
 The dev server from Task 3 should still be on port 5199. Run the harness with the Node that has a global `WebSocket`:
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray
+cd C:\Users\Ambit\Desktop\test\solana-prism
 & "C:\Users\Ambit\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe" tools/shoot.mjs http://localhost:5199/ .shots-closing
 ```
 
@@ -609,7 +611,7 @@ If the harness fails, decide which side is wrong before touching anything: a mis
 Point the selector at something that does not exist. Read and write the file with `-Raw` and `-NoNewline`: a plain `Get-Content | Set-Content` round trip would rewrite every line ending in the file and bury the one-line change in a whole-file diff.
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray
+cd C:\Users\Ambit\Desktop\test\solana-prism
 $p = 'tools\shoot.mjs'
 $s = Get-Content $p -Raw
 Set-Content $p -Value ($s -replace '\[data-testid="closing-note"\]', '[data-testid="closing-note-typo"]') -NoNewline
@@ -622,7 +624,7 @@ Re-run the harness exactly as in Step 3.
 Expected: FAIL — a missing selector and no `step5-closing-note.png`. That is the proof the assertion is live rather than decorative. Then revert:
 
 ```powershell
-cd C:\Users\Ambit\Desktop\test\solana-xray
+cd C:\Users\Ambit\Desktop\test\solana-prism
 $p = 'tools\shoot.mjs'
 $s = Get-Content $p -Raw
 Set-Content $p -Value ($s -replace '\[data-testid="closing-note-typo"\]', '[data-testid="closing-note"]') -NoNewline
@@ -637,7 +639,7 @@ Re-run the harness once more and confirm it is green again.
 
 ```powershell
 Get-Job | Stop-Job; Get-Job | Remove-Job
-cd C:\Users\Ambit\Desktop\test\solana-xray
+cd C:\Users\Ambit\Desktop\test\solana-prism
 git status --short
 ```
 
@@ -646,7 +648,7 @@ Expected: `.shots-closing/` does **not** appear (the root `.gitignore` has `.sho
 - [ ] **Step 6: Commit**
 
 ```bash
-cd solana-xray
+cd solana-prism
 git add tools/shoot.mjs
 git commit -m "test(harness): assert the closing note renders with its real copy"
 ```
@@ -663,7 +665,7 @@ git commit -m "test(harness): assert the closing note renders with its real copy
 Another writer had uncommitted changes to `README.md` (a two-line "English | 中文" language switch at the top) when this plan was written.
 
 ```bash
-cd solana-xray
+cd solana-prism
 git status --short
 git diff README.md
 ```
@@ -723,7 +725,7 @@ and after the `styles/` line inside the same `frontend/src/` tree, add:
 
 ```
 frontend/public/source/
-  xray_vulnerable.rs.txt · xray_fixed.rs.txt · xray.test.ts.txt
+  prism_vulnerable.rs.txt · prism_fixed.rs.txt · prism.test.ts.txt
                       byte-for-byte copies of contract/, served under .txt so a
                       browser displays them instead of downloading them; the
                       closing note links to them, and source-assets.test.ts fails
@@ -759,7 +761,7 @@ Re-read the "Status" section. It states the front end is finished and the contra
 Recheck `git diff README.md` first: if it still carries the other session's language-switch lines, commit the file whole and say so in the body, rather than reverting work that is not yours.
 
 ```bash
-cd solana-xray
+cd solana-prism
 git add README.md
 git commit -m "docs: the closing note, the source copies, and a recording that predates them" \
   -m "README.md also carries an in-flight language-switch line from a concurrent session; it is committed here rather than reverted."
@@ -797,7 +799,7 @@ With the dev server running, open `http://localhost:5199/` and let it run to ste
 - [ ] **Step 5: Confirm the working tree contains only intended changes**
 
 ```bash
-cd solana-xray
+cd solana-prism
 git status --short
 git log --oneline -8
 ```

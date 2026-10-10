@@ -22,9 +22,9 @@ interface EndingLink {
 
 /** The Rust this demo dissects, served verbatim from public/source/. */
 const SOURCE_LINKS: EndingLink[] = [
-  { labelKey: 'closingLinkSourceVulnerable', href: '/source/xray_vulnerable.rs.txt' },
-  { labelKey: 'closingLinkSourceFixed', href: '/source/xray_fixed.rs.txt' },
-  { labelKey: 'closingLinkSourceTests', href: '/source/xray.test.ts.txt' },
+  { labelKey: 'closingLinkSourceVulnerable', href: '/source/prism_vulnerable.rs.txt' },
+  { labelKey: 'closingLinkSourceFixed', href: '/source/prism_fixed.rs.txt' },
+  { labelKey: 'closingLinkSourceTests', href: '/source/prism.test.ts.txt' },
 ];
 
 /**
@@ -36,14 +36,6 @@ const READING_LINKS: EndingLink[] = [
   {
     labelKey: 'closingLinkSealevel',
     href: 'https://www.anchor-lang.com/docs/references/security-exploits',
-  },
-  {
-    labelKey: 'closingLinkSealevelRepo',
-    href: 'https://github.com/coral-xyz/sealevel-attacks',
-  },
-  {
-    labelKey: 'closingLinkAccountTypes',
-    href: 'https://www.anchor-lang.com/docs/references/account-types',
   },
   {
     labelKey: 'closingLinkSolend',

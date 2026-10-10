@@ -41,7 +41,7 @@ describe('highlightRust', () => {
   it('还原原文无损(不吞字符)', () => {
     const lines = [
       '#[program]',
-      'pub mod xray_vault {',
+      'pub mod prism_vulnerable {',
       '    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {',
       '        let vault = &mut ctx.accounts.vault;',
       '        // 检查 authority 地址是否匹配',
