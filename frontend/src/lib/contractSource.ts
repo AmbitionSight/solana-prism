@@ -80,3 +80,20 @@ export const CONTRACT_LINES: string[] = [
   '    pub balance: u64,',
   '}',
 ];
+
+/**
+ * Which lines become which stage, in SOURCE order — the boxes sweep down the
+ * listing the way you read it, and the stage numbers on the labels are what
+ * shows the reordering (2, 3, 1, 4, 5).
+ *
+ * Indices are into CONTRACT_LINES and were taken from the real file, not
+ * adjusted to fit: the previous listing was an excerpt, so every one of these
+ * numbers moved when the excerpt became the whole file.
+ */
+export const CONTRACT_REGIONS: { stageId: string; from: number; to: number }[] = [
+  { stageId: 'S2', from: 51, to: 54 },
+  { stageId: 'S3', from: 55, to: 56 },
+  { stageId: 'S1', from: 29, to: 29 },
+  { stageId: 'S4', from: 31, to: 35 },
+  { stageId: 'S5', from: 36, to: 36 },
+];
