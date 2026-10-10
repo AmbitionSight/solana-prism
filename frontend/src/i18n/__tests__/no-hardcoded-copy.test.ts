@@ -106,7 +106,7 @@ describe('i18n — 检测器自身的覆盖范围', () => {
     const snippet = [
       "const [step, setStep] = useState<Step>(1);",
       "const [isFixed, setIsFixed] = useState<boolean>(false);",
-      "const mode = step >= 4 ? 'stacked' : 'hidden';",
+      "const mode = step >= 4 ? 'flow' : 'hidden';",
     ].join('\n');
     expect(jsxTextNodes(snippet)).toEqual([]);
   });

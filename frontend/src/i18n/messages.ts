@@ -59,6 +59,14 @@ export interface Messages {
   badgeNoSignerRequired: string;
   badgeSignerRequired: string;
 
+  /* Who enforces each stage — the small tag on every card.
+     The three answers are the lesson: the caller does 1 and 2, the runtime does
+     3 on the program's written behalf, and stages 4 and 5 are the program's own
+     code. Kept to one word each so the tag reads as a label, not a sentence. */
+  enforcerCaller: string;
+  enforcerRuntime: string;
+  enforcerCode: string;
+
   /* Controls */
   replay: string;
   execute: string;
@@ -180,6 +188,10 @@ export const MESSAGES: Record<Language, Messages> = {
     badgeNoSignerRequired: 'No signature required',
     badgeSignerRequired: 'Signature required',
 
+    enforcerCaller: 'you',
+    enforcerRuntime: 'runtime',
+    enforcerCode: 'code',
+
     replay: 'Replay',
     execute: 'Execute',
     versionVulnerable: 'Vulnerable',
@@ -265,6 +277,10 @@ export const MESSAGES: Record<Language, Messages> = {
 
     badgeNoSignerRequired: '未要求签名',
     badgeSignerRequired: '要求签名',
+
+    enforcerCaller: '你',
+    enforcerRuntime: '运行时',
+    enforcerCode: '代码',
 
     replay: '重播',
     execute: '执行攻击',

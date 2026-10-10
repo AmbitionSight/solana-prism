@@ -235,7 +235,7 @@ const PLAN = [
   },
 
   { wait: `__prism.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'step3-scatter' },
-  { wait: `__prism.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'step4-stacked' },
+  { wait: `__prism.mode() === 'flow'`, after: 2200, probe: 'checkCards', shot: 'step4-flow' },
   { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, shot: 'step5-ready' },
 
   // --- pass 1: vulnerable path
@@ -301,7 +301,7 @@ const PLAN = [
   { wait: `__prism.step() === 1 && !__prism.has('${SQL.result}')`, after: 1300, shot: 'pass2-step1-title' },
   { wait: `__prism.step() === 2`, after: 2400, shot: 'pass2-step2-code' },
   { wait: `__prism.mode() === 'decomposed'`, after: 2200, probe: 'tagCards', shot: 'pass2-step3-scatter' },
-  { wait: `__prism.mode() === 'stacked'`, after: 2200, probe: 'checkCards', shot: 'pass2-step4-stacked' },
+  { wait: `__prism.mode() === 'flow'`, after: 2200, probe: 'checkCards', shot: 'pass2-step4-flow' },
   { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
   { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'pass2-step5-txcard' },
   { wait: `__prism.has('${SQL.dot}')`, after: 900, shot: 'pass2-step5-attack-dot' },

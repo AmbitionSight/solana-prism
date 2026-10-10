@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { LAYER_HEIGHT, stackHeight, stackedOffsetY } from '../lib/geometry';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { LAYER_GAP, LAYER_HEIGHT, layerTopY, stackHeight, stackedOffsetY } from '../lib/geometry';
 import {
   ATTACK_MS,
   dangerPulseKeyframes,
@@ -12,13 +12,26 @@ import type { AttackState } from '../lib/steps';
 import AttackDot from './AttackDot';
 import LayerCard from './LayerCard';
 
-export type LayersMode = 'hidden' | 'seeded' | 'decomposed' | 'stacked';
+export type LayersMode = 'hidden' | 'seeded' | 'decomposed' | 'flow';
 
 const COUNT = VAULT_LAYERS.length;
+/** One connector per gap between consecutive cards. */
+const LINK_COUNT = COUNT - 1;
 /** Each card leaves the centre a beat after the one above it. */
 const SCATTER_STAGGER_MS = 150;
-/** ...and settles into the stack a shorter beat after the one above it. */
+/** ...and settles into the flow a shorter beat after the one above it. */
 const SETTLE_STAGGER_MS = 70;
+
+/**
+ * Offset from the centre of the flow container to the centre of the connector
+ * below node `index`, in px. The connector spans the gap between that node's
+ * bottom edge and the next node's top edge; it is positioned exactly like the
+ * cards (a transform off the container's centre) so the two share one origin and
+ * a retune of the geometry moves both.
+ */
+function linkOffsetY(index: number): number {
+  return layerTopY(index) + LAYER_HEIGHT + LAYER_GAP / 2 - stackHeight(COUNT) / 2;
+}
 
 interface ContractLayersProps {
   mode: LayersMode;
@@ -37,9 +50,15 @@ interface ContractLayersProps {
  * Steps 3, 4 and 5 all render this one component.
  *
  * That is deliberate and load-bearing: the spec forbids splitting the scattered
- * and stacked layouts into separate components, because a remount would destroy
+ * and flow layouts into separate components, because a remount would destroy
  * the DOM nodes mid-transition and the cards would jump instead of travelling.
  * The mode therefore only ever changes class names and the transform inputs.
+ *
+ * The connectors between the cards are siblings in this same container, rendered
+ * in every mode and revealed by the mode's class rather than mounted on demand —
+ * a connector that popped into existence mid-transition would flicker. They must
+ * stay siblings, never wrappers: the cards' nodes are the ones iron rule 1 tags
+ * and checks, and anything that re-parents them would re-create them.
  */
 export default function ContractLayers({
   mode,
@@ -101,6 +120,7 @@ export default function ContractLayers({
   const containerStyle = {
     '--stack-height': `${stackHeight(COUNT)}px`,
     '--layer-height': `${LAYER_HEIGHT}px`,
+    '--layer-gap': `${LAYER_GAP}px`,
     '--attack-duration': `${ATTACK_MS}ms`,
   } as CSSProperties;
 
@@ -125,29 +145,40 @@ export default function ContractLayers({
         data-mode={activeMode}
       >
         {VAULT_LAYERS.map((layer, index) => (
-          <LayerCard
-            key={layer.id}
-            layer={layer}
-            isFixed={isFixed}
-            attacking={attacking}
-            offsetX={scattered ? layer.scatter.x : seeded ? (origins?.[layer.id]?.x ?? 0) : 0}
-            offsetY={
-              scattered
-                ? layer.scatter.y
-                : seeded
-                  ? (origins?.[layer.id]?.y ?? 0)
-                  : activeMode === 'stacked'
-                    ? stackedOffsetY(index, COUNT)
+          <Fragment key={layer.id}>
+            <LayerCard
+              key={layer.id}
+              layer={layer}
+              isFixed={isFixed}
+              attacking={attacking}
+              offsetX={scattered ? layer.scatter.x : seeded ? (origins?.[layer.id]?.x ?? 0) : 0}
+              offsetY={
+                scattered
+                  ? layer.scatter.y
+                  : seeded
+                    ? (origins?.[layer.id]?.y ?? 0)
+                    : activeMode === 'flow'
+                      ? stackedOffsetY(index, COUNT)
+                      : 0
+              }
+              transitionDelayMs={
+                scattered
+                  ? index * SCATTER_STAGGER_MS
+                  : activeMode === 'flow'
+                    ? index * SETTLE_STAGGER_MS
                     : 0
-            }
-            transitionDelayMs={
-              scattered
-                ? index * SCATTER_STAGGER_MS
-                : activeMode === 'stacked'
-                  ? index * SETTLE_STAGGER_MS
-                  : 0
-            }
-          />
+              }
+            />
+            {/* Between consecutive cards: the gap below this one. Rendered in
+                every mode; `.layers-container.flow` is what reveals it. */}
+            {index < LINK_COUNT && (
+              <div
+                className="layer-connector"
+                aria-hidden="true"
+                style={{ '--y': `${linkOffsetY(index)}px` } as CSSProperties}
+              />
+            )}
+          </Fragment>
         ))}
 
         {attacking && <AttackDot isFixed={isFixed} onDone={onAttackEnd} />}

@@ -298,7 +298,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   /** Where step 2's stage boxes sat, handed to step 3 so the cards start there. */
   const regionRects = useRef<Record<string, DOMRect>>({});
 
-  const layersMode: LayersMode = step >= 4 ? 'stacked' : step === 3 ? 'decomposed' : 'hidden';
+  const layersMode: LayersMode = step >= 4 ? 'flow' : step === 3 ? 'decomposed' : 'hidden';
   const chainVerdict = chainResult ? verdictOf(chainResult) : null;
   const chainStatus = controlStatus(chainResult, payload !== null, chainBusy);
 

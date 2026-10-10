@@ -89,7 +89,7 @@ const PLAN = [
   { wait: `__prism.step() === 1`, after: 2900 },
   { wait: `__prism.step() === 2`, after: 3900 },
   { wait: `__prism.mode() === 'decomposed'`, after: 4700 },
-  { wait: `__prism.mode() === 'stacked'`, after: 4300 },
+  { wait: `__prism.mode() === 'flow'`, after: 4300 },
   { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, after: 900 },
 
   // Vulnerable path
@@ -112,7 +112,7 @@ const PLAN = [
   { wait: `__prism.step() === 1`, after: 2400 },
   { wait: `__prism.step() === 2`, after: 3200 },
   { wait: `__prism.mode() === 'decomposed'`, after: 2600 },
-  { wait: `__prism.mode() === 'stacked'`, after: 2600 },
+  { wait: `__prism.mode() === 'flow'`, after: 2600 },
 
   // --- back to English to close. The hold is long on purpose: the screencast
   // only emits frames when the page repaints, so a short tail can end up with

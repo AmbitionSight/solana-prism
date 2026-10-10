@@ -21,9 +21,13 @@
   top: 50%;
   width: 480px;
   height: var(--layer-height);
+  /* A column now: the enforcer tag sits above the one row carrying the id and
+     the code — the mockup's node with its body and note folded onto a single
+     line. The row keeps the old horizontal flex behaviour. */
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
   padding: 0 20px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -64,7 +68,7 @@
   opacity: 1;
 }
 
-.layers-container.stacked .layer-card {
+.layers-container.flow .layer-card {
   --scale: 1;
   opacity: 1;
   /* A touch of overshoot so the cards settle rather than stop dead. The timing
@@ -75,10 +79,10 @@
 
 /* ---------- The security layer ---------- */
 
-/* Scoped to the stacked layout on purpose: the crack is meant to be the
+/* Scoped to the flow layout on purpose: the crack is meant to be the
    reveal that lands when the cards finish converging in step 4, not something
    already visible while they are still scattered in step 3. */
-.layers-container.stacked .layer-card.security-broken {
+.layers-container.flow .layer-card.security-broken {
   background: var(--color-danger-bg);
   /* The visible border comes from the pseudo-element below, which draws itself.
      Keeping the real border transparent preserves the box's metrics, so nothing
@@ -89,7 +93,7 @@
 /* The crack is drawn rather than switched on: a dashed frame revealed by a
    left-to-right wipe reads as a line travelling around the card, and needs no
    SVG and no hand-computed perimeter. */
-.layers-container.stacked .layer-card.security-broken::after {
+.layers-container.flow .layer-card.security-broken::after {
   content: '';
   position: absolute;
   inset: -1px;
@@ -109,7 +113,7 @@
   }
 }
 
-.layers-container.stacked .layer-card.security-fixed {
+.layers-container.flow .layer-card.security-fixed {
   background: var(--color-success-bg);
   border: 1px solid var(--color-success);
 }
@@ -124,6 +128,26 @@
 }
 
 /* ---------- Card contents ---------- */
+
+/* The id and the code on the card's single line. The tag sits above this row. */
+.layer-card__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Who enforces this stage. A quiet mono tag, above the line it annotates —
+   the mockup's `.node .tag`, with the caller / runtime / code wording coming
+   from the catalogue so it follows the language toggle. `uppercase` shapes the
+   Latin form; Chinese is unaffected by it. */
+.layer-card__enforcer {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
 
 .layer-card__id {
   flex: none;
@@ -142,7 +166,7 @@
   text-overflow: ellipsis;
 }
 
-/* Layer names only earn their place once the stack has settled.
+/* Stage names only earn their place once the flow has settled.
    Wide enough for the Chinese labels, which carry the English term alongside
    ("业务逻辑 Business Logic") and must not be clipped by nowrap. */
 .layer-card__label {
@@ -160,7 +184,7 @@
   transition: opacity var(--duration-normal) var(--ease-apple) 400ms;
 }
 
-.layers-container.stacked .layer-card__label {
+.layers-container.flow .layer-card__label {
   opacity: 1;
 }
 
@@ -203,6 +227,34 @@
 
 .layer-card.security-fixed .layer-card__badge {
   color: var(--color-success);
+}
+
+/* ---------- The connectors ---------- */
+
+/* One line per gap, joining consecutive cards so the set reads as a flow rather
+   than a stack. Positioned exactly like the cards — a transform off the
+   container's centre, with `--y` coming from geometry — so the two share one
+   origin. Its height is the flow gap itself, and its colour is the muted border
+   token, straight from the mockup's `.link`.
+
+   Mounted in every mode and revealed by a class rather than mounted on demand:
+   a connector that appeared mid-transition would flicker. It is a sibling of the
+   cards, never a wrapper around them, so the cards' DOM identity survives. */
+.layer-connector {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: var(--layer-gap);
+  background: var(--color-border);
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(var(--y, 0));
+  transition: opacity var(--duration-normal) var(--ease-apple) 400ms;
+  pointer-events: none;
+}
+
+.layers-container.flow .layer-connector {
+  opacity: 1;
 }
 
 /* ---------- The attacking dot ---------- */
