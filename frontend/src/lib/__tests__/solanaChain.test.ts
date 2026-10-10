@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
-import { attackPorts, createVaultReader } from '../solanaChain';
+import { attackPorts, createVaultReader, demoAttackPorts } from '../solanaChain';
+import { withdrawInstructionData } from '../devnet';
+import { demoSigner } from '../../config/demoSigner';
 
 /**
  * The adapter is the one place web3.js and Phantom actually meet, so it is
@@ -170,6 +172,70 @@ describe('solanaChain — 状态映射', () => {
     );
     // An empty value array means the node has no record of it yet.
     await expect(ports.signatureStatus('SIG_A')).resolves.toBeNull();
+  });
+});
+
+describe('solanaChain — demo 键端口: 无钱包也发得出同样的交易', () => {
+  const BLOCKHASH = 'EkSnNWid2cvwEVnVx9aBqawnmiCNiDgp3gUdkDPTKN1N';
+
+  /** Build the port, send one withdraw, and hand back the bytes the RPC saw. */
+  async function build() {
+    const { connection, sent } = fakeConnection([{ err: null }]);
+    const ports = demoAttackPorts(connection, PROGRAM_ID);
+    await ports.sendWithdraw({
+      vault: VAULT.toBase58(),
+      authority: ADMIN.toBase58(),
+      amount: 500,
+      blockhash: BLOCKHASH,
+    });
+    return Transaction.from(sent[0].raw);
+  }
+
+  it('demo 签名者既是 fee payer, 也是唯一的签名者', async () => {
+    const rebuilt = await build();
+    const demo = demoSigner();
+
+    expect(rebuilt.feePayer?.equals(demo.publicKey)).toBe(true);
+    // `withdraw` declares no signer, so the fee payer is the only signature —
+    // and it is the demo key, never a wallet.
+    expect(rebuilt.signatures).toHaveLength(1);
+    expect(rebuilt.signatures[0].publicKey.equals(demo.publicKey)).toBe(true);
+  });
+
+  it('账户与 withdrawAccounts 的顺序和 signer 标记一致', async () => {
+    const keys = (await build()).instructions[0].keys;
+
+    expect(keys.length).toBe(2);
+    expect(keys[0].pubkey.equals(VAULT)).toBe(true);
+    expect(keys[0].isWritable).toBe(true);
+    expect(keys[0].isSigner).toBe(false);
+    // The authority is still the ADMIN public key: the point is that no admin
+    // signature is anywhere near this transaction.
+    expect(keys[1].pubkey.equals(ADMIN)).toBe(true);
+    expect(keys[1].isWritable).toBe(false);
+    expect(keys[1].isSigner).toBe(false);
+  });
+
+  it('指令数据就是 withdrawInstructionData(500)', async () => {
+    const instruction = (await build()).instructions[0];
+
+    expect(instruction.programId.equals(PROGRAM_ID)).toBe(true);
+    expect(hex(instruction.data)).toBe(hex(withdrawInstructionData(500)));
+    // ...and pinned to the bytes Anchor would hash-select, not just to itself.
+    expect(hex(instruction.data)).toBe('b712469c946da122f401000000000000');
+  });
+
+  it('同样带 skipPreflight —— 修复版的拒绝必须有签名可指', async () => {
+    const { connection, sent } = fakeConnection([{ err: null }]);
+    const ports = demoAttackPorts(connection, PROGRAM_ID);
+    await ports.sendWithdraw({
+      vault: VAULT.toBase58(),
+      authority: ADMIN.toBase58(),
+      amount: 500,
+      blockhash: BLOCKHASH,
+    });
+
+    expect(sent[0].options).toMatchObject({ skipPreflight: true });
   });
 });
 

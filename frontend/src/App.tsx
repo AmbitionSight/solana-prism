@@ -19,20 +19,23 @@ import TxCard, { type TxPayload } from './components/TxCard';
 import VerifyPanel from './components/VerifyPanel';
 import WalletButton from './components/WalletButton';
 import { VERIFICATION } from './config/verification';
+import { DEMO_SIGNER_PUBKEY } from './config/demoSigner';
 import { useLanguage } from './i18n/language';
 import { controlStatus, executeChainRun, verdictOf, type ChainResult } from './lib/devnetRun';
-import { resolveDemoTarget, type DemoTargetResolution } from './lib/demoTarget';
+import { executeDemoAttack } from './lib/demoAttack';
 import { attackPorts, createVaultReader } from './lib/solanaChain';
 import { detectProvider, type SolanaProvider } from './lib/wallet';
 import './styles/app.css';
 import './styles/animations.css';
 
 /**
- * Why the animated path cannot honestly run — every resolution that is not a
- * target. Derived from `DemoTargetResolution` rather than re-typed, so a new
- * kind cannot slip past `handleExecute`'s test and start a beat with no card.
+ * A run result that produced no animation: the pool is exhausted, no authority
+ * is configured, or the attempt never reached the chain at all. Each is reported
+ * in the control's own words rather than by animating a drain that did not
+ * happen. Derived from `ChainResult` rather than re-typed, so a new kind of
+ * no-attempt result cannot slip past `handleExecute`'s switch and vanish.
  */
-type BlockedKind = Exclude<DemoTargetResolution['kind'], 'target'>;
+type BlockedResult = Extract<ChainResult, { kind: 'exhausted' | 'notConfigured' | 'failed' }>;
 
 /**
  * `initialStep` exists for one reason: step 5 is entered by timers, and a test
@@ -70,24 +73,12 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const [dotLanded, setDotLanded] = useState(false);
 
   /**
-   * What the animated path names when there is no wallet — resolved once, at
-   * page load.
-   *
-   * `null` means not settled yet. The resolution is an RPC round trip, so
-   * before it lands the card has no address to show and renders without its
-   * `accounts:` rows; the address rows appear once it settles. Step 5 is only
-   * reachable after steps 1-4 auto-advance, so in practice it settles long
-   * before anyone gets there.
+   * The no-attempt outcomes of the primary Execute run — set when the run
+   * reports the pool is empty, no authority is configured, or the attempt never
+   * reached the chain. It is the control's own sentence for a real state, never
+   * an animated drain that did not happen.
    */
-  const [demoTarget, setDemoTarget] = useState<DemoTargetResolution | null>(null);
-
-  /**
-   * Why the animated path cannot honestly run, set when Execute is pressed.
-   *
-   * Read from the same `demoTarget` the card does, so the sentence and the card
-   * can never disagree about what is attackable.
-   */
-  const [demoBlocked, setDemoBlocked] = useState<BlockedKind | null>(null);
+  const [demoBlocked, setDemoBlocked] = useState<BlockedResult | null>(null);
 
   /**
    * Bumped whenever the page moves on. A chain answer that arrives after that
@@ -95,24 +86,6 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
    * one run's verdict under another run's animation.
    */
   const runToken = useRef(0);
-
-  /**
-   * Resolve the animated path's real target once, at page load.
-   *
-   * `resolveDemoTarget` reports its own failures as states rather than throwing,
-   * so this guard is only about unmount: a resolution landing after the page is
-   * gone must not set state.
-   */
-  useEffect(() => {
-    let cancelled = false;
-    const connection = new Connection(VERIFICATION.rpcEndpoint, 'confirmed');
-    void resolveDemoTarget(createVaultReader(connection)).then((resolved) => {
-      if (!cancelled) setDemoTarget(resolved);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Steps 1-4 narrate themselves; step 5 has no entry in AUTO_ADVANCE_MS and
   // therefore waits for the user.
@@ -134,9 +107,10 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     return () => window.clearTimeout(id);
   }, [attackState]);
 
-  // The animated run's verdict is the animation, so it lands on the animation's
-  // own end — unchanged. A real run's verdict is the chain's, so it waits for
-  // both: the drop has to finish before a finding can be shown under it.
+  // The verdict is the chain's now, so the result waits for both: the drop has
+  // to finish before a finding can be shown under it, and the chain has to have
+  // answered. Whichever is slower sets the pace; the dot never decides the
+  // outcome, only when it may be shown.
   useEffect(() => {
     if (attackState !== 'running') return;
     if (!chainResult || !dotLanded) return;
@@ -147,8 +121,8 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
    * Take the page back off the chain.
    *
    * Called whenever the demo restarts or switches build, so a run that is still
-   * planning cannot land under the new state — and so the next drop is the
-   * animation's verdict again rather than a stale one from the chain.
+   * planning cannot land under the new state — and so the next run starts from a
+   * clean slate rather than under a stale result from the last one.
    */
   const clearRealRun = useCallback(() => {
     runToken.current += 1;
@@ -159,29 +133,81 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setDemoBlocked(null);
   }, []);
 
+  /**
+   * Execute — the attack, for real.
+   *
+   * This used to be pure theatre: it started the visual and let `attackOutcome`
+   * decide the verdict from the selected build. Now it runs the same machinery
+   * the wallet path uses (`lib/devnetRun.ts`), with the demo key as the signer
+   * instead of a wallet (`lib/demoAttack.ts`) — so the transaction is real, the
+   * verdict is the chain's, and the signature in the verify panel is one Solscan
+   * can find. The visual is kept because it is the reveal; what changed is that
+   * it now sits under a real result rather than standing in for one.
+   */
   const handleExecute = useCallback(() => {
     clearRealRun();
-    // An empty pool and a missing authority are real states, and neither is
-    // attackable. The animated path says so with the same sentence the real path
-    // uses, rather than starting a beat whose transaction card would have no
-    // honest address to name. Tested against `'target'` (and typed as
-    // `BlockedKind`) so a new non-target kind is caught here instead of falling
-    // through to a beat that renders nothing.
-    if (demoTarget && demoTarget.kind !== 'target') {
-      setDemoBlocked(demoTarget.kind);
-      return;
-    }
-    setAttackState('showing-tx');
-  }, [clearRealRun, demoTarget]);
+
+    const token = (runToken.current += 1);
+    const connection = new Connection(VERIFICATION.rpcEndpoint, 'confirmed');
+    const stale = () => runToken.current !== token;
+
+    // Set before planning so the button is disabled through the pool scan too,
+    // not only once `onTarget` has put the card up.
+    setChainBusy(true);
+
+    void executeDemoAttack(
+      connection,
+      {
+        isFixed,
+        vulnerableProgramId: VERIFICATION.vulnerableProgramId,
+        fixedProgramId: VERIFICATION.fixedProgramId,
+        adminPubkey: VERIFICATION.adminPubkey,
+        poolSize: VERIFICATION.poolSize,
+      },
+      {
+        onTarget: (target) => {
+          if (stale()) return;
+          setPayload({
+            programId: target.programId.toBase58(),
+            vault: target.vault.toBase58(),
+            authority: target.authority.toBase58(),
+            // The demo key — the fee payer and the only signature on this
+            // transaction. The wallet plays no part on this path.
+            signer: DEMO_SIGNER_PUBKEY,
+          });
+          setAttackState('showing-tx');
+        },
+        onResult: (result) => {
+          if (stale()) return;
+          setChainBusy(false);
+          // These two never reached `onTarget`: there is no transaction and no
+          // animation, so the control says so in its own words. A `failed` here
+          // cannot be one of these — it comes from `runAttack`, which only runs
+          // after `onTarget` — so it belongs under the animation with the rest.
+          if (result.kind === 'exhausted' || result.kind === 'notConfigured') {
+            setDemoBlocked(result);
+            return;
+          }
+          setChainResult(result);
+        },
+      },
+      stale,
+    ).catch((error: unknown) => {
+      // Planning is itself a chain call and can fail — an unreachable RPC is the
+      // ordinary case. No transaction was built, so this is not a verdict, just
+      // the reason the attempt never began.
+      if (stale()) return;
+      setChainBusy(false);
+      setDemoBlocked({ kind: 'failed', reason: messageOf(error) });
+    });
+  }, [clearRealRun, isFixed]);
 
   const handleAttackEnd = useCallback(() => {
-    // With no real run in flight this is the verdict, exactly as before.
-    if (!payload) {
-      setAttackState('done');
-      return;
-    }
+    // The dot's drop is over; the verdict waits for the chain. There is no local
+    // verdict any more — every run that reaches here has a real transaction, so
+    // the result is the chain's answer and never `attackOutcome`'s guess.
     setDotLanded(true);
-  }, [payload]);
+  }, []);
 
   const handleFixChange = useCallback(
     (next: boolean) => {
@@ -201,11 +227,11 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   }, [clearRealRun]);
 
   /**
-   * Run the real attack.
+   * Run the real attack with the visitor's own wallet.
    *
    * Nothing here decides what is true: `lib/devnetRun.ts` picks the vault and
    * reports the outcome, and this only moves the same `attackState` machine the
-   * animated path uses. A pool that turns out to be empty ends the attempt
+   * primary Execute run uses. A pool that turns out to be empty ends the attempt
    * before the animation starts, because there is nothing to animate.
    */
   const handleRealRun = useCallback(() => {
@@ -219,8 +245,8 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setPayload(null);
     setChainResult(null);
     setDotLanded(false);
-    // A real run replaces whatever the animated path last said: the stale
-    // "nothing to attack" sentence belongs to the demo target, not to this run.
+    // A wallet run replaces whatever the primary path last said: the stale
+    // "nothing to attack" sentence belongs to that run, not to this one.
     setDemoBlocked(null);
 
     void executeChainRun(
@@ -276,14 +302,10 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const chainVerdict = chainResult ? verdictOf(chainResult) : null;
   const chainStatus = controlStatus(chainResult, payload !== null, chainBusy);
 
-  // The card comes up whenever the beat is showing, with whatever honest
-  // addresses there are at that moment. `demoTarget` is passed only once it has
-  // settled on a real target; before then `accountsFor` sees no source and
-  // renders no address rows. The rows that carry the lesson are the signatures
-  // ("ATTACKER ✓ / ADMIN ✗"), and those never depend on an address — dropping
-  // the whole card for want of an address would hide precisely the argument it
-  // exists to make.
-  const txTarget = demoTarget?.kind === 'target' ? demoTarget.target : undefined;
+  // The card comes up whenever the beat is showing, and it always has a real
+  // payload behind it now: the beat only starts from `onTarget`, which carries
+  // this run's own program, vault and authority. The rows that carry the lesson
+  // are the signatures ("ATTACKER ✓ / ADMIN ✗").
   const showTxCard = attackState === 'showing-tx';
 
   return (
@@ -323,7 +345,7 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
                 onAttackEnd={handleAttackEnd}
                 originRects={regionRects.current}
               />
-              {showTxCard && <TxCard payload={payload ?? undefined} demoTarget={txTarget} />}
+              {showTxCard && <TxCard payload={payload ?? undefined} />}
             </div>
 
             {/* Reserved from step 3 so the stack never shifts while the attack
@@ -336,7 +358,9 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
                     type="button"
                     className="execute-btn"
                     data-testid="execute-btn"
-                    disabled={attackState === 'showing-tx' || attackState === 'running'}
+                    disabled={
+                      chainBusy || attackState === 'showing-tx' || attackState === 'running'
+                    }
                     onClick={handleExecute}
                   >
                     {t.execute}
@@ -351,13 +375,21 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
                     status={chainStatus}
                     onRun={handleRealRun}
                   />
-                  {/* The animated path telling the same story the real path
-                      does, when there is nothing it can honestly attack. */}
-                  {demoBlocked === 'exhausted' && (
+                  {/* The no-attempt outcomes, each in the control's own words:
+                      an empty pool, a missing authority, or an attempt that never
+                      reached the chain. None of them animates a drain that did
+                      not happen. */}
+                  {demoBlocked?.kind === 'exhausted' && (
                     <p className="attack-result__body">{t.chainExhausted}</p>
                   )}
-                  {demoBlocked === 'notConfigured' && (
+                  {demoBlocked?.kind === 'notConfigured' && (
                     <p className="attack-result__body">{t.demoNoTarget}</p>
+                  )}
+                  {demoBlocked?.kind === 'failed' && (
+                    <p className="attack-result__body">
+                      {t.chainAttemptFailed}
+                      {demoBlocked.reason && <code> {demoBlocked.reason}</code>}
+                    </p>
                   )}
                 </div>
               )}

