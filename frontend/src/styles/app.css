@@ -393,6 +393,61 @@
   color: var(--color-success);
 }
 
+/* ---------- Closing note ---------- */
+
+.closing {
+  max-width: 640px;
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  animation: rise-in 500ms var(--ease-apple) both;
+}
+
+.closing__declaration {
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.closing__real-world {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* Same tone as the body copy, not the tertiary grey: global.css documents
+   --color-text-tertiary as 2.5:1, "FAILS WCAG AA ... Do not use it for copy
+   that carries meaning". The attribution carries meaning. */
+.closing__source-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.closing__links-label {
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+}
+
+.closing__links {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.closing__links a {
+  color: var(--color-text-secondary);
+  text-decoration-color: var(--color-border);
+  text-underline-offset: 2px;
+}
+
+.closing__links a:hover {
+  color: var(--color-text);
+  text-decoration-color: currentColor;
+}
+
 /* ---------- Verify panel (step 6) ---------- */
 
 .verify {

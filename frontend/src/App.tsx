@@ -7,6 +7,7 @@ import {
   type Step,
 } from './lib/steps';
 import AttackResult from './components/AttackResult';
+import ClosingNote from './components/ClosingNote';
 import ContractLayers, { type LayersMode } from './components/ContractLayers';
 import FixToggle from './components/FixToggle';
 import LanguageToggle from './components/LanguageToggle';
@@ -122,6 +123,7 @@ export default function App() {
               {attackState === 'done' && (
                 <>
                   <AttackResult isFixed={isFixed} />
+                  <ClosingNote />
                   <VerifyPanel />
                 </>
               )}
