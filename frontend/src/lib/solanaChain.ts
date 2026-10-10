@@ -157,11 +157,27 @@ export function demoAttackPorts(
   };
 }
 
-/** Read a pool vault's raw account data, or null when it is not there. */
-export function createVaultReader(connection: AccountConnection): VaultReader {
+/**
+ * Read a pool vault's raw account data, or null when it is not there — or is
+ * not owned by the program being attacked.
+ *
+ * The owner check is the demo's own lesson turned on itself: an account's data
+ * is not its identity, its owner is. The fixed build's vault now sits at an
+ * index the pool scan can reach, and its bytes are indistinguishable from a
+ * pool vault's — same discriminator, same authority, same balance — so if the
+ * reader went by data alone the vulnerable program would be handed a
+ * fixed-owned account and refused for the account-owner reason, which proves
+ * nothing about the missing signer. Only `owner` separates them, so a
+ * fixed-owned vault must come back null and never become a candidate.
+ */
+export function createVaultReader(
+  connection: AccountConnection,
+  programId: PublicKey,
+): VaultReader {
   return async (address: PublicKey) => {
     const info = await connection.getAccountInfo(address);
     if (!info) return null;
+    if (!info.owner.equals(programId)) return null;
     return toBytes(info.data);
   };
 }

@@ -104,14 +104,24 @@ describe('devnet — vault 地址推导', () => {
 });
 
 describe('devnet — 修复版的那个 vault', () => {
-  it('它在池子之外，是紧邻的下一号', () => {
-    expect(FIXED_VAULT_INDEX).toBe(POOL_SIZE);
+  it('固定在链上创建它的 30 号，不随 POOL_SIZE 移动', () => {
+    // A literal on purpose. When this was `= POOL_SIZE`, growing the pool silently
+    // repointed the fixed run at another index the fixed program never created an
+    // account at, and the repaired-build run broke.
+    expect(FIXED_VAULT_INDEX).toBe(30);
   });
 
-  it('它不在被扫描的池子范围内，所以不会被当成 fresh vault 用掉', async () => {
-    const addresses = new Set<string>();
-    for (let i = 0; i < POOL_SIZE; i += 1) addresses.add(vaultAddress(i).toBase58());
-    expect(addresses.has(vaultAddress(FIXED_VAULT_INDEX).toBase58())).toBe(false);
+  it('身份由 owner 决定：被归属过滤挡掉的固定 vault 永远不会成为候选', async () => {
+    // POOL_SIZE has grown past 30, so the fixed vault now falls inside the scan's
+    // index range and the range alone no longer excludes it. Model the owner
+    // filter the real reader applies (pinned in solanaChain.test.ts): a foreign
+    // owner reads back as null, and the scan must skip the index rather than take
+    // it — even though position would have offered it.
+    const read = async (address: PublicKey): Promise<Uint8Array | null> => {
+      if (vaultAddress(FIXED_VAULT_INDEX).equals(address)) return null; // foreign
+      return makeVaultData(ADMIN, INITIAL_BALANCE);
+    };
+    expect(await nextFreshVault(read, ADMIN)).not.toBe(FIXED_VAULT_INDEX);
   });
 });
 
@@ -179,14 +189,22 @@ describe('devnet — 找下一个可用的 vault', () => {
   });
 
   it('只查 POOL_SIZE 个，不越界', async () => {
+    // The address → index map is built once so each read is O(1). Deriving a
+    // keypair per index on every call made the test's cost grow with the pool,
+    // which is how it outlived its timeout when POOL_SIZE went from 30 to 200.
+    const indexOf = new Map(
+      [...Array(POOL_SIZE + 5).keys()].map((i) => [vaultAddress(i).toBase58(), i]),
+    );
     const asked: number[] = [];
     const read = async (address: PublicKey) => {
-      for (let i = 0; i < POOL_SIZE + 5; i += 1) {
-        if (vaultAddress(i).equals(address)) asked.push(i);
-      }
+      const index = indexOf.get(address.toBase58());
+      if (index !== undefined) asked.push(index);
       return makeVaultData(ADMIN, 500);
     };
+
     expect(await nextFreshVault(read, ADMIN)).toBeNull();
-    expect(Math.max(...asked)).toBeLessThan(POOL_SIZE);
+    // It asked for every pool vault, once, in order, and stopped at the last one —
+    // never reaching for an index past the pool the script made.
+    expect(asked).toEqual([...Array(POOL_SIZE).keys()]);
   });
 });

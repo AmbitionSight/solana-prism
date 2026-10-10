@@ -64,7 +64,10 @@ function fakeConnection(vault0: Uint8Array | null = vaultData(ADMIN, INITIAL_BAL
       value: [{ err: null, confirmationStatus: 'confirmed' }],
     }),
     getAccountInfo: async (address: PublicKey) =>
-      vault0 && vaultAddress(0).equals(address) ? { data: vault0 } : null,
+      vault0 && vaultAddress(0).equals(address)
+        ? // Owned by the program this run attacks, so the scanner accepts it.
+          { owner: new PublicKey(VULNERABLE_ID), data: vault0 }
+        : null,
   };
 
   return { connection: connection as never, sent };

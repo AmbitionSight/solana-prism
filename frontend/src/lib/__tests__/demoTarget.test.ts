@@ -59,11 +59,11 @@ describe('demoTarget — 没有钱包时的真实目标', () => {
   });
 
   it('池子被打空时报告 exhausted，而不是指向已经掉到 500 的 0 号', async () => {
-    const read = async (address: PublicKey) => {
-      const index = [...Array(POOL_SIZE).keys()].find((i) => vaultAddress(i).equals(address));
-      if (index === undefined) return null;
-      return account(VERIFICATION.adminPubkey, 500); // every vault already drained
-    };
+    // Every address the scan looks at holds an already-drained vault, so nothing
+    // in the pool is fresh. Reading a drained account for every address also keeps
+    // this test's cost independent of the pool size: it is the behaviour — nothing
+    // fresh means exhausted — that is under test, not a count.
+    const read = async () => account(VERIFICATION.adminPubkey, 500);
     // Naming index 0 here would animate 1000 -> 500 under a vault that holds 500.
     expect(await resolveDemoTarget(read)).toEqual({ kind: 'exhausted' });
   });

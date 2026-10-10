@@ -110,11 +110,13 @@ describe('devnetRun — 漏洞版: 用池子里下一个 fresh vault', () => {
 });
 
 describe('devnetRun — 修复版: 一个不会被消耗的 vault', () => {
-  it('目标是池子之外的那一号', async () => {
+  it('目标是链上那个固定下标的 vault（30 号），而不是池子里的任何一号', async () => {
     const plan = await planChainRun(config({ isFixed: true }), poolReader([]));
     if (plan.kind !== 'run') throw new Error('unreachable');
     expect(plan.target.vault.toBase58()).toBe(vaultAddress(FIXED_VAULT_INDEX).toBase58());
-    expect(FIXED_VAULT_INDEX).toBe(POOL_SIZE);
+    // A literal, not `POOL_SIZE`: the fixed program created its account at index
+    // 30 and nothing re-derives it when the pool grows.
+    expect(FIXED_VAULT_INDEX).toBe(30);
   });
 
   it('打的是修复版程序, authority 依然是 ADMIN', async () => {

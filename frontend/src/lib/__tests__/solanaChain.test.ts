@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { attackPorts, createVaultReader, demoAttackPorts } from '../solanaChain';
-import { withdrawInstructionData } from '../devnet';
+import {
+  INITIAL_BALANCE,
+  VAULT_DISCRIMINATOR,
+  VAULT_SPACE,
+  nextFreshVault,
+  vaultAddress,
+  withdrawInstructionData,
+} from '../devnet';
 import { demoSigner } from '../../config/demoSigner';
 
 /**
@@ -242,7 +249,7 @@ describe('solanaChain — demo 键端口: 无钱包也发得出同样的交易',
 describe('solanaChain — 读 vault 账户', () => {
   it('账户不存在时返回 null', async () => {
     const { connection } = fakeConnection([{ err: null }]);
-    const read = createVaultReader(connection);
+    const read = createVaultReader(connection, PROGRAM_ID);
     expect(await read(VAULT)).toBeNull();
   });
 
@@ -250,13 +257,55 @@ describe('solanaChain — 读 vault 账户', () => {
     const bytes = Uint8Array.from([1, 2, 3]);
     const connection = {
       getAccountInfo: async () => ({
+        owner: PROGRAM_ID,
         data: [btoa(String.fromCharCode(...bytes)), 'base64'],
         executable: false,
       }),
     };
 
-    const read = createVaultReader(connection as never);
+    const read = createVaultReader(connection as never, PROGRAM_ID);
     const data = await read(VAULT);
     expect(data && hex(data)).toBe('010203');
+  });
+});
+
+describe('solanaChain — 扫描只接受被攻击程序拥有的账户', () => {
+  const FIXED_PROGRAM_ID = new PublicKey('9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq');
+
+  /** A Vault account exactly as the program lays it out: 8 + 32 + 8 bytes. */
+  function vaultData(authority: PublicKey, balance: number): Uint8Array {
+    const data = new Uint8Array(VAULT_SPACE);
+    data.set(VAULT_DISCRIMINATOR, 0);
+    data.set(authority.toBytes(), 8);
+    new DataView(data.buffer).setBigUint64(40, BigInt(balance), true);
+    return data;
+  }
+
+  it('跳过别的程序拥有的账户，哪怕它的数据完全像一个 Vault', async () => {
+    // The bug, frozen. Index 30 is the fixed program's vault; its data decodes
+    // byte-for-byte as a fresh pool vault — same discriminator, same authority,
+    // same balance — so only `owner` tells it apart. A reader that trusts data
+    // alone hands it to the vulnerable program and the attack is refused for the
+    // account-owner reason instead of the missing signer.
+    const foreignIndex = 0;
+    const freshIndex = 1;
+
+    const connection = {
+      getAccountInfo: async (address: PublicKey) => {
+        if (vaultAddress(foreignIndex).equals(address)) {
+          return { owner: FIXED_PROGRAM_ID, data: vaultData(ADMIN, INITIAL_BALANCE) };
+        }
+        if (vaultAddress(freshIndex).equals(address)) {
+          return { owner: PROGRAM_ID, data: vaultData(ADMIN, INITIAL_BALANCE) };
+        }
+        return null;
+      },
+    };
+
+    const read = createVaultReader(connection as never, PROGRAM_ID);
+    const index = await nextFreshVault(read, ADMIN);
+
+    expect(index).toBe(freshIndex);
+    expect(index).not.toBe(foreignIndex);
   });
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Connection } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import {
   AUTO_ADVANCE_MS,
   TX_CARD_MS,
@@ -336,7 +336,10 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
           adminPubkey: VERIFICATION.adminPubkey,
           poolSize: VERIFICATION.poolSize,
         },
-        read: createVaultReader(connection),
+        // A vault is identified by the program that owns it. Only the vulnerable
+        // build scans the pool, so its id is the owner the reader insists on —
+        // that is what keeps the fixed build's vault from being picked.
+        read: createVaultReader(connection, new PublicKey(VERIFICATION.vulnerableProgramId)),
         portsFor: (programId) => attackPorts(connection, provider, programId),
         cancelled: stale,
       },

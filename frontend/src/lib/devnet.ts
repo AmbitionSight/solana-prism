@@ -27,14 +27,24 @@ export const VAULT_DISCRIMINATOR = Uint8Array.from([211, 8, 232, 43, 2, 152, 117
 export const VAULT_SPACE = 48;
 
 /** How many vaults the pool script prepares for the demo. */
-export const POOL_SIZE = 30;
+export const POOL_SIZE = 200;
 
 /**
  * The one vault owned by the *repaired* program.
  *
- * It sits just outside the pool so the scan never consumes it, and it is
- * deliberately singular: every withdrawal against the fixed build is refused,
- * so its balance never changes and one vault serves every visitor forever.
+ * A literal, deliberately *not* `POOL_SIZE`. The fixed vault was created
+ * on-chain at index 30, and that address is permanent: the pool script never
+ * touches it again, and the fixed build refuses every withdrawal so its balance
+ * never moves. `POOL_SIZE`, by contrast, grows as the pool is refilled. Tying
+ * this to the pool size — which is what it used to be — silently repoints the
+ * fixed run at a different, non-existent account the next time the pool grows,
+ * and the repaired-build demo fails with an account that is not there.
+ *
+ * It is also no longer "outside the pool": once `POOL_SIZE` passed 30 this vault
+ * fell *inside* the scan's 0..POOL_SIZE-1 range, where its data decodes exactly
+ * like a pool vault's. What keeps it from being consumed is ownership, not the
+ * index — `createVaultReader` refuses any account not owned by the program being
+ * attacked, so a fixed-owned vault is never a candidate.
  *
  * It must be a fixed-owned account rather than a pool vault. Anchor checks
  * fields in declaration order — `vault`'s owner before `authority`'s signature —
@@ -42,7 +52,7 @@ export const POOL_SIZE = 30;
  * `AccountOwnedByWrongProgram` and prove nothing about the missing signer, which
  * is the only thing this half of the demo is about.
  */
-export const FIXED_VAULT_INDEX = POOL_SIZE;
+export const FIXED_VAULT_INDEX = 30;
 
 /** What `initialize` writes. A fresh vault holds exactly this. */
 export const INITIAL_BALANCE = 1000;
@@ -130,7 +140,14 @@ export function decodeVault(data: Uint8Array): DecodedVault {
   };
 }
 
-/** Reads an account's data, or null when it does not exist. Injected, so testable. */
+/**
+ * Reads an account's data, or null when it does not exist. Injected, so testable.
+ *
+ * The real reader (`createVaultReader`) also returns null for an account not
+ * owned by the program being attacked: this module stays pure by trusting the
+ * reader for identity and judging only freshness here. Ownership is a chain
+ * fact, and the chain is the reader's side of the seam.
+ */
 export type VaultReader = (address: PublicKey) => Promise<Uint8Array | null>;
 
 /**

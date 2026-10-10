@@ -54,7 +54,7 @@ export const VERIFICATION = {
    * test: two independent copies of this number would eventually disagree, and
    * the scan would stop short of the pool.
    */
-  poolSize: 30,
+  poolSize: 200,
   /**
    * Where a visitor with an empty wallet is sent for Devnet SOL.
    *
