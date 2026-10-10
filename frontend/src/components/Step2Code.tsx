@@ -45,16 +45,18 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
     MARGIN_NOTES.map((note) => [note.line, note.key]),
   );
 
-  // The measured element is the wrapper around a run of code lines, never the
-  // boxed block: the margin note sits inside the box, and measuring the box (or
-  // anything containing the note) would fold the note's height into the
-  // region's centre. The note text differs in length between `en` and `zh`, so
-  // the animation would then start from a different point per language.
-  // Measuring only the code keeps the geometry tied to the lines, which are
-  // identical in both languages.
+  // The measured element is a run of code lines, never the boxed block: the
+  // margin note sits inside the box, and measuring the box would fold the
+  // note's height into the region's centre — an animation point that would
+  // then depend on how long the copy happens to be, and so on language. The
+  // code lines are identical in both languages; the notes are not.
   //
-  // A stage whose note falls between its lines is rendered as two code runs
-  // around the note, so the region is the union of those runs.
+  // A note on a region's last line therefore falls outside the measurement
+  // entirely — four of the five regions. A note *between* two lines splits the
+  // region into two runs and the union of those runs is used; a rect cannot be
+  // non-contiguous, so that union necessarily spans the note. The residual is
+  // half a note line, and at the current copy length the note is one line in
+  // both languages, so the bias is a constant rather than a per-language one.
   //
   // No dependency array: the boxes only change when the listing does, and this
   // is five getBoundingClientRect calls. Runs before paint, so the rects are
