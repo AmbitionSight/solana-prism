@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { CONTRACT_LINES, CONTRACT_REGIONS } from '../contractSource';
+import { CONTRACT_LINES, CONTRACT_REGIONS, MARGIN_NOTES } from '../contractSource';
+import { MESSAGES } from '../../i18n/messages';
+import { VAULT_LAYERS } from '../../config/layers';
 
 /**
  * The listing is the deployed contract, not a paraphrase of it. The copy in
@@ -55,5 +57,38 @@ describe('contractSource — 阶段区域落在正确的行上', () => {
       expect(region.from).toBeGreaterThanOrEqual(0);
       expect(region.to).toBeLessThan(CONTRACT_LINES.length);
     }
+  });
+});
+
+describe('contractSource — 中文旁注', () => {
+  it('每条旁注都指向文件里真实存在的一行', () => {
+    for (const note of MARGIN_NOTES) {
+      expect(note.line, `line ${note.line} 越界`).toBeLessThan(CONTRACT_LINES.length);
+      expect(CONTRACT_LINES[note.line].trim().length, `line ${note.line} 是空行`).toBeGreaterThan(0);
+    }
+  });
+
+  it('行号不重复', () => {
+    const lines = MARGIN_NOTES.map((n) => n.line);
+    expect(new Set(lines).size).toBe(lines.length);
+  });
+
+  it('每条旁注两种语言都有内容', () => {
+    for (const note of MARGIN_NOTES) {
+      expect(MESSAGES.en[note.key].trim().length).toBeGreaterThan(0);
+      expect(MESSAGES.zh[note.key].trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * The stage ids in CONTRACT_REGIONS are a closed set that has to match the
+   * layers the rest of the demo is built from. The other tests hardcode the
+   * literals, so a rename in layers.ts would not move them; this one reads the
+   * ids from their source.
+   */
+  it('阶段 id 与 VAULT_LAYERS 完全对齐', () => {
+    expect([...CONTRACT_REGIONS.map((r) => r.stageId)].sort()).toEqual(
+      [...VAULT_LAYERS.map((l) => l.id)].sort(),
+    );
   });
 });

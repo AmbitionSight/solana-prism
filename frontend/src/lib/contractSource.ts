@@ -13,6 +13,8 @@
  * both true.
  */
 
+import type { MessageKey } from '../i18n/messages';
+
 /** The file, line for line, with no trailing newline entry. */
 export const CONTRACT_LINES: string[] = [
   '//! prism_vulnerable — the build the demo attacks.',
@@ -96,4 +98,19 @@ export const CONTRACT_REGIONS: { stageId: string; from: number; to: number }[] =
   { stageId: 'S1', from: 29, to: 29 },
   { stageId: 'S4', from: 31, to: 35 },
   { stageId: 'S5', from: 36, to: 36 },
+];
+
+/**
+ * Chinese explanation, keyed to a line of the listing.
+ *
+ * Beside the code rather than inside it: the listing has to stay byte-identical
+ * to the deployed file, and a Chinese comment inside it would end that the
+ * moment the file was rebuilt.
+ */
+export const MARGIN_NOTES: { line: number; key: MessageKey }[] = [
+  { line: 16, key: 'noteDeclareId' },
+  { line: 51, key: 'noteStructNotSigner' },
+  { line: 29, key: 'noteHandlerRequires' },
+  { line: 56, key: 'noteTheBug' },
+  { line: 36, key: 'noteStateChange' },
 ];

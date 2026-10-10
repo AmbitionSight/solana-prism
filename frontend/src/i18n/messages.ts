@@ -20,6 +20,15 @@ export interface Messages {
   /* Step 1 */
   step1Title: string;
 
+  /* Step 2 — margin notes beside the real listing. Each key is pinned to one
+     line of the deployed source by contractSource.ts's MARGIN_NOTES, so the
+     listing can stay byte-identical to what was deployed. */
+  noteDeclareId: string;
+  noteStructNotSigner: string;
+  noteHandlerRequires: string;
+  noteTheBug: string;
+  noteStateChange: string;
+
   /* Code card — the Rust itself is language-independent, only comments differ */
   codeCommentBug: string;
   codeCommentAddressOnly: string;
@@ -103,6 +112,14 @@ export const MESSAGES: Record<Language, Messages> = {
   en: {
     step1Title: 'What is a smart contract?',
 
+    noteDeclareId: 'The address this build was compiled with — the one on chain.',
+    noteStructNotSigner: 'The account list. `authority` is declared here.',
+    noteHandlerRequires: 'The handler. It runs only after the runtime is satisfied.',
+    noteTheBug:
+      '`AccountInfo` asks the runtime for nothing — not even a signature. ' +
+      'This line is the whole bug.',
+    noteStateChange: 'Where the damage lands: a u64 inside the vault account.',
+
     codeCommentBug: 'CHECK: address only — no signature required. This is the bug.',
     codeCommentAddressOnly: 'the address matches — but who signed was never checked',
 
@@ -168,6 +185,12 @@ export const MESSAGES: Record<Language, Messages> = {
 
   zh: {
     step1Title: '什么是智能合约？',
+
+    noteDeclareId: '这个构建编译进去的地址 —— 链上跑的就是它。',
+    noteStructNotSigner: '账户清单。`authority` 在这一段被声明。',
+    noteHandlerRequires: '处理函数。它只在运行时满意之后才会执行。',
+    noteTheBug: '`AccountInfo` 向运行时什么都没要 —— 连签名都没要。这一行就是全部的漏洞。',
+    noteStateChange: '伤害落点：vault 账户里的一个 u64。',
 
     codeCommentBug: 'CHECK: 只查地址，不要求签名 —— 漏洞就在这里',
     codeCommentAddressOnly: '地址对得上就放行 —— 但从没验过是谁签的名',
