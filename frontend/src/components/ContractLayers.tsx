@@ -37,6 +37,12 @@ interface ContractLayersProps {
   mode: LayersMode;
   isFixed: boolean;
   attackState: AttackState;
+  /**
+   * Whether stage 4's caller slot is filled. False on page 4, where the blank is
+   * the lesson; true from the attack page on, where the attacker's supplied
+   * address is the reveal.
+   */
+  slotFilled?: boolean;
   onAttackEnd: () => void;
   /**
    * Where each stage's box sat in step 2, in viewport coordinates. When present,
@@ -64,6 +70,7 @@ export default function ContractLayers({
   mode,
   isFixed,
   attackState,
+  slotFilled = false,
   onAttackEnd,
   originRects,
 }: ContractLayersProps) {
@@ -151,6 +158,7 @@ export default function ContractLayers({
               layer={layer}
               isFixed={isFixed}
               attacking={attacking}
+              slotFilled={slotFilled}
               offsetX={scattered ? layer.scatter.x : seeded ? (origins?.[layer.id]?.x ?? 0) : 0}
               offsetY={
                 scattered

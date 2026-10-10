@@ -64,6 +64,13 @@ export interface Messages {
   sayCall: string;
   sayHandOver: string;
   sayDeclaration: string;
+  /**
+   * Stage 3's sentence as it reads on the repaired build. The fix is a change to
+   * the declaration, so the sentence that describes the declaration changes with
+   * it — the vulnerable wording ("which asks for nothing") would otherwise sit
+   * on the green card that demands a signature.
+   */
+  sayDeclarationFixed: string;
   sayCompare: string;
   sayStateChange: string;
 
@@ -96,7 +103,6 @@ export interface Messages {
   keyHint: string;
   versionVulnerable: string;
   versionFixed: string;
-  ariaContractVersion: string;
   ariaLanguage: string;
 
   /* Transaction card */
@@ -177,6 +183,85 @@ export interface Messages {
   closingLinkSealevel: string;
   closingLinkSolend: string;
   ariaClosingRegion: string;
+
+  /* ---- The nine-page narrative tail (pages 3, 5, 7, 8, 9) ---- */
+
+  /* Page 3 — what the contract actually is: a vault, and one honest withdrawal.
+     The mini-flow reuses the flow's node language, so only the tags, the plain
+     sentences and the one runtime line are copy; the code lines (`withdraw(500)`,
+     `vault.balance -= 500`) are identifiers and stay outside the catalogue. */
+  vaultTitle: string;
+  vaultLede: string;
+  vaultNormalHeading: string;
+  vaultTagAdmin: string;
+  vaultTagRuntime: string;
+  vaultTagCode: string;
+  vaultAdminSay: string;
+  /** The runtime node's line is a sentence, not an identifier, so it is copy. */
+  vaultRuntimeCode: string;
+  vaultRuntimeSay: string;
+  vaultCodeSay: string;
+  vaultVerdict: string;
+  vaultNote: string;
+
+  /* Page 5 — the payoff of the blank left on page 4: the caller simply writes
+     the admin's public address into the slot. The address itself is config
+     (`VERIFICATION.adminPubkey`), elided at render; only the prose is copy. */
+  fillTitle: string;
+  fillLede: string;
+  fillNoHack: string;
+  fillNeedHeading: string;
+  fillNeedBody: string;
+  fillNowHeading: string;
+  fillNowBody: string;
+
+  /* The comparison's outcome, shown only once the caller's slot is filled — the
+     attack page, where the addresses actually match. Absent on page 4, where the
+     slot is still blank. */
+  compareResult: string;
+
+  /* Page 7 — why the mistake is made: Solidity's check is right, and the hand
+     writes the same shape in Rust where it proves nothing. */
+  whyTitle: string;
+  whyEthTitle: string;
+  whySolTitle: string;
+  whySolidityBody: string;
+  whySolidityVerdict: string;
+  whySolBody: string;
+  whySolVerdict: string;
+  whyTableColEth: string;
+  whyTableColSol: string;
+  whyTableStateLabel: string;
+  whyTableStateEth: string;
+  whyTableStateSol: string;
+  whyTableCallerLabel: string;
+  whyTableCallerEth: string;
+  whyTableCallerSol: string;
+  whyConclusion: string;
+  whyNote: string;
+
+  /* Page 8 — the fix: one declaration, not a line of logic. */
+  fixTitle: string;
+  fixLede: string;
+  fixBody: string;
+  fixBodyDeclaration: string;
+  fixNote: string;
+
+  /* Page 9 — the same attack against the fixed build, refused, and the two
+     versions held side by side. */
+  retryTitle: string;
+  retryNote: string;
+  retryTableHeading: string;
+  retryTableRuntimeLabel: string;
+  retryTableRuntimeVuln: string;
+  retryTableRuntimeFixed: string;
+  retryTableSigLabel: string;
+  retryTableSigVuln: string;
+  retryTableSigFixed: string;
+  retryTableResultLabel: string;
+  retryTableResultVuln: string;
+  retryTableResultFixed: string;
+  retryConclusion: string;
 }
 
 export type MessageKey = keyof Messages;
@@ -215,6 +300,7 @@ export const MESSAGES: Record<Language, Messages> = {
     sayCall: 'Someone calls the contract, asking for 500.',
     sayHandOver: 'They hand over two accounts.',
     sayDeclaration: 'The runtime checks the declaration — which asks for nothing.',
+    sayDeclarationFixed: 'The runtime checks the declaration — which demands a signature.',
     sayCompare: 'The program compares two addresses.',
     sayStateChange: 'The balance is reduced by 500.',
 
@@ -231,7 +317,6 @@ export const MESSAGES: Record<Language, Messages> = {
     keyHint: '↑ ↓ to move between pages',
     versionVulnerable: 'Vulnerable',
     versionFixed: 'Fixed',
-    ariaContractVersion: 'Contract version',
     ariaLanguage: 'Language',
 
     txTitle: 'Transaction',
@@ -291,6 +376,77 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSealevel: 'Anchor docs · Sealevel Attacks',
     closingLinkSolend: 'Solend incident, 2021-08-19',
     ariaClosingRegion: 'Closing note',
+
+    vaultTitle: 'It is a vault.',
+    vaultLede:
+      'Someone puts money in, and only that person can take it out. The contract records their address — that is the "admin".',
+    vaultNormalHeading: 'A normal withdrawal',
+    vaultTagAdmin: 'Admin',
+    vaultTagRuntime: 'Runtime',
+    vaultTagCode: 'Contract code',
+    vaultAdminSay: 'The admin signs, and calls withdraw.',
+    vaultRuntimeCode: 'checks what the declaration asked for',
+    vaultRuntimeSay: 'The contract asked: the admin must sign → he did ✓',
+    vaultCodeSay: 'The addresses match → the balance drops by 500.',
+    vaultVerdict: 'The withdrawal succeeds',
+    vaultNote:
+      'This scene anchors the whole section. Without it, nothing that follows is legible.',
+
+    fillTitle: 'He simply put this address in.',
+    fillLede:
+      "This address is visible to everyone on chain. The admin's public key is not a secret — a public key never is.",
+    fillNoHack:
+      'No cracking. No forgery. No stolen key. He wrote a piece of public information into that position.',
+    fillNeedHeading: 'What it normally takes to move this vault',
+    fillNeedBody: "the admin's private key — to sign",
+    fillNowHeading: 'What it takes now',
+    fillNowBody: "the admin's address — public information",
+
+    compareResult: 'addresses match → the check passes',
+
+    whyTitle: 'Because you wrote it this way in Ethereum, and there it was right.',
+    whyEthTitle: 'Solidity · Ethereum',
+    whySolTitle: 'Rust · Solana',
+    whySolidityBody:
+      'msg.sender is computed by the protocol from the transaction signatures. The protocol already verified them, so comparing the address is verifying identity.',
+    whySolidityVerdict: 'This line is correct, sufficient, and fine.',
+    whySolBody:
+      'Solana has no msg.sender. Here authority is just a public key someone handed in.',
+    whySolVerdict: 'It proves nothing.',
+    whyTableColEth: 'Ethereum',
+    whyTableColSol: 'Solana',
+    whyTableStateLabel: 'Where state lives',
+    whyTableStateEth: 'inside the contract',
+    whyTableStateSol: 'in accounts someone hands in',
+    whyTableCallerLabel: 'Who the caller is',
+    whyTableCallerEth: 'the protocol tells you',
+    whyTableCallerSol: 'does not tell you — unless you declare Signer',
+    whyConclusion:
+      'In Ethereum, who you are is told to you by the protocol. In Solana, who you are is something you have to demand yourself.',
+    whyNote:
+      'So someone who has written Solidity all day types that require! from muscle memory — it looks exactly like the Solidity check, and it looks safer. It compiles, the tests pass, and review slides past it.',
+
+    fixTitle: 'Change one line.',
+    fixLede: 'Not a check added — a declaration changed.',
+    fixBody:
+      'That is it. The flaw is not in that require! line — that line was right all along; comparing the address is exactly what it should do.',
+    fixBodyDeclaration: 'The flaw is in this declaration: it asked the runtime for nothing.',
+    fixNote: 'Two versions, one line apart.',
+
+    retryTitle: 'Attack the fixed build.',
+    retryNote:
+      'Not one line of contract code ran. The attacker’s dot stopped at the declaration node — the runtime stopped it for him.',
+    retryTableHeading: 'The two versions side by side',
+    retryTableRuntimeLabel: 'what the runtime node says',
+    retryTableRuntimeVuln: 'nothing required',
+    retryTableRuntimeFixed: 'authority must sign',
+    retryTableSigLabel: 'signatures on the transaction',
+    retryTableSigVuln: '1',
+    retryTableSigFixed: '1 (not enough)',
+    retryTableResultLabel: 'result',
+    retryTableResultVuln: 'attack succeeded',
+    retryTableResultFixed: 'transaction refused',
+    retryConclusion: 'The only difference between the two versions is what that node says.',
   },
 
   zh: {
@@ -315,6 +471,7 @@ export const MESSAGES: Record<Language, Messages> = {
     sayCall: '有人调用合约，要取 500。',
     sayHandOver: '他交出了两个账户。',
     sayDeclaration: '运行时代合约检查声明 —— 声明里什么都没要求。',
+    sayDeclarationFixed: '运行时代合约检查声明 —— 这个声明要求签名。',
     sayCompare: '合约代码比对两个地址。',
     sayStateChange: '余额被减掉 500。',
 
@@ -331,7 +488,6 @@ export const MESSAGES: Record<Language, Messages> = {
     keyHint: '↑ ↓ 翻页',
     versionVulnerable: '漏洞版',
     versionFixed: '修复版',
-    ariaContractVersion: '合约版本',
     ariaLanguage: '语言',
 
     txTitle: '交易',
@@ -389,6 +545,69 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSealevel: 'Anchor 文档 · Sealevel Attacks',
     closingLinkSolend: 'Solend 事件（2021-08-19）',
     ariaClosingRegion: '结语',
+
+    vaultTitle: '它是一个金库。',
+    vaultLede: '有人把钱放进去，只有这个人能取出来。合约里记着他的地址，那就是「管理员」。',
+    vaultNormalHeading: '正常的一次取钱',
+    vaultTagAdmin: '管理员',
+    vaultTagRuntime: '运行时',
+    vaultTagCode: '合约代码',
+    vaultAdminSay: '管理员签名，调用 withdraw。',
+    vaultRuntimeCode: '检查声明里要求了什么签名',
+    vaultRuntimeSay: '合约要求：管理员必须签 → 他签了 ✓',
+    vaultCodeSay: '地址匹配 → 余额减掉 500。',
+    vaultVerdict: '取钱成功',
+    vaultNote: '这一幕是整段的锚点。没有它，后面发生什么都看不懂。',
+
+    fillTitle: '他只是把这个地址填了进去。',
+    fillLede: '这个地址，在链上人人可见。管理员的公钥不是秘密 —— 公钥从来不是秘密。',
+    fillNoHack: '没有破解。没有伪造。没有窃取密钥。他只是把一个公开信息，写进了那个位置。',
+    fillNeedHeading: '平时需要什么才能动这个金库',
+    fillNeedBody: '管理员的私钥 —— 用来签名',
+    fillNowHeading: '现在只需要什么',
+    fillNowBody: '管理员的地址 —— 公开信息',
+
+    compareResult: '地址匹配 → 检查通过',
+
+    whyTitle: '因为你在以太坊里这么写过，而它是对的。',
+    whyEthTitle: 'Solidity · 以太坊',
+    whySolTitle: 'Rust · Solana 合约',
+    whySolidityBody:
+      'msg.sender 是协议根据交易签名算出来的。协议层已经验证过签名了，所以「比对地址」就是在验证身份。',
+    whySolidityVerdict: '这行代码正确、充分、没问题。',
+    whySolBody: 'Solana 没有 msg.sender。这里的 authority 只是别人递进来的一个公钥。',
+    whySolVerdict: '它什么都不证明。',
+    whyTableColEth: '以太坊',
+    whyTableColSol: 'Solana 链',
+    whyTableStateLabel: '状态在哪',
+    whyTableStateEth: '在合约里面',
+    whyTableStateSol: '在别人递进来的账户里',
+    whyTableCallerLabel: '调用者是谁',
+    whyTableCallerEth: '协议告诉你',
+    whyTableCallerSol: '不告诉你 —— 除非你声明 Signer',
+    whyConclusion: '以太坊里，「你是谁」是协议告诉你的。Solana 里，「你是谁」得你自己要求。',
+    whyNote:
+      '所以一个写惯 Solidity 的人，手会自己敲出那行 require! —— 它长得和 Solidity 的检查一模一样，而且看起来更稳妥。它编译通过、测试通过、评审也容易滑过去。',
+
+    fixTitle: '改一行。',
+    fixLede: '不是加一行检查，是改一行声明。',
+    fixBody: '就这。漏洞不在那行 require! 里 —— 那行本来就是对的，它确实该比对地址。',
+    fixBodyDeclaration: '漏洞在这一行声明：它向运行时什么都没要。',
+    fixNote: '两个版本，全文只差这一行。',
+
+    retryTitle: '打修复版。',
+    retryNote: '合约代码一行都没有执行。攻击者的圆点撞在「账户声明」那一格上就停住了 —— 那是运行时替他挡的。',
+    retryTableHeading: '两版并排',
+    retryTableRuntimeLabel: '「运行时」那一格里写着',
+    retryTableRuntimeVuln: '无要求',
+    retryTableRuntimeFixed: 'authority 必须签名',
+    retryTableSigLabel: '交易上的签名数',
+    retryTableSigVuln: '1 个',
+    retryTableSigFixed: '1（不够）',
+    retryTableResultLabel: '结果',
+    retryTableResultVuln: '攻击成功',
+    retryTableResultFixed: '交易被拒',
+    retryConclusion: '两版的差别，只有那一格里写的东西。',
   },
 };
 

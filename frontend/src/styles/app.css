@@ -761,4 +761,325 @@
   transform: translateY(var(--nudge-hover)) scale(0.97);
 }
 
+/* ==========================================================================
+   Pages 3, 5, 7, 8, 9 — the explanatory tail.
+
+   The mini-flows on pages 3, 5 and 9 reuse the flow's node language: the same
+   card surface, radius, shadow and type as `.layer-card`. The shared look is one
+   rule naming both selectors, so the two cannot drift; only the layout differs
+   (these nodes flow normally, `.layer-card` is absolutely positioned on the
+   animated coordinate system).
+   ========================================================================== */
+
+.layers-wrap.is-hidden {
+  display: none;
+}
+
+/* ---------- The static flow node (shares `.layer-card`'s skin) ---------- */
+
+.layer-card,
+.flow-node {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.flow-node {
+  position: relative;
+  width: 480px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 20px;
+}
+
+.flow-node__tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* Who acts colours the tag, from existing tokens only. */
+.flow-node--runtime .flow-node__tag {
+  color: var(--color-syntax-type);
+}
+
+.flow-node--code .flow-node__tag {
+  color: var(--color-syntax-keyword);
+}
+
+.flow-node__code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-node__say {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.flow-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 18px auto;
+}
+
+/* The connector between two static nodes — the flow's `.layer-connector`, laid
+   out in normal flow. Same 2px line, same border token, same 26px height. */
+.flow-link {
+  width: 2px;
+  height: 26px;
+  background: var(--color-border);
+}
+
+.flow-verdict {
+  font-weight: 600;
+  font-size: 18px;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.flow-verdict--good {
+  color: var(--color-success);
+}
+
+.flow-verdict--bad {
+  color: var(--color-danger);
+}
+
+/* ---------- Shared page furniture ---------- */
+
+.page-intro,
+.fill-address,
+.why,
+.fix,
+.retry {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  animation: rise-in var(--duration-normal) var(--ease-apple) both;
+}
+
+.page-intro__title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.page-intro__heading {
+  margin-top: 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.page-intro__lede {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  max-width: 640px;
+}
+
+.page-intro__body {
+  font-size: 15px;
+  max-width: 640px;
+}
+
+/* A note is a caveat or an aside: a left rule reads it as subordinate, not as
+   another sentence of body copy. */
+.page-intro__note {
+  max-width: 640px;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--color-border);
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Page 5 — the fill line ---------- */
+
+.fill-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
+
+.fill-line__field {
+  color: var(--color-text-secondary);
+}
+
+.fill-line__arrow {
+  color: var(--color-text-secondary);
+  margin: 0 6px;
+}
+
+.fill-slot {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+}
+
+.fill-slot--filled {
+  border-style: solid;
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* ---------- The two-pane comparison (pages 5 and 7) ---------- */
+
+.two-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  width: 100%;
+  max-width: 720px;
+  margin-top: 18px;
+}
+
+@media (max-width: 720px) {
+  .two-panes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pane {
+  padding: 14px 16px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.pane--bad {
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.pane--good {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.pane__title {
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pane__code {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pane__body {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.pane__verdict {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------- The comparison table (pages 7 and 9) ---------- */
+
+.cmp-table {
+  width: 100%;
+  max-width: 720px;
+  margin: 18px 0;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.cmp-table th,
+.cmp-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cmp-table th {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Page 8 — the one-line diff ---------- */
+
+.diff {
+  width: 100%;
+  max-width: 640px;
+  margin: 14px 0;
+  padding: 18px 20px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.diff__line {
+  display: block;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.diff__line--del {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.diff__line--add {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* ---------- The why page's closing line ---------- */
+
+.why__conclusion,
+.retry__conclusion {
+  margin-top: 14px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 

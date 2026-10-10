@@ -33,12 +33,13 @@ system is entirely transform-based.
 > silently reads nothing and passes. Removing it re-breaks the rule without
 > failing a single test.
 
-### 2. Steps 3, 4 and 5 share one set of DOM nodes
+### 2. Pages 4 through 9 share one set of DOM nodes
 
-The three steps differ only by class name and transform inputs, so the cards
-travel between layouts instead of being re-created. This cannot be proved by
-reading the source, so `tools/shoot.mjs` proves it empirically: it tags the five
-live nodes and fails if the tags do not survive a layout change.
+Pages 4-9 differ only by class name and transform inputs (and, on pages 7-8, by
+the flow being taken out of the layout), so the six cards travel between layouts
+instead of being re-created. This cannot be proved by reading the source, so
+`tools/shoot.mjs` proves it empirically: it tags the six live nodes and fails if
+the tags do not survive a page change.
 
 ### 3. The provenance copies are checked against their sources
 

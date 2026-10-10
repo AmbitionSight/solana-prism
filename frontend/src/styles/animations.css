@@ -221,6 +221,27 @@
   border-radius: 3px;
 }
 
+/* ...and the same slot once the attack has filled it: the admin's address, back
+   in the danger colour, so the moment the blank is closed reads as the turn. */
+.layer-card__compare-value--filled {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* The outcome row is compact on purpose: the compare card already sizes to its
+   content, and the flow's pitch leaves only ~26px of slack before it would
+   touch the node below. */
+.layer-card__compare-result {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.layer-card__compare-result .layer-card__compare-label {
+  width: auto;
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
 /* The note beside each value. The first names where the vault's address came
    from (S0 wrote it in); the second is a fact about the platform. This is the
    line that makes the flow legible, so it is secondary text (5.0:1), not the

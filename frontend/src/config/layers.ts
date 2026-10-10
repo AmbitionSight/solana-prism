@@ -41,9 +41,10 @@ import type { LayerNameKey, MessageKey } from '../i18n/messages';
  * (`VERIFICATION.adminPubkey`), elided at render. A literal address here would
  * be as stale as one written into the copy.
  *
- * There is no result key. The caller's side is blank on this page, so the
- * comparison has no outcome to show yet; the result arrives with the attack,
- * when the second slot is actually filled.
+ * The result key is present in the data, but the card renders it only when the
+ * caller's slot is filled. On page 4 that slot is blank, so the comparison has
+ * no outcome to show yet; the attack page fills it, and the result appears with
+ * it.
  */
 export interface ComparisonSpec {
   /** Label for the value the vault stored (written at S0). */
@@ -57,6 +58,13 @@ export interface ComparisonSpec {
    * supplies this value and nothing checks who they are.
    */
   suppliedNoteKey: MessageKey;
+  /**
+   * What holding the two values against each other concludes. The card shows it
+   * only once the caller's slot is filled — page 4, where the slot is blank, has
+   * no outcome to state; the attack page fills it and the result appears with
+   * it. Kept here rather than in the component so the comparison stays data.
+   */
+  resultKey: MessageKey;
 }
 
 export interface ContractLayer {
@@ -71,6 +79,13 @@ export interface ContractLayer {
    * is why there is no separate enforcer field any more.
    */
   sayKey: MessageKey;
+  /**
+   * What the sentence reads as once the contract is fixed. Only stage 3
+   * differs: on the repaired build its declaration demands a signature, so the
+   * vulnerable sentence ("which asks for nothing") would contradict the green
+   * card it sits on.
+   */
+  sayWhenFixed?: MessageKey;
   /** The code this stage abstracts, as it reads in the vulnerable build. */
   code: string;
   /**
@@ -135,6 +150,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
     id: 'S3',
     nameKey: 'stageDeclaration',
     sayKey: 'sayDeclaration',
+    sayWhenFixed: 'sayDeclarationFixed',
     code: "authority: AccountInfo<'info>",
     codeWhenFixed: "authority: Signer<'info>",
     isSecurityLayer: true,
@@ -156,6 +172,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
       storedFromKey: 'compareStoredFrom',
       suppliedKey: 'compareSupplied',
       suppliedNoteKey: 'compareSuppliedNote',
+      resultKey: 'compareResult',
     },
     isSecurityLayer: false,
     broken: false,

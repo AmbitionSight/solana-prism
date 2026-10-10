@@ -12,13 +12,17 @@ import AttackResult from './components/AttackResult';
 import ClosingNote from './components/ClosingNote';
 import ContractLayers, { type LayersMode } from './components/ContractLayers';
 import DevnetRun from './components/DevnetRun';
-import FixToggle from './components/FixToggle';
+import FillAddress from './components/FillAddress';
 import LanguageToggle from './components/LanguageToggle';
+import RetryRefused from './components/RetryRefused';
 import Step1Title from './components/Step1Title';
 import Step2Code from './components/Step2Code';
+import TheFix from './components/TheFix';
 import TxCard, { type TxPayload } from './components/TxCard';
+import VaultIntro from './components/VaultIntro';
 import VerifyPanel from './components/VerifyPanel';
 import WalletButton from './components/WalletButton';
+import WhyItHappens from './components/WhyItHappens';
 import { VERIFICATION } from './config/verification';
 import { DEMO_SIGNER_PUBKEY } from './config/demoSigner';
 import { useLanguage } from './i18n/language';
@@ -39,6 +43,23 @@ import './styles/animations.css';
 type BlockedResult = Extract<ChainResult, { kind: 'exhausted' | 'notConfigured' | 'failed' }>;
 
 /**
+ * Page 9 attacks the repaired build — the retry the whole lesson has been
+ * building to. Which build is under attack is now a property of the page, not of
+ * a manual switch: the vulnerable build is pages 4-8, the repaired one is page 9.
+ */
+const FIXED_FROM_STEP: Step = 9;
+
+/** The attack page, where the caller's slot on stage 4 is filled in. */
+const SLOT_FILLED_FROM_STEP: Step = 6;
+
+/**
+ * How long page 4's cards hold their scattered layout before they settle into
+ * the flow. The decomposition is the page's own event: the cards start on the
+ * page-2 code boxes, fly apart, then converge — all within page 4.
+ */
+const DECOMPOSE_MS = 1600;
+
+/**
  * `initialStep` exists for one reason: step 5 is entered by timers, and a test
  * that renders to a string runs no effects, so it cannot wait for them. Passing
  * the final step directly lets a test hold the demo in the state the default
@@ -48,7 +69,12 @@ type BlockedResult = Extract<ChainResult, { kind: 'exhausted' | 'notConfigured' 
 export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   const { t } = useLanguage();
   const [step, setStep] = useState<Step>(initialStep);
-  const [isFixed, setIsFixed] = useState(false);
+  /**
+   * Whether page 4's cards have settled into the flow yet. They start scattered
+   * (from the page-2 code boxes) and converge a beat later, so the decomposition
+   * happens on the page that shows the flow rather than across a page change.
+   */
+  const [flowSettled, setFlowSettled] = useState(false);
   const [attackState, setAttackState] = useState<AttackState>('idle');
   /** Bumped on replay so the auto-advance timers restart from step 1. */
   const [runId, setRunId] = useState(0);
@@ -99,6 +125,22 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     }, delay);
     return () => window.clearTimeout(id);
   }, [step, runId]);
+
+  // Page 4's decomposition happens in place: the cards first land on the page-2
+  // code boxes, then fly apart, then settle into the flow. The scatter is not a
+  // separate page any more, so this timer is what ends it.
+  useEffect(() => {
+    if (step !== 4 || flowSettled) return;
+    const id = window.setTimeout(() => setFlowSettled(true), DECOMPOSE_MS);
+    return () => window.clearTimeout(id);
+  }, [step, flowSettled]);
+
+  /**
+   * Which build the flow is drawn for. The repair is page 8's story, and page 9
+   * attacks the repaired build, so from page 9 the security node reads green and
+   * demands a signature. Pages 4-8 show the shipped, vulnerable build.
+   */
+  const isFixed = step >= FIXED_FROM_STEP;
 
   // Holding the payload on screen is an orchestration beat, not a race to
   // avoid — unlike the drop itself, which ends on its own animation event.
@@ -262,18 +304,9 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     setDotLanded(true);
   }, []);
 
-  const handleFixChange = useCallback(
-    (next: boolean) => {
-      setIsFixed(next);
-      setAttackState('idle');
-      clearRealRun();
-    },
-    [clearRealRun],
-  );
-
   const replay = useCallback(() => {
     setStep(1);
-    setIsFixed(false);
+    setFlowSettled(false);
     setAttackState('idle');
     setRunId((id) => id + 1);
     clearRealRun();
@@ -348,10 +381,23 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     });
   }, [provider, walletAddress, isFixed]);
 
-  /** Where step 2's stage boxes sat, handed to step 3 so the cards start there. */
+  /** Where step 2's stage boxes sat, handed to the flow so the cards start there. */
   const regionRects = useRef<Record<string, DOMRect>>({});
 
-  const layersMode: LayersMode = step >= 4 ? 'flow' : step === 3 ? 'decomposed' : 'hidden';
+  // The flow's layout, all on one page now: page 4 seeds the cards onto the
+  // page-2 code boxes, scatters them, then settles them into the flow. Every
+  // later page keeps the settled flow — the same component, the same nodes.
+  const layersMode: LayersMode =
+    step < 4 ? 'hidden' : step === 4 && !flowSettled ? 'decomposed' : 'flow';
+
+  // Pages 7 and 8 are not part of the flow's story: the flow stays mounted (its
+  // DOM identity is load-bearing across pages 4-9) but is taken out of the
+  // layout while the two-pane comparison and the diff are read.
+  const flowHidden = step === 7 || step === 8;
+
+  // Stage 4's caller slot is blank until the attack supplies the admin's address.
+  const slotFilled = step >= SLOT_FILLED_FROM_STEP;
+
   const chainVerdict = chainResult ? verdictOf(chainResult) : null;
   const chainStatus = controlStatus(chainResult, payload !== null, chainBusy);
 
@@ -361,8 +407,49 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
   // are the signatures ("ATTACKER ✓ / ADMIN ✗").
   const showTxCard = attackState === 'showing-tx';
 
+  // The attack controls, on the two pages that run an attack: page 6 (the
+  // vulnerable build) and page 9 (the repaired one). Rendered from one place so
+  // the two pages cannot drift, and so the Execute button — and therefore the
+  // real run — exists on exactly those pages and no others.
+  const attackControls = (
+    <div className="controls">
+      <button
+        type="button"
+        className="execute-btn"
+        data-testid="execute-btn"
+        disabled={chainBusy || attackState === 'showing-tx' || attackState === 'running'}
+        onClick={handleExecute}
+      >
+        {t.execute}
+      </button>
+      <DevnetRun
+        isFixed={isFixed}
+        providerPresent={provider !== null}
+        connected={walletAddress !== null}
+        programId={isFixed ? VERIFICATION.fixedProgramId : VERIFICATION.vulnerableProgramId}
+        status={chainStatus}
+        onRun={handleRealRun}
+      />
+      {/* The no-attempt outcomes, each in the control's own words: an empty
+          pool, a missing authority, or an attempt that never reached the chain.
+          None of them animates a drain that did not happen. */}
+      {demoBlocked?.kind === 'exhausted' && (
+        <p className="attack-result__body">{t.chainExhausted}</p>
+      )}
+      {demoBlocked?.kind === 'notConfigured' && (
+        <p className="attack-result__body">{t.demoNoTarget}</p>
+      )}
+      {demoBlocked?.kind === 'failed' && (
+        <p className="attack-result__body">
+          {t.chainAttemptFailed}
+          {demoBlocked.reason && <code> {demoBlocked.reason}</code>}
+        </p>
+      )}
+    </div>
+  );
+
   return (
-    // data-step is the machine-readable current step. The visible 01/05 counter
+    // data-step is the machine-readable current step. The visible page counter
     // was removed, so the verification harness reads this instead of scraping
     // the DOM for text that is no longer rendered.
     <div className="app" data-step={step}>
@@ -390,65 +477,30 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
             }}
           />
         )}
+        {step === 3 && <VaultIntro />}
 
-        {step >= 3 && (
+        {step >= 4 && (
           <>
-            <div className="layers-wrap">
+            <div className={`layers-wrap${flowHidden ? ' is-hidden' : ''}`}>
               <ContractLayers
                 mode={layersMode}
                 isFixed={isFixed}
                 attackState={attackState}
+                slotFilled={slotFilled}
                 onAttackEnd={handleAttackEnd}
                 originRects={regionRects.current}
               />
               {showTxCard && <TxCard payload={payload ?? undefined} />}
             </div>
 
-            {/* Reserved from step 3 so the stack never shifts while the attack
+            {/* Reserved from page 4 so the stack never shifts while the attack
                 plays — a layout jump mid-animation would read as a glitch. */}
             <div className="footer-slot">
-              {step === 5 && (
-                <div className="controls">
-                  <FixToggle isFixed={isFixed} onChange={handleFixChange} />
-                  <button
-                    type="button"
-                    className="execute-btn"
-                    data-testid="execute-btn"
-                    disabled={
-                      chainBusy || attackState === 'showing-tx' || attackState === 'running'
-                    }
-                    onClick={handleExecute}
-                  >
-                    {t.execute}
-                  </button>
-                  <DevnetRun
-                    isFixed={isFixed}
-                    providerPresent={provider !== null}
-                    connected={walletAddress !== null}
-                    programId={
-                      isFixed ? VERIFICATION.fixedProgramId : VERIFICATION.vulnerableProgramId
-                    }
-                    status={chainStatus}
-                    onRun={handleRealRun}
-                  />
-                  {/* The no-attempt outcomes, each in the control's own words:
-                      an empty pool, a missing authority, or an attempt that never
-                      reached the chain. None of them animates a drain that did
-                      not happen. */}
-                  {demoBlocked?.kind === 'exhausted' && (
-                    <p className="attack-result__body">{t.chainExhausted}</p>
-                  )}
-                  {demoBlocked?.kind === 'notConfigured' && (
-                    <p className="attack-result__body">{t.demoNoTarget}</p>
-                  )}
-                  {demoBlocked?.kind === 'failed' && (
-                    <p className="attack-result__body">
-                      {t.chainAttemptFailed}
-                      {demoBlocked.reason && <code> {demoBlocked.reason}</code>}
-                    </p>
-                  )}
-                </div>
-              )}
+              {step === 5 && <FillAddress />}
+              {(step === 6 || step === 9) && attackControls}
+              {step === 7 && <WhyItHappens />}
+              {step === 8 && <TheFix />}
+              {step === 9 && <RetryRefused />}
 
               {attackState === 'done' && (
                 <>

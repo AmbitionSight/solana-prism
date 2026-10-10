@@ -14,6 +14,11 @@ interface LayerCardProps {
   isFixed: boolean;
   /** True while the dot is mid-drop, which is when the security layer flashes. */
   attacking: boolean;
+  /**
+   * Whether stage 4's caller slot has been filled — the attack page's reveal.
+   * Only the comparison card reads it; every other card ignores it.
+   */
+  slotFilled?: boolean;
 }
 
 /**
@@ -30,13 +35,16 @@ export default function LayerCard({
   transitionDelayMs,
   isFixed,
   attacking,
+  slotFilled = false,
 }: LayerCardProps) {
   const { language, t } = useLanguage();
 
   const isSecurityLayer = layer.isSecurityLayer && layer.broken;
   const stateClass = isSecurityLayer ? (isFixed ? 'security-fixed' : 'security-broken') : '';
   const name = bilingualName(language, layer.nameKey);
-  const say = t[layer.sayKey];
+  // The repair changes what the declaration demands, so stage 3's sentence
+  // changes with the code. Every other stage reads the same either way.
+  const say = isFixed && layer.sayWhenFixed ? t[layer.sayWhenFixed] : t[layer.sayKey];
   // The whole repair is one declaration, so stage 3 reads differently once fixed.
   const code = isFixed && layer.codeWhenFixed ? layer.codeWhenFixed : layer.code;
 
@@ -65,7 +73,7 @@ export default function LayerCard({
       {/* Stage 4 alone shows the comparison itself, between the sentence and the
           code line. The discriminator is the field, never the id: a card with no
           `compare` renders exactly what it always did. */}
-      {layer.compare && <AddressComparison spec={layer.compare} />}
+      {layer.compare && <AddressComparison spec={layer.compare} filled={slotFilled} />}
       <span className="layer-card__row">
         <span className="layer-card__id">{layer.id}</span>
         <code className="layer-card__code">{code}</code>

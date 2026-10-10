@@ -8,33 +8,35 @@ import { MESSAGES } from '../i18n/messages';
 import type { SolanaProvider } from '../lib/wallet';
 
 /**
- * The default path is the one thing this feature must not touch.
+ * The default path (no wallet) must stay deterministic.
  *
  * "No wallet" is the deciding factor for the real-chain layer: with nothing
- * injected, the page has to behave exactly as it did before, because that is the
- * state the recorded walkthrough, `tools/shoot.mjs` and every screenshot assert
- * against. That claim is easy to make and impossible to see, so it is pinned to
- * a fixture captured from the step-5 stage **before** the Devnet layer existed.
+ * injected, the page has to behave as it did before that layer existed, because
+ * that is the state the recorded walkthrough, `tools/shoot.mjs` and every
+ * screenshot assert against. The claim is invisible, so it is pinned to fixtures
+ * captured from the two pages that matter:
  *
- * What this compares, precisely: the server-rendered DOM of `<App>` sitting on
- * step 5 with no wallet present. Both sides are rendered by this same suite, so
- * what it can see is every element, class, attribute and string the default path
- * emits. What it cannot see is anything that only exists after paint (the
+ *   - page 5 (the fill-address page) — the page a reader reaches before the
+ *     attack, with no attack UI on it at all;
+ *   - page 6 (the attack page) — where `Execute` and the opt-in real-chain entry
+ *     live, and therefore where "no wallet means no entry point" is testable.
+ *
+ * The nine-page redesign deliberately changed both pages, so both fixtures were
+ * re-captured: a re-capture is the correct outcome when the default path itself
+ * is redesigned, and the generated `@keyframes` block is carried over
+ * byte-for-byte because `lib/keyframes.ts` owns it and the suite strips it.
+ *
+ * What this compares is the server-rendered DOM of `<App>` on those pages with
+ * no wallet present — every element, class, attribute and string the default
+ * path emits. What it cannot see is anything that only exists after paint (the
  * measurement `ContractLayers` does in a layout effect) or CSS the browser
- * applies — the browser run in `tools/shoot.mjs` covers that half.
- *
- * The generated `@keyframes` block is stripped from both sides: it is produced by
- * `lib/keyframes.ts` from `lib/geometry.ts`, has its own guards, and is not part
- * of what this feature is allowed to disturb.
- *
- * If the demo's steps 3-5 are ever deliberately redesigned, this fixture has to
- * be re-captured — and that is the correct outcome, because the redesign *is* a
- * change to the default path.
+ * applies; the browser run in `tools/shoot.mjs` covers that half.
  */
 
-const FIXTURE = fileURLToPath(new URL('./fixtures/app-step5-stage.html', import.meta.url));
+const FIXTURE5 = fileURLToPath(new URL('./fixtures/app-step5-stage.html', import.meta.url));
+const FIXTURE6 = fileURLToPath(new URL('./fixtures/app-step6-stage.html', import.meta.url));
 
-function renderApp(initialStep: 1 | 5): string {
+function renderApp(initialStep: 1 | 5 | 6): string {
   // `renderToStaticMarkup` runs no effects, so ContractLayers' `useLayoutEffect`
   // cannot run and React warns about it. The warning is about SSR in general,
   // not about anything this guard asserts; every other console.error is passed
@@ -100,27 +102,40 @@ afterEach(() => {
   delete (globalThis as Record<string, unknown>)[INJECTED];
 });
 
-describe('默认路径 — 无钱包时 DOM 与改动前逐字节一致', () => {
-  it('确实读到了基线夹具, 而不是空文件', () => {
+describe('默认路径 — 无钱包时页面与基线夹具逐字节一致', () => {
+  it('确实读到了两个基线夹具, 而不是空文件', () => {
     // A comparison against an empty string would pass for any render at all.
-    const fixture = readFileSync(FIXTURE, 'utf8');
-    expect(fixture.length).toBeGreaterThan(500);
-    expect(fixture).toContain('data-testid="execute-btn"');
-    expect(fixture).toContain('layers-container');
+    const page5 = readFileSync(FIXTURE5, 'utf8');
+    expect(page5.length).toBeGreaterThan(500);
+    expect(page5).toContain('data-testid="fill-address"');
+    expect(page5).toContain('layers-container');
+    // The fill page must carry no attack control at all.
+    expect(page5).not.toContain('execute-btn');
+
+    const page6 = readFileSync(FIXTURE6, 'utf8');
+    expect(page6.length).toBeGreaterThan(500);
+    expect(page6).toContain('data-testid="execute-btn"');
+    expect(page6).toContain('layers-container');
   });
 
-  it('step 5 的舞台 markup 与改动前完全相同', () => {
-    const fixture = withoutKeyframes(readFileSync(FIXTURE, 'utf8'));
+  it('page 5 的舞台 markup 与基线夹具完全相同', () => {
+    const fixture = withoutKeyframes(readFileSync(FIXTURE5, 'utf8'));
     const actual = withoutKeyframes(stageOf(renderApp(5)));
     expect(actual).toBe(fixture);
   });
 
+  it('page 6 的舞台 markup 与基线夹具完全相同', () => {
+    const fixture = withoutKeyframes(readFileSync(FIXTURE6, 'utf8'));
+    const actual = withoutKeyframes(stageOf(renderApp(6)));
+    expect(actual).toBe(fixture);
+  });
+
   it('无 provider 时真实模式入口根本不存在', () => {
-    expect(renderApp(5)).not.toContain('execute-devnet-btn');
+    expect(renderApp(6)).not.toContain('execute-devnet-btn');
   });
 
   it('无 provider 时钱包位置只说没检测到, 不给连接按钮', () => {
-    const controls = topControlsOf(renderApp(5));
+    const controls = topControlsOf(renderApp(6));
     expect(controls).toContain(MESSAGES.en.walletMissing);
     expect(controls).not.toContain('wallet-connect-btn');
     expect(controls).not.toContain('wallet-disconnect-btn');
@@ -128,18 +143,18 @@ describe('默认路径 — 无钱包时 DOM 与改动前逐字节一致', () => 
 
   it('provider 是 undefined 时同样不渲染入口', () => {
     injectProvider(undefined);
-    expect(renderApp(5)).not.toContain('execute-devnet-btn');
+    expect(renderApp(6)).not.toContain('execute-devnet-btn');
   });
 });
 
 describe('这条守卫本身必须能发现改动', () => {
   it('认得出一个字符的差别', () => {
-    const fixture = withoutKeyframes(readFileSync(FIXTURE, 'utf8'));
+    const fixture = withoutKeyframes(readFileSync(FIXTURE5, 'utf8'));
     expect(withoutKeyframes(`${fixture} `)).not.toBe(fixture);
   });
 
   it('不把 chrome 当作舞台', () => {
-    const html = renderApp(5);
+    const html = renderApp(6);
     expect(html).toContain('top-controls');
     expect(stageOf(html)).not.toContain('top-controls');
   });
@@ -147,9 +162,9 @@ describe('这条守卫本身必须能发现改动', () => {
   it('注入 provider 之后 chrome 确实变了 —— 说明上面比的是真的', () => {
     // If the wallet slot ignored the provider, the "no wallet" assertions above
     // would hold for a component that never reads it at all. They must not.
-    const withoutWallet = topControlsOf(renderApp(5));
+    const withoutWallet = topControlsOf(renderApp(6));
     injectProvider(fakeProvider());
-    const withWallet = topControlsOf(renderApp(5));
+    const withWallet = topControlsOf(renderApp(6));
     expect(withWallet).not.toBe(withoutWallet);
     expect(withoutWallet).toContain(MESSAGES.en.walletMissing);
     expect(withWallet).not.toContain(MESSAGES.en.walletMissing);

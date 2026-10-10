@@ -4,7 +4,8 @@ import { elide } from '../lib/elide';
 import { useLanguage } from '../i18n/language';
 
 /**
- * Stage 4's comparison, made visible — two labelled sides, the second one blank.
+ * Stage 4's comparison, made visible — two labelled sides, and the outcome once
+ * the caller's side is filled.
  *
  * The card used to say only "the program compares the address itself", which hid
  * the one thing worth seeing: *what* is compared to *what*. The `require!` holds
@@ -12,20 +13,33 @@ import { useLanguage } from '../i18n/language';
  *
  * The two sides are not the same, and that is the point. The vault's side is a
  * real address written at S0 and elided for display. The caller's side is
- * **empty**: on Solana the caller supplies it, and nothing in the declaration
- * checks who that is. Printing the admin's address on both lines would hand over
- * the answer before the reader has seen the bug — filling that blank is the
- * attack, and the attack is the next page. So the blank stays blank here.
+ * **empty** on page 4: on Solana the caller supplies it, and nothing in the
+ * declaration checks who that is. Printing the admin's address on both lines
+ * would hand over the answer before the reader has seen the bug — filling that
+ * blank is the attack.
+ *
+ * When `filled` is true (page 6 and page 9, after the attacker has supplied the
+ * admin's public address) the caller's slot carries that same elided address and
+ * the comparison states its result. The blank is never *silently* replaced: the
+ * attribute changes from `empty` to `filled`, so a regression that fills it on
+ * the wrong page is visible in the markup.
  *
  * The address is config, not copy: it comes from `VERIFICATION.adminPubkey` and
  * is elided for display, with the full value left in `title`. Only the labels
- * and the two notes are translated.
+ * and the notes are translated.
  */
-export default function AddressComparison({ spec }: { spec: ComparisonSpec }) {
+export default function AddressComparison({
+  spec,
+  filled = false,
+}: {
+  spec: ComparisonSpec;
+  /** Whether the caller's slot has been filled — the attack page's reveal. */
+  filled?: boolean;
+}) {
   const { t } = useLanguage();
 
   // The one real value in the comparison: what `initialize` wrote at S0. The
-  // other side has no value yet — see the blank slot below.
+  // caller's side carries the same address once the attack fills it in.
   const address = VERIFICATION.adminPubkey;
 
   return (
@@ -39,17 +53,36 @@ export default function AddressComparison({ spec }: { spec: ComparisonSpec }) {
       </span>
       <span className="layer-card__compare-row">
         <span className="layer-card__compare-label">{t[spec.suppliedKey]}</span>
-        {/* The caller's side, left empty on purpose. It is a field the caller
-            fills in, not a value that went missing — drawn as a slot waiting to
-            be filled, sourced from the border token. The attack page fills it,
-            and the comparison's result is shown only then. */}
-        <span
-          className="layer-card__compare-value layer-card__compare-value--blank"
-          data-compare-slot="empty"
-          aria-hidden="true"
-        />
+        {filled ? (
+          // Filled by the attack: the caller supplied the admin's public
+          // address, and that is the whole trick. Same value as the vault's
+          // side, elided the same way.
+          <code
+            className="layer-card__compare-value layer-card__compare-value--filled"
+            data-compare-slot="filled"
+            title={address}
+          >
+            {elide(address)}
+          </code>
+        ) : (
+          // The caller's side, left empty on purpose. It is a field the caller
+          // fills in, not a value that went missing — drawn as a slot waiting to
+          // be filled, sourced from the border token. Filling it is the attack.
+          <span
+            className="layer-card__compare-value layer-card__compare-value--blank"
+            data-compare-slot="empty"
+            aria-hidden="true"
+          />
+        )}
         <span className="layer-card__compare-from">{t[spec.suppliedNoteKey]}</span>
       </span>
+      {/* The outcome exists only once both sides hold a value; on page 4 there
+          is nothing to conclude and this row is absent entirely. */}
+      {filled && (
+        <span className="layer-card__compare-row layer-card__compare-result">
+          <span className="layer-card__compare-label">{t[spec.resultKey]}</span>
+        </span>
+      )}
     </span>
   );
 }
