@@ -42,6 +42,15 @@ export interface ContractLayer {
   isSecurityLayer: boolean;
   /** True when this build of the contract has the flaw in this stage. */
   broken: boolean;
+  /**
+   * Who makes this stage happen.
+   *
+   * The distinction is the whole lesson: stages 1 and 2 are what the caller
+   * does, stage 3 is what the *runtime* does on the program's behalf (from its
+   * declaration alone, before any program code runs), and 4 and 5 are the
+   * program's own code.
+   */
+  enforcedBy: 'caller' | 'runtime' | 'code';
   /** Offset from stage centre used by the decompose animation. */
   scatter: { x: number; y: number };
 }
@@ -54,6 +63,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
     code: 'withdraw(ctx, amount: 500)',
     isSecurityLayer: false,
     broken: false,
+    enforcedBy: 'caller',
     scatter: { x: -220, y: -110 },
   },
   {
@@ -62,6 +72,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
     code: 'vault · authority',
     isSecurityLayer: false,
     broken: false,
+    enforcedBy: 'caller',
     scatter: { x: 220, y: -90 },
   },
   {
@@ -71,6 +82,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
     codeWhenFixed: "authority: Signer<'info>",
     isSecurityLayer: true,
     broken: true,
+    enforcedBy: 'runtime',
     scatter: { x: -200, y: 70 },
   },
   {
@@ -79,6 +91,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
     code: 'require!(vault.authority == authority.key())',
     isSecurityLayer: false,
     broken: false,
+    enforcedBy: 'code',
     scatter: { x: 210, y: 90 },
   },
   {
@@ -87,6 +100,7 @@ export const VAULT_LAYERS: ContractLayer[] = [
     code: 'vault.balance -= amount',
     isSecurityLayer: false,
     broken: false,
+    enforcedBy: 'code',
     scatter: { x: 0, y: 160 },
   },
 ];

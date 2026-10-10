@@ -214,12 +214,16 @@
 
   <div class="flow">
     <div class="node"><span class="tag">你</span>
-      <div class="body">签名，付手续费</div>
-      <div class="say">这一步两个版本都有 —— 手续费总得有人付。</div></div>
+      <div class="body">withdraw(ctx, amount: 500)</div>
+      <div class="say">你调用了它 —— 签了名，付了手续费。这一步两个版本都有，手续费总得有人付。</div></div>
     <div class="link"></div>
-    <div class="node"><span class="tag rt">运行时 · 声明说了算</span>
-      <div class="body">合约要求了哪些签名？他们的签名在吗？</div>
-      <div class="say">这一格不是合约代码写的 —— 是运行时替它执行的。合约只负责「声明要什么」。</div></div>
+    <div class="node"><span class="tag">你</span>
+      <div class="body">vault · authority</div>
+      <div class="say">你把这两个账户一并交了进去。</div></div>
+    <div class="link"></div>
+    <div class="gap"><span class="tag rt">运行时 · 声明说了算</span>
+      <div class="body">authority: AccountInfo&lt;'info&gt;</div>
+      <div class="say">这一格不是合约代码写的 —— 是运行时替它执行的。合约只负责「声明要什么」。而这行声明里，<strong>什么都没要</strong>。</div></div>
     <div class="link"></div>
     <div class="node"><span class="tag app">合约代码</span>
       <div class="body">require!(vault.authority == authority.key())</div>
@@ -229,7 +233,7 @@
       <div class="body">vault.balance -= 500</div></div>
   </div>
 
-  <p class="note"><strong>停在第二格。</strong> 这一格是整个演示的关键：它由<strong>声明</strong>决定检查什么。声明里要了，它才查；声明里没要，它是空的。</p>
+  <p class="note"><strong>停在第三格。</strong> 这一格是整个演示的关键：它由<strong>声明</strong>决定检查什么。声明里要了，它才查；声明里没要，它是空的 —— 这一格的空，就是漏洞。</p>
 </section>
 
 <!-- ══════════════ 5 ══════════════ -->

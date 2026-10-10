@@ -12,24 +12,24 @@ import {
 
 describe('geometry', () => {
   it('常量', () => {
-    expect(LAYER_HEIGHT).toBe(64);
-    expect(LAYER_GAP).toBe(8);
+    expect(LAYER_HEIGHT).toBe(96);
+    expect(LAYER_GAP).toBe(26);
   });
 
   it('layerTopY', () => {
     expect(layerTopY(0)).toBe(0);
-    expect(layerTopY(2)).toBe(144);
+    expect(layerTopY(2)).toBe(244);
   });
 
   it('layerMidY', () => {
-    expect(layerMidY(0)).toBe(32);
-    expect(layerMidY(1)).toBe(104);
-    expect(layerMidY(2)).toBe(176);
-    expect(layerMidY(4)).toBe(320);
+    expect(layerMidY(0)).toBe(48);
+    expect(layerMidY(1)).toBe(170);
+    expect(layerMidY(2)).toBe(292);
+    expect(layerMidY(4)).toBe(536);
   });
 
   it('stackHeight(5)', () => {
-    expect(stackHeight(5)).toBe(352);
+    expect(stackHeight(5)).toBe(584);
   });
 
   it('stackHeight 单层就是层高, 零层不占空间', () => {
@@ -38,20 +38,20 @@ describe('geometry', () => {
   });
 
   it('blockedY: 被第 i 层挡住时圆点停留 y(层顶上方 8px)', () => {
-    expect(blockedY(2)).toBe(136);
+    expect(blockedY(2)).toBe(236);
   });
 
   it('blockedY(1) 正好贴在第 0 层底边', () => {
     expect(blockedY(1)).toBe(layerTopY(1) - 8);
-    expect(blockedY(1)).toBe(64);
+    expect(blockedY(1)).toBe(114);
   });
 });
 
 describe('stackedOffsetY — 层叠位置相对容器中心的偏移', () => {
   it('5 层时首/中/末层的偏移', () => {
-    expect(stackedOffsetY(0, 5)).toBe(-144);
+    expect(stackedOffsetY(0, 5)).toBe(-244);
     expect(stackedOffsetY(2, 5)).toBe(0);
-    expect(stackedOffsetY(4, 5)).toBe(144);
+    expect(stackedOffsetY(4, 5)).toBe(244);
   });
 
   it('任意层数下相邻层间距恒为 LAYER_HEIGHT + LAYER_GAP', () => {
@@ -73,7 +73,7 @@ describe('stackedOffsetY — 层叠位置相对容器中心的偏移', () => {
 
 describe('dropStartY — 圆点下落起点', () => {
   it('在层叠顶部上方一个层高处', () => {
-    expect(dropStartY()).toBe(-64);
+    expect(dropStartY()).toBe(-96);
   });
 
   it('确实在栈顶之上, 保证从视野外进入', () => {
