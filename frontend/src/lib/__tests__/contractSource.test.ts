@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { CONTRACT_LINES, CONTRACT_REGIONS, MARGIN_NOTES } from '../contractSource';
 import { MESSAGES } from '../../i18n/messages';
 import { VAULT_LAYERS } from '../../config/layers';
+import { VERIFICATION } from '../../config/verification';
 
 /**
  * The listing is the deployed contract, not a paraphrase of it. The copy in
@@ -28,6 +29,21 @@ describe('contractSource — 显示的就是链上那份', () => {
     // empty string; the listing does not carry it.
     if (original[original.length - 1] === '') original.pop();
     expect(CONTRACT_LINES).toEqual(original);
+  });
+
+  /**
+   * The status bar prints VERIFICATION.vulnerableProgramId and the listing
+   * prints the `declare_id!` from the contract file. Both are guarded on their
+   * own; nothing yet ties them to each other. After a future `anchor keys sync`
+   * they could drift apart and the demo would contradict itself in the one place
+   * whose whole job is saying "this is the real program".
+   */
+  it('状态栏里的 program id 就是代码里 declare_id! 的那一个', () => {
+    const line = CONTRACT_LINES.find((l) => l.includes('declare_id!'));
+    expect(line, '没有找到 declare_id!').toBeDefined();
+    const match = /declare_id!\("([^"]+)"\)/.exec(line!);
+    expect(match, 'declare_id! 的形状变了').not.toBeNull();
+    expect(match![1]).toBe(VERIFICATION.vulnerableProgramId);
   });
 });
 

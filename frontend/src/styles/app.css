@@ -222,6 +222,14 @@
   animation-delay: calc(var(--step-duration, 9000ms) * var(--reveal-at, 0));
 }
 
+/* The code lines alone. This is the element step 3 measures, so the margin
+   notes are its siblings rather than its children — an annotation inside it
+   would fold its own height into the region and shift the animation's origin
+   by a different amount in each language. */
+.code-block__code {
+  display: block;
+}
+
 @keyframes code-block-in {
   from {
     border-color: transparent;

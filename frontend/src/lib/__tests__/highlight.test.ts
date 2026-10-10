@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { highlightRust } from '../highlight';
+import { CONTRACT_LINES } from '../contractSource';
 
 describe('highlightRust', () => {
   it('关键字标红', () => {
@@ -50,6 +51,13 @@ describe('highlightRust', () => {
       '        Ok(())',
       '    }',
       '}',
+      // The verbatim file brought constructs the old excerpt never had. These
+      // are its real lines, so the round-trip pins the tokenizer paths they
+      // open: `//!` doc comments, `declare_id!`, `use ...;`, `#[account(...)]`.
+      CONTRACT_LINES.find((line) => line.startsWith('//!'))!,
+      CONTRACT_LINES.find((line) => line.includes('declare_id!'))!,
+      CONTRACT_LINES.find((line) => line.includes('use anchor_lang::prelude::*;'))!,
+      CONTRACT_LINES.find((line) => line.includes('#[account(init'))!,
     ];
     for (const line of lines) {
       expect(highlightRust(line).map((t) => t.text).join('')).toBe(line);
