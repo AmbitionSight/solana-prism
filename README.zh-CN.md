@@ -123,16 +123,6 @@ Test Files  33 passed (33)
 
 `docs/verification.md` 是这一节的长版本：套件守着哪些不变量、每个检查在什么层面抓违规，以及每个护栏是怎么被证伪的。
 
-## 现状
-
-- **已部署到 testnet** —— 两节课，五个程序（每节课各有漏洞版与修复版，外加第二课需要的攻击者伪造程序）。两个攻击都对着线上程序真跑过。✅
-- **单元测试全绿** —— 33 个文件，359 个测试。✅
-- **尚未托管** —— 没有公开网址。本地用 `npm run dev` 跑。
-- **录制的演示早于第二课** —— `docs/screenshots/` 里只有第一课。
-- **CI 跑前端** —— `.github/workflows/ci.yml` 在每次 push 和 pull request 上跑
-  `npm ci`、`npm test` 和 `npm run build`。它不构建合约：那需要 `cargo-build-sbf`
-  和 platform-tools，标准 runner 上没有（见 `contract/README.md`）。
-
 ## 许可证
 
 本项目采用 [MIT 许可证](LICENSE)。

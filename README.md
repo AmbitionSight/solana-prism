@@ -176,20 +176,6 @@ Test Files  33 passed (33)
 suite holds, at what level each check catches a violation, and how every guard
 was falsified.
 
-## Status
-
-- **Deployed on testnet** — two lessons, five programs (the vulnerable and
-  repaired build of each lesson, plus the attacker's counterfeit program lesson
-  two needs). Both attacks have been run against the live programs. ✅
-- **Unit suite green** — 33 files, 359 tests. ✅
-- **Not yet hosted** — there is no public URL. Run it locally with `npm run dev`.
-- **The recorded walkthrough predates lesson two** — `docs/screenshots/` shows
-  lesson one only.
-- **CI runs the frontend** — `.github/workflows/ci.yml` runs `npm ci`,
-  `npm test` and `npm run build` on every push and pull request. It does not
-  build the contracts: that needs `cargo-build-sbf` and platform-tools, which a
-  stock runner does not have (see `contract/README.md`).
-
 ## License
 
 This project is [MIT licensed](LICENSE).
