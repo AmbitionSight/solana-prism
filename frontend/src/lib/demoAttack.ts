@@ -35,8 +35,8 @@ export function executeDemoAttack(
   //
   // Built conditionally, not eagerly: a `PENDING` id must never become an address
   // (the same ordering `planChainRun` uses). In that state the scan is never
-  // reached — planning returns `notDeployed` first — so a reader that always
-  // returns null is honest and cannot be called.
+  // reached — planning returns `notDeployed` first — so a reader that answers
+  // every address with null is honest and cannot be called.
   const scanOwner = isFilled(config.vulnerableProgramId)
     ? new PublicKey(config.vulnerableProgramId)
     : null;
@@ -44,7 +44,9 @@ export function executeDemoAttack(
   return executeChainRun(
     {
       config,
-      read: scanOwner ? createVaultReader(connection, scanOwner) : async () => null,
+      read: scanOwner
+        ? createVaultReader(connection, scanOwner)
+        : async (addresses) => addresses.map(() => null),
       // No provider, no wallet: the demo key signs. The program id still comes
       // from the plan, so the selected build decides which program is called.
       portsFor: (programId) => demoAttackPorts(connection, programId),

@@ -46,7 +46,7 @@ function fakeConnection(statuses: unknown[]) {
       context: { slot: 1 },
       value: [statuses[Math.min(statusCall++, statuses.length - 1)]],
     }),
-    getAccountInfo: async () => null,
+    getMultipleAccountsInfo: async (addresses: PublicKey[]) => addresses.map(() => null),
   };
 
   return { connection: connection as never, sent };
@@ -247,25 +247,26 @@ describe('solanaChain — demo 键端口: 无钱包也发得出同样的交易',
 });
 
 describe('solanaChain — 读 vault 账户', () => {
-  it('账户不存在时返回 null', async () => {
+  it('账户不存在时返回 null，位置与地址一一对应', async () => {
     const { connection } = fakeConnection([{ err: null }]);
     const read = createVaultReader(connection, PROGRAM_ID);
-    expect(await read(VAULT)).toBeNull();
+    expect(await read([VAULT])).toEqual([null]);
   });
 
   it('存在时把 data 解成字节', async () => {
     const bytes = Uint8Array.from([1, 2, 3]);
     const connection = {
-      getAccountInfo: async () => ({
-        owner: PROGRAM_ID,
-        data: [btoa(String.fromCharCode(...bytes)), 'base64'],
-        executable: false,
-      }),
+      getMultipleAccountsInfo: async (addresses: PublicKey[]) =>
+        addresses.map(() => ({
+          owner: PROGRAM_ID,
+          data: [btoa(String.fromCharCode(...bytes)), 'base64'],
+          executable: false,
+        })),
     };
 
     const read = createVaultReader(connection as never, PROGRAM_ID);
-    const data = await read(VAULT);
-    expect(data && hex(data)).toBe('010203');
+    const data = await read([VAULT]);
+    expect(data[0] && hex(data[0])).toBe('010203');
   });
 });
 
@@ -291,15 +292,16 @@ describe('solanaChain — 扫描只接受被攻击程序拥有的账户', () => 
     const freshIndex = 1;
 
     const connection = {
-      getAccountInfo: async (address: PublicKey) => {
-        if (vaultAddress(foreignIndex).equals(address)) {
-          return { owner: FIXED_PROGRAM_ID, data: vaultData(ADMIN, INITIAL_BALANCE) };
-        }
-        if (vaultAddress(freshIndex).equals(address)) {
-          return { owner: PROGRAM_ID, data: vaultData(ADMIN, INITIAL_BALANCE) };
-        }
-        return null;
-      },
+      getMultipleAccountsInfo: async (addresses: PublicKey[]) =>
+        addresses.map((address) => {
+          if (vaultAddress(foreignIndex).equals(address)) {
+            return { owner: FIXED_PROGRAM_ID, data: vaultData(ADMIN, INITIAL_BALANCE) };
+          }
+          if (vaultAddress(freshIndex).equals(address)) {
+            return { owner: PROGRAM_ID, data: vaultData(ADMIN, INITIAL_BALANCE) };
+          }
+          return null;
+        }),
     };
 
     const read = createVaultReader(connection as never, PROGRAM_ID);

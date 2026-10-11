@@ -41,11 +41,15 @@ describe('demoTarget — 没有钱包时的真实目标', () => {
   });
 
   it('读链成功时命名的是下一个新鲜 vault', async () => {
-    const read = async (address: PublicKey) => {
-      const index = [...Array(POOL_SIZE).keys()].find((i) => vaultAddress(i).equals(address));
-      if (index === undefined) return null;
-      return account(VERIFICATION.adminPubkey, index === 0 ? 500 : 1000); // index 0 已被之前的访客打掉
-    };
+    const indexOf = new Map(
+      [...Array(POOL_SIZE).keys()].map((i) => [vaultAddress(i).toBase58(), i]),
+    );
+    const read = async (addresses: PublicKey[]) =>
+      addresses.map((address) => {
+        const index = indexOf.get(address.toBase58());
+        if (index === undefined) return null;
+        return account(VERIFICATION.adminPubkey, index === 0 ? 500 : 1000); // index 0 已被之前的访客打掉
+      });
     const target = expectTarget(await resolveDemoTarget(read));
     expect(target.vault).toBe(vaultAddress(1).toBase58());
   });
@@ -63,7 +67,8 @@ describe('demoTarget — 没有钱包时的真实目标', () => {
     // in the pool is fresh. Reading a drained account for every address also keeps
     // this test's cost independent of the pool size: it is the behaviour — nothing
     // fresh means exhausted — that is under test, not a count.
-    const read = async () => account(VERIFICATION.adminPubkey, 500);
+    const read = async (addresses: PublicKey[]) =>
+      addresses.map(() => account(VERIFICATION.adminPubkey, 500));
     // Naming index 0 here would animate 1000 -> 500 under a vault that holds 500.
     expect(await resolveDemoTarget(read)).toEqual({ kind: 'exhausted' });
   });
@@ -79,7 +84,7 @@ describe('demoTarget — 没有钱包时的真实目标', () => {
 
   it('读链报错时回退到真实地址', async () => {
     // An unreachable RPC is the ordinary case, not an error worth surfacing.
-    const read = async (): Promise<Uint8Array | null> => {
+    const read = async (): Promise<(Uint8Array | null)[]> => {
       throw new Error('fetch failed');
     };
     const target = expectTarget(await resolveDemoTarget(read));

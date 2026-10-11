@@ -22,8 +22,8 @@ export type AttackConnection = Pick<
   'getLatestBlockhash' | 'sendRawTransaction' | 'getSignatureStatuses'
 >;
 
-/** Only the one call reading a vault needs. */
-export type AccountConnection = Pick<Connection, 'getAccountInfo'>;
+/** Only the one call reading vaults needs. */
+export type AccountConnection = Pick<Connection, 'getMultipleAccountsInfo'>;
 
 /**
  * The one instruction both ports send.
@@ -158,8 +158,14 @@ export function demoAttackPorts(
 }
 
 /**
- * Read a pool vault's raw account data, or null when it is not there — or is
- * not owned by the program being attacked.
+ * Read pool vaults' raw account data, one result per address in order — null
+ * for an account that is not there, or is not owned by the program being
+ * attacked.
+ *
+ * Batched through `getMultipleAccountsInfo`, which is the whole point of the
+ * seam: the scan walks past the drained vaults at the front of the pool, and
+ * asking one at a time cost a round trip per vault. One call answers a whole
+ * batch.
  *
  * The owner check is the demo's own lesson turned on itself: an account's data
  * is not its identity, its owner is. The fixed build's vault now sits at an
@@ -174,11 +180,14 @@ export function createVaultReader(
   connection: AccountConnection,
   programId: PublicKey,
 ): VaultReader {
-  return async (address: PublicKey) => {
-    const info = await connection.getAccountInfo(address);
-    if (!info) return null;
-    if (!info.owner.equals(programId)) return null;
-    return toBytes(info.data);
+  return async (addresses: PublicKey[]) => {
+    if (addresses.length === 0) return [];
+    const infos = await connection.getMultipleAccountsInfo(addresses);
+    return infos.map((info) => {
+      if (!info) return null;
+      if (!info.owner.equals(programId)) return null;
+      return toBytes(info.data);
+    });
   };
 }
 

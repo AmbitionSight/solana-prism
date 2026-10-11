@@ -49,7 +49,7 @@ function config(overrides: Partial<ChainPlanConfig> = {}): ChainPlanConfig {
 
 /**
  * A connection stand-in. Only pool vault 0 exists and it is read through
- * `getAccountInfo`; every submission confirms success. No network.
+ * `getMultipleAccountsInfo`; every submission confirms success. No network.
  */
 function fakeConnection(vault0: Uint8Array | null = vaultData(ADMIN, INITIAL_BALANCE)) {
   const sent: Uint8Array[] = [];
@@ -63,11 +63,13 @@ function fakeConnection(vault0: Uint8Array | null = vaultData(ADMIN, INITIAL_BAL
       context: { slot: 1 },
       value: [{ err: null, confirmationStatus: 'confirmed' }],
     }),
-    getAccountInfo: async (address: PublicKey) =>
-      vault0 && vaultAddress(0).equals(address)
-        ? // Owned by the program this run attacks, so the scanner accepts it.
-          { owner: new PublicKey(VULNERABLE_ID), data: vault0 }
-        : null,
+    getMultipleAccountsInfo: async (addresses: PublicKey[]) =>
+      addresses.map((address) =>
+        vault0 && vaultAddress(0).equals(address)
+          ? // Owned by the program this run attacks, so the scanner accepts it.
+            { owner: new PublicKey(VULNERABLE_ID), data: vault0 }
+          : null,
+      ),
   };
 
   return { connection: connection as never, sent };

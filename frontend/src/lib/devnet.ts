@@ -30,6 +30,16 @@ export const VAULT_SPACE = 48;
 export const POOL_SIZE = 200;
 
 /**
+ * How many vault addresses the scan asks about in one reader call.
+ *
+ * The RPC's `getMultipleAccounts` returns at most 100 accounts, so this is the
+ * most one round trip can answer. It is the scan's own stride — a property of
+ * how the scan asks — and a default parameter rather than a hardcode in the
+ * reader, so a test can shrink it to exercise several batches.
+ */
+export const POOL_SCAN_BATCH = 100;
+
+/**
  * The one vault owned by the *repaired* program.
  *
  * A literal, deliberately *not* `POOL_SIZE`. The fixed vault was created
@@ -141,14 +151,21 @@ export function decodeVault(data: Uint8Array): DecodedVault {
 }
 
 /**
- * Reads an account's data, or null when it does not exist. Injected, so testable.
+ * Reads several accounts' data at once — one result per address, in the order
+ * asked — or null for an account that does not exist. Injected, so testable.
+ *
+ * Batched rather than one address at a time because the scan rarely finds a
+ * fresh vault early: the drained vaults sit at the front of the pool, so a
+ * per-address read paid one round trip for every vault it walked past — 15
+ * seconds before the attack could even start. The chain answers up to 100
+ * accounts in a single `getMultipleAccounts`, so the whole pool is two calls.
  *
  * The real reader (`createVaultReader`) also returns null for an account not
  * owned by the program being attacked: this module stays pure by trusting the
  * reader for identity and judging only freshness here. Ownership is a chain
  * fact, and the chain is the reader's side of the seam.
  */
-export type VaultReader = (address: PublicKey) => Promise<Uint8Array | null>;
+export type VaultReader = (addresses: PublicKey[]) => Promise<(Uint8Array | null)[]>;
 
 /**
  * The first pool vault that is still fresh, or null when the pool is used up.
@@ -156,24 +173,49 @@ export type VaultReader = (address: PublicKey) => Promise<Uint8Array | null>;
  * "Fresh" is exact rather than approximate: the demo's claim is 1000 -> 500, so
  * a vault already at 500 is not a candidate and is skipped. An exhausted pool
  * returns null so the UI can say so — never a fabricated success.
+ *
+ * The pool is read in batches of `batchSize` and each batch is scanned in index
+ * order, so the answer is still the lowest-indexed fresh vault: a batch may read
+ * past the first hit, but nothing that comes after it can win. A batch that
+ * rejects, or that comes back with the wrong number of results, is propagated
+ * rather than read as absence — either would otherwise report an exhausted pool
+ * nobody actually checked.
  */
 export async function nextFreshVault(
   read: VaultReader,
   admin: PublicKey,
   poolSize: number = POOL_SIZE,
+  batchSize: number = POOL_SCAN_BATCH,
 ): Promise<number | null> {
-  for (let index = 0; index < poolSize; index += 1) {
-    const data = await read(vaultAddress(index));
-    if (!data) continue;
+  if (batchSize < 1) throw new Error('batchSize must be at least 1');
 
-    let decoded: DecodedVault;
-    try {
-      decoded = decodeVault(data);
-    } catch {
-      continue;
+  for (let start = 0; start < poolSize; start += batchSize) {
+    const end = Math.min(start + batchSize, poolSize);
+    const addresses: PublicKey[] = [];
+    for (let index = start; index < end; index += 1) addresses.push(vaultAddress(index));
+
+    const batch = await read(addresses);
+    if (batch.length !== addresses.length) {
+      throw new Error(
+        `vault reader returned ${batch.length} results for ${addresses.length} addresses`,
+      );
     }
 
-    if (decoded.authority.equals(admin) && decoded.balance === INITIAL_BALANCE) return index;
+    for (let offset = 0; offset < addresses.length; offset += 1) {
+      const data = batch[offset];
+      if (!data) continue;
+
+      let decoded: DecodedVault;
+      try {
+        decoded = decodeVault(data);
+      } catch {
+        continue;
+      }
+
+      if (decoded.authority.equals(admin) && decoded.balance === INITIAL_BALANCE) {
+        return start + offset;
+      }
+    }
   }
   return null;
 }

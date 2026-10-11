@@ -4,6 +4,7 @@ import {
   ATTACK_AMOUNT,
   FIXED_VAULT_INDEX,
   INITIAL_BALANCE,
+  POOL_SCAN_BATCH,
   POOL_SIZE,
   VAULT_SPACE,
   VAULT_DISCRIMINATOR,
@@ -117,10 +118,12 @@ describe('devnet — 修复版的那个 vault', () => {
     // filter the real reader applies (pinned in solanaChain.test.ts): a foreign
     // owner reads back as null, and the scan must skip the index rather than take
     // it — even though position would have offered it.
-    const read = async (address: PublicKey): Promise<Uint8Array | null> => {
-      if (vaultAddress(FIXED_VAULT_INDEX).equals(address)) return null; // foreign
-      return makeVaultData(ADMIN, INITIAL_BALANCE);
-    };
+    const read = async (addresses: PublicKey[]): Promise<(Uint8Array | null)[]> =>
+      addresses.map((address) =>
+        vaultAddress(FIXED_VAULT_INDEX).equals(address)
+          ? null // foreign owner
+          : makeVaultData(ADMIN, INITIAL_BALANCE),
+      );
     expect(await nextFreshVault(read, ADMIN)).not.toBe(FIXED_VAULT_INDEX);
   });
 });
@@ -150,21 +153,24 @@ describe('devnet — Vault 账户解码', () => {
 });
 
 describe('devnet — 找下一个可用的 vault', () => {
-  const pool = (balances: (number | null)[], authority: PublicKey = ADMIN) => async (
-    address: PublicKey,
-  ): Promise<Uint8Array | null> => {
-    for (let i = 0; i < poolSizeOf(balances); i += 1) {
-      if (vaultAddress(i).equals(address)) {
-        const balance = balances[i];
+  /**
+   * A batched reader over a fixed pool: index `i` holds `balances[i]`, a `null`
+   * entry is genuinely absent, and any address past the array was never made by
+   * the pool script. The address → index map is built once, so a batch costs
+   * O(batch) rather than re-deriving a keypair per address per call.
+   */
+  const pool = (balances: (number | null)[], authority: PublicKey = ADMIN) => {
+    const indexOf = new Map(
+      [...Array(balances.length).keys()].map((i) => [vaultAddress(i).toBase58(), i]),
+    );
+    return async (addresses: PublicKey[]): Promise<(Uint8Array | null)[]> =>
+      addresses.map((address) => {
+        const index = indexOf.get(address.toBase58());
+        if (index === undefined) return null;
+        const balance = balances[index];
         return balance === null ? null : makeVaultData(authority, balance);
-      }
-    }
-    return null;
+      });
   };
-
-  function poolSizeOf(balances: (number | null)[]): number {
-    return balances.length;
-  }
 
   it('第一个 fresh vault 胜出', async () => {
     expect(await nextFreshVault(pool([1000, 1000]), ADMIN)).toBe(0);
@@ -188,6 +194,36 @@ describe('devnet — 找下一个可用的 vault', () => {
     expect(await nextFreshVault(pool([]), ADMIN)).toBeNull();
   });
 
+  it('一批读得比第一个命中更远，但最小的下标仍然获胜', async () => {
+    // Two fresh vaults in one batch, behind a drained one. The scan must name
+    // the lowest fresh index, not whichever the batch happened to yield first.
+    expect(await nextFreshVault(pool([500, 1000, 1000]), ADMIN, 3, 100)).toBe(1);
+  });
+
+  it('跨批次时依然是最小的下标获胜', async () => {
+    // Fresh at 3 and 4, batch size 2: index 3 is the first hit of the second
+    // batch and still beats index 4 in the same batch.
+    expect(await nextFreshVault(pool([500, 500, 500, 1000, 1000]), ADMIN, 5, 2)).toBe(3);
+  });
+
+  it('一次问一整批地址，而不是一个一次', async () => {
+    const batches: string[][] = [];
+    const read = async (addresses: PublicKey[]) => {
+      batches.push(addresses.map((address) => address.toBase58()));
+      return addresses.map(() => makeVaultData(ADMIN, 500)); // every vault used
+    };
+
+    expect(await nextFreshVault(read, ADMIN, 5, 2)).toBeNull();
+
+    // Three calls for five vaults: [0,1], [2,3], [4] — in index order, and the
+    // last one shortened at the pool's edge rather than reading past it.
+    expect(batches).toEqual([
+      [vaultAddress(0).toBase58(), vaultAddress(1).toBase58()],
+      [vaultAddress(2).toBase58(), vaultAddress(3).toBase58()],
+      [vaultAddress(4).toBase58()],
+    ]);
+  });
+
   it('只查 POOL_SIZE 个，不越界', async () => {
     // The address → index map is built once so each read is O(1). Deriving a
     // keypair per index on every call made the test's cost grow with the pool,
@@ -196,15 +232,40 @@ describe('devnet — 找下一个可用的 vault', () => {
       [...Array(POOL_SIZE + 5).keys()].map((i) => [vaultAddress(i).toBase58(), i]),
     );
     const asked: number[] = [];
-    const read = async (address: PublicKey) => {
-      const index = indexOf.get(address.toBase58());
-      if (index !== undefined) asked.push(index);
-      return makeVaultData(ADMIN, 500);
+    const read = async (addresses: PublicKey[]) => {
+      for (const address of addresses) {
+        const index = indexOf.get(address.toBase58());
+        if (index !== undefined) asked.push(index);
+      }
+      return addresses.map(() => makeVaultData(ADMIN, 500));
     };
 
     expect(await nextFreshVault(read, ADMIN)).toBeNull();
     // It asked for every pool vault, once, in order, and stopped at the last one —
     // never reaching for an index past the pool the script made.
     expect(asked).toEqual([...Array(POOL_SIZE).keys()]);
+  });
+
+  it('某一批读失败时抛出，不把失败读成池子空了', async () => {
+    let calls = 0;
+    const read = async (addresses: PublicKey[]) => {
+      calls += 1;
+      if (calls === 2) throw new Error('rpc rate limited');
+      return addresses.map(() => makeVaultData(ADMIN, 500)); // the batch before it is drained
+    };
+
+    await expect(nextFreshVault(read, ADMIN, 5, 2)).rejects.toThrow('rpc rate limited');
+  });
+
+  it('一批的结果数量对不上时抛出，而不是把缺的当成不存在', async () => {
+    // A reader that answers a whole batch with one result: the addresses it did
+    // not answer must not be read as absent vaults, so this is an error, not a
+    // shorter pool.
+    const read = async () => [makeVaultData(ADMIN, 500)];
+    await expect(nextFreshVault(read, ADMIN, 5, 2)).rejects.toThrow(/results/);
+  });
+
+  it('默认批量不超过 RPC 的 100 账户上限', () => {
+    expect(POOL_SCAN_BATCH).toBeLessThanOrEqual(100);
   });
 });

@@ -60,15 +60,16 @@ function vaultData(authority: string, balance: number): Uint8Array {
 
 /** Reads only the pool indices, so index POOL_SIZE is genuinely absent. */
 function poolReader(balances: (number | null)[]) {
-  return async (address: PublicKey): Promise<Uint8Array | null> => {
-    for (let i = 0; i < balances.length; i += 1) {
-      if (vaultAddress(i).equals(address)) {
-        const balance = balances[i];
-        return balance === null ? null : vaultData(ADMIN, balance);
-      }
-    }
-    return null;
-  };
+  const indexOf = new Map(
+    [...Array(balances.length).keys()].map((i) => [vaultAddress(i).toBase58(), i]),
+  );
+  return async (addresses: PublicKey[]): Promise<(Uint8Array | null)[]> =>
+    addresses.map((address) => {
+      const index = indexOf.get(address.toBase58());
+      if (index === undefined) return null;
+      const balance = balances[index];
+      return balance === null ? null : vaultData(ADMIN, balance);
+    });
 }
 
 describe('devnetRun — 漏洞版: 用池子里下一个 fresh vault', () => {
@@ -128,9 +129,9 @@ describe('devnetRun — 修复版: 一个不会被消耗的 vault', () => {
 
   it('根本不去扫池子 —— 它不需要 fresh vault', async () => {
     let reads = 0;
-    const read = async () => {
+    const read = async (addresses: PublicKey[]) => {
       reads += 1;
-      return null;
+      return addresses.map(() => null);
     };
     await planChainRun(config({ isFixed: true }), read);
     expect(reads).toBe(0);
@@ -158,9 +159,9 @@ describe('devnetRun — 配置还没填全时不得假装能跑', () => {
     });
     // ...and it must not have scanned the pool with a made-up authority either.
     let reads = 0;
-    await planChainRun(config({ adminPubkey: 'TBD' }), async () => {
+    await planChainRun(config({ adminPubkey: 'TBD' }), async (addresses: PublicKey[]) => {
       reads += 1;
-      return null;
+      return addresses.map(() => null);
     });
     expect(reads).toBe(0);
   });
