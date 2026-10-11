@@ -197,6 +197,24 @@ export interface Messages {
   closingLinkSolend: string;
   ariaClosingRegion: string;
 
+  /* ---- The shell: the lesson list, and the way out of a lesson ---- */
+
+  /* The home page. A landing page, not a dashboard: a title, one line saying
+     what this is, and the list of lessons below. */
+  homeTitle: string;
+  homeLede: string;
+  /**
+   * The label on the control that leaves a lesson. It is the same whichever page
+   * the learner is on — one control, always available, so nobody is trapped —
+   * and it is reused for the end-of-lesson control on the retry page.
+   */
+  backToLessons: string;
+
+  /* Lesson one, as the home page lists it: a title, and the one-line
+     description of the vulnerability the lesson teaches. */
+  lessonMissingSignerTitle: string;
+  lessonMissingSignerBlurb: string;
+
   /* ---- The eight-page narrative tail (pages 4, 6, 7, 8) ---- */
 
   /* Page 4 — the payoff of the blank left on page 3: the caller simply writes
@@ -373,6 +391,13 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSolend: 'Solend incident, 2021-08-19',
     ariaClosingRegion: 'Closing note',
 
+    homeTitle: 'Lessons',
+    homeLede: 'Solana Prism — one vulnerability per lesson, walked end to end on chain.',
+    backToLessons: 'All lessons',
+    lessonMissingSignerTitle: 'The signature nobody asked for',
+    lessonMissingSignerBlurb:
+      'A withdraw handler compares the caller against the stored admin — and never asks the runtime to check a signature.',
+
     fillTitle: 'He simply put this address in.',
     fillLede:
       "This address is visible to everyone on chain. The admin's public key is not a secret — a public key never is.",
@@ -527,6 +552,13 @@ export const MESSAGES: Record<Language, Messages> = {
     closingLinkSealevel: 'Anchor 文档 · Sealevel Attacks',
     closingLinkSolend: 'Solend 事件（2021-08-19）',
     ariaClosingRegion: '结语',
+
+    homeTitle: '课程',
+    homeLede: 'Solana Prism —— 每节课只讲一个漏洞，从头到尾走一遍，而且真的上链。',
+    backToLessons: '全部课程',
+    lessonMissingSignerTitle: '没人要求过的那枚签名',
+    lessonMissingSignerBlurb:
+      '一个提现处理函数，把调用者和存着的管理员地址作比较 —— 却从没让运行时验证过签名。',
 
     fillTitle: '他只是把这个地址填了进去。',
     fillLede: '这个地址，在链上人人可见。管理员的公钥不是秘密 —— 公钥从来不是秘密。',

@@ -65,6 +65,9 @@ try {
 `;
 
 const SQL = {
+  /** The shell's entry card for lesson one. The recording opens on the lesson
+      list now and enters the lesson before the eight pages. */
+  lesson: '[data-testid="lesson-missing-signer"]',
   execute: '[data-testid="execute-btn"]',
   verifyToggle: '[data-testid="verify-toggle"]',
   verifyPanel: '[data-testid="verify-panel"]',
@@ -96,6 +99,11 @@ const KEY_CODES = {
  * waiting on each page's state between presses.
  */
 const PLAN = [
+  // --- the shell: the app opens on the lesson list, so the recording enters
+  // lesson one before the eight pages — the same entry step `tools/shoot.mjs`
+  // performs, so the two cannot drift apart.
+  { wait: `__prism.has('${SQL.lesson}')`, click: SQL.lesson },
+
   // --- English: the whole flow
   { wait: `__prism.step() === 1`, after: 2900 },
   { wait: `__prism.step() === 2`, after: 3900 },

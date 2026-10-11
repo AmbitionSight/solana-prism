@@ -63,8 +63,16 @@ const DECOMPOSE_MS = 1600;
  * them. Passing a later step directly lets a test hold the demo in the state the
  * default path must keep behaving in. The app itself never passes it, so the
  * demo still opens on step 1.
+ *
+ * `onExit` is the way back to the lesson list. It is optional so a render
+ * without it (every unit test, and the fixtures) is byte-for-byte what it was
+ * before the shell existed: with no callback there is no control to draw. The
+ * shell always passes one, so a learner inside the app is never trapped.
  */
-export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
+export default function App({
+  initialStep = 1,
+  onExit,
+}: { initialStep?: Step; onExit?: () => void } = {}) {
   const { t } = useLanguage();
   const [step, setStep] = useState<Step>(initialStep);
   /**
@@ -478,6 +486,19 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     // was removed, so the verification harness reads this instead of scraping
     // the DOM for text that is no longer rendered.
     <div className="app" data-step={step}>
+      {/* The way out, at every page of the lesson. Deliberately in the top-left
+          corner rather than in the top-right chrome: the flow's cards reach into
+          that corner on the tall pages, and a control there would land on the
+          lesson. The top-left is empty on every page — the stage is centred — so
+          the exit sits in the margin, quiet and out of the way. It is drawn only
+          when the shell gives it something to do: a render with no `onExit`
+          emits exactly what it did before this control existed. */}
+      {onExit && (
+        <button type="button" className="back-btn" data-testid="exit-lesson" onClick={onExit}>
+          {t.backToLessons}
+        </button>
+      )}
+
       <div className="top-controls">
         <WalletButton
           provider={provider}
@@ -528,7 +549,23 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
               {step === 8 && attackState === 'done' ? (
                 <div className="footer-pair">
                   <RetryRefused />
-                  <div className="footer-pair__verdict">{attackVerdict}</div>
+                  <div className="footer-pair__verdict">
+                    {attackVerdict}
+                    {/* The lesson is over here: the refusal is shown, with its
+                        evidence. This is the way home from the end — the
+                        deliberate one, under the verdict, not merely the chrome
+                        control that is available on every page. */}
+                    {onExit && (
+                      <button
+                        type="button"
+                        className="lesson-done-btn"
+                        data-testid="lesson-done-home"
+                        onClick={onExit}
+                      >
+                        {t.backToLessons}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>

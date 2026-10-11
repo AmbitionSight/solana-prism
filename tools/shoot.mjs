@@ -148,6 +148,16 @@ const KEY_CODES = {
 };
 
 const SQL = {
+  /**
+   * The shell's entry point: the home page's card for lesson one. The plan
+   * begins by clicking it, because the app now opens on the lesson list rather
+   * than on page 1 of the lesson.
+   */
+  lesson: '[data-testid="lesson-missing-signer"]',
+  /** The chrome control that leaves a lesson from any page. */
+  exit: '[data-testid="exit-lesson"]',
+  /** The end-of-lesson control, under the verdict on the retry page. */
+  doneHome: '[data-testid="lesson-done-home"]',
   execute: '[data-testid="execute-btn"]',
   verifyToggle: '[data-testid="verify-toggle"]',
   verifyPanel: '[data-testid="verify-panel"]',
@@ -179,6 +189,17 @@ const NOTE_THE_BUG_ZH = '这一行就是全部的漏洞';
 const NOTE_THE_BUG_EN = 'This line is the whole bug';
 
 const PLAN = [
+  // --- the shell: the app now opens on the lesson list, so the first thing the
+  // plan does is enter lesson one. The wait is on the entry card's presence
+  // through `__prism.has` — the same readiness predicate every other step uses —
+  // rather than a sleep or a second "is it up yet" flag of its own.
+  {
+    wait: `__prism.has('${SQL.lesson}') && !__prism.has('.app')`,
+    after: 400,
+    shot: 'home',
+  },
+  { wait: `__prism.has('${SQL.lesson}')`, click: SQL.lesson },
+
   // --- the narrated steps, each waiting for the state it claims to show
   { wait: `__prism.step() === 1`, after: 1300, shot: 'step1-title' },
   { wait: `__prism.step() === 2`, after: 2400, shot: 'step2-code' },
@@ -432,6 +453,26 @@ const PLAN = [
     after: 400,
     expect: { expression: `__prism.text('${SQL.verifyPanel}')`, contains: 'Same call, fixed build' },
     shot: 'step8-verify-panel',
+  },
+
+  // --- and out again. The lesson is over at this point, so the end-of-lesson
+  // control is the one to follow: it exists only once the refusal and its
+  // evidence are on screen, and following it must land back on the list the
+  // plan entered from. Asserting the list is back is the same check the entry
+  // step made, run in reverse.
+  { wait: `__prism.has('${SQL.doneHome}')`, click: SQL.doneHome },
+  {
+    wait: `__prism.has('${SQL.lesson}') && !__prism.has('.app')`,
+    after: 400,
+    expect: {
+      expression: `(() => {
+        const home = __prism.has('${SQL.lesson}');
+        const lesson = __prism.has('.app');
+        return home && !lesson ? 'home-again' : 'home[' + home + '] lesson[' + lesson + ']';
+      })()`,
+      contains: 'home-again',
+    },
+    shot: 'home-returned',
   },
 ];
 

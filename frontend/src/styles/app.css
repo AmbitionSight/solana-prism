@@ -46,6 +46,141 @@
   border-color: var(--color-text-tertiary);
 }
 
+/* The way out of a lesson. The same quiet pill as the language toggle's
+   neighbours: chrome, not content, so it never competes with the page.
+   Pinned to the top-left corner of the app, which is empty on every page — the
+   stage is centred and the flow's cards reach instead into the top-right. */
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 28px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  transition:
+    color var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple);
+}
+
+.back-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-tertiary);
+}
+
+/* ---------- The shell: the home page ---------- */
+
+.home {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Top room for the chrome, which is absolute and would otherwise sit on the
+     title at a short window. */
+  padding: 72px 24px 40px;
+}
+
+.home__inner {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.home__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home__title {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-title);
+  /* Headlines want tight leading, as on the lesson's own title page. */
+  line-height: 1.1;
+}
+
+.home__lede {
+  max-width: 560px;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+
+.lesson-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A lesson is a card you can press, in the same material as the code card and
+   the layer cards: white, lifted off the page, hairline border. */
+.lesson-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  text-align: left;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple);
+}
+
+.lesson-card:hover {
+  transform: translateY(var(--nudge-hover));
+  border-color: var(--color-text-tertiary);
+}
+
+.lesson-card:active {
+  transform: scale(0.995);
+}
+
+.lesson-card__title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.lesson-card__blurb {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* The end-of-lesson control, under the verdict on the retry page. Slightly
+   heavier than the chrome pill because it is the page's one action, and the
+   page's subject is that the attack was refused — not that the lesson is over —
+   so it stays subordinate to the result above it. */
+.lesson-done-btn {
+  margin-top: 12px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  transition:
+    color var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple);
+}
+
+.lesson-done-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-tertiary);
+}
+
 /* Press states. Every tappable thing on Apple's surfaces gives slightly under a
    press; without one, a control reads as an image of a control. */
 .replay-btn:active,
