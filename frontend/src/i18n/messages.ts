@@ -182,7 +182,6 @@ export interface Messages {
   verifyFixedProgram: string;
   verifySameCall: string;
   verifyPending: string;
-  verifyVideoNote: string;
   ariaVerifyRegion: string;
 
   /* Closing note — why the repair works, what it costs to miss it, and where
@@ -358,7 +357,6 @@ export const MESSAGES: Record<Language, Messages> = {
     verifyFixedProgram: 'Fixed program',
     verifySameCall: 'Same call, fixed build',
     verifyPending: 'not deployed yet',
-    verifyVideoNote: 'Recorded walkthrough (demo-verify.mp4) is added once there is something real to record.',
     ariaVerifyRegion: 'On-chain verification',
 
     closingFixIsDeclaration:
@@ -515,7 +513,6 @@ export const MESSAGES: Record<Language, Messages> = {
     verifyFixedProgram: '修复版程序',
     verifySameCall: '同一调用，修复版',
     verifyPending: '尚未部署',
-    verifyVideoNote: '录屏（demo-verify.mp4）要等真的跑通之后才有东西可录。',
     ariaVerifyRegion: '链上验证',
 
     closingFixIsDeclaration:

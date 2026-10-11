@@ -601,11 +601,6 @@
   background: #000;
 }
 
-.verify__video-fallback {
-  margin-top: 20px;
-  font-size: 13px;
-}
-
 /* ---------- Transaction payload card ---------- */
 
 .txcard-overlay {

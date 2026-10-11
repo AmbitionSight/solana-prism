@@ -193,7 +193,11 @@ export default function VerifyPanel({
             <Row labelKey="verifySameCall" value={attackTxError} />
           </dl>
 
-          {videoAvailable && !videoBroken ? (
+          {/* No fallback sentence. A note promising a recording that does not
+              exist is noise dressed as candour — the panel already says what it
+              can and cannot point at, and there is nothing to say about a file
+              that is not there. When it lands, the element appears on its own. */}
+          {videoAvailable && !videoBroken && (
             <video
               className="verify__video"
               src={VIDEO_SRC}
@@ -201,8 +205,6 @@ export default function VerifyPanel({
               preload="metadata"
               onError={() => setVideoBroken(true)}
             />
-          ) : videoAvailable === null ? null : (
-            <p className="verify__pending verify__video-fallback">{t.verifyVideoNote}</p>
           )}
         </div>
       )}
