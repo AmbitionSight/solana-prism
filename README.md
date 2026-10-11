@@ -13,12 +13,6 @@
 
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">中文</a></p>
 
-![Solana Prism — the first lesson, page by page](docs/screenshots/contact-sheet.png)
-
-*The first lesson, page by page. This contact sheet and the recorded walkthrough
-(`docs/screenshots/walkthrough.mp4`) were captured before the second lesson
-shipped, so both show lesson one only.*
-
 ## What it is
 
 Solana Prism is a platform for Solana smart-contract security lessons. Each
@@ -30,53 +24,6 @@ a signature behind it that an explorer can confirm. Nothing is asserted that the
 chain has not confirmed, so the verdict under an attack is the cluster's answer
 rather than a local rule, and the verify panel speaks from the lesson's evidence
 rather than from a deployment flag.
-
-The platform ships two lessons.
-
-## The two lessons
-
-| Lesson | The vulnerability | Why it is subtle |
-|---|---|---|
-| **The signature nobody asked for** | `authority: AccountInfo<'info>` where `Signer<'info>` was needed. | The `withdraw` handler compares the caller against the stored admin, but the runtime is never asked to check a signature — declaring `AccountInfo` asks for nothing, so the attacker hands over the admin's public address and it is accepted. |
-| **The account that was not ours** — the owner nobody checked | `credit: UncheckedAccount<'info>` where `Account<'info, Credit>` was needed. | The handler trusts a credit because its bytes deserialise correctly, without ever asking who owns the account those bytes came from. An account's data is not its identity — its owner is. |
-
-On Solana you *declare* what an account must be and the runtime enforces it
-before your handler runs. Declared constraints are enforced for free;
-hand-written checks only if you remember to write them.
-
-## On-chain evidence
-
-Both lessons are deployed to **testnet**, and both attacks have been run against
-the deployed programs. Every address and signature below is read from
-`frontend/public/lessons/<id>/lesson.json`; both lessons share one admin address,
-`DMkwnXZ6Gy7X8fkzSyBCdCuk3E2CFrwCmhV9A44qGU7T`, the public half of the keypair
-that `initialize` records as the vaults' authority.
-
-**Lesson one — the signature nobody asked for** (`missing-signer`)
-
-| | |
-|---|---|
-| Vulnerable program | [`7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2`](https://solscan.io/account/7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2?cluster=testnet) |
-| Repaired program | [`9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq`](https://solscan.io/account/9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq?cluster=testnet) |
-| Attack transaction (run for real) | [`2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW`](https://solscan.io/tx/2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW?cluster=testnet) |
-| The same call on the repaired build | `InstructionError: [0, Custom(3010)]` |
-| Vault the attack moved | a counter, `1000 → 500` |
-
-**Lesson two — the account that was not ours** (`missing-owner`)
-
-| | |
-|---|---|
-| Vulnerable program | [`38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL`](https://solscan.io/account/38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL?cluster=testnet) |
-| Repaired program | [`BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93`](https://solscan.io/account/BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93?cluster=testnet) |
-| Attacker's counterfeit program | [`AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR`](https://solscan.io/account/AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR?cluster=testnet) |
-| Attack transaction (run for real) | [`5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG`](https://solscan.io/tx/5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG?cluster=testnet) |
-| The same call on the repaired build | `InstructionError: [1, Custom(3007)]` |
-| Vault the attack moved | lamports, `50,000,000 → 0` |
-
-The two vaults are not the same kind of thing, and the README will not blur it:
-lesson one's vault holds a counter, and the attack moves it from 1000 to 500.
-Lesson two's vault holds lamports, and the attack moved all 0.05 SOL of them out
-— real value, on testnet.
 
 ## Quick start
 

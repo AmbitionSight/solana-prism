@@ -13,51 +13,9 @@
 
 <p align="center"><a href="README.md">English</a> · <strong>中文</strong></p>
 
-![Solana Prism —— 第一课，逐页](docs/screenshots/contact-sheet.png)
-
-*第一课，逐页。这份截图拼版和录制好的演示（`docs/screenshots/walkthrough.mp4`）都拍在第二课上线之前，所以两者都只有第一课。*
-
 ## 这是什么
 
 Solana Prism 是一个讲 Solana 智能合约安全的课程平台。一节课挑一个漏洞，沿着漏洞真实走过的执行路径把合约拆开 —— 这次调用经过的每一个阶段，以及错误藏身的那一行。然后它真的跑一遍：读者看到的攻击是 testnet 上的一笔交易，课程说的每一句话背后都有一个能在浏览器上查到的签名。链没确认过的，一句都不说 —— 所以攻击下方的结论是集群给的，不是本地规则算的；验证面板说的是课程证据本身，而不是某个部署开关。
-
-平台目前装了两节课。
-
-## 两节课
-
-| 课程 | 漏洞 | 微妙在哪 |
-|---|---|---|
-| **没人要求过的那枚签名** | 本该是 `Signer<'info>` 的地方写了 `authority: AccountInfo<'info>`。 | `withdraw` 处理函数把调用者和存着的管理员作比较，却从没让运行时去校验签名 —— 声明 `AccountInfo` 等于什么都不索取，于是攻击者递上管理员的公开地址也能通过。 |
-| **不属于它的那个账户** —— 没人校验过的那个 owner | 本该是 `Account<'info, Credit>` 的地方写了 `credit: UncheckedAccount<'info>`。 | 处理函数只因为字节反序列化得对，就信了这份凭证，从没问过这些字节来自哪个账户。账户的数据不是它的身份 —— owner 才是。 |
-
-在 Solana 上，你*声明*一个账户必须是什么，运行时会在处理函数跑起来之前执行这些声明。声明出来的约束免费执行，手写的检查只有想起来写才有。
-
-## 链上证据
-
-两节课都部署在 **testnet** 上，两个攻击都对着部署上去的程序真跑过。下面每一个地址和签名都读自 `frontend/public/lessons/<id>/lesson.json`；两节课共用同一个管理员地址 `DMkwnXZ6Gy7X8fkzSyBCdCuk3E2CFrwCmhV9A44qGU7T`，那是 `initialize` 记录为金库 authority 的那对密钥的公钥。
-
-**第一课 —— 没人要求过的那枚签名**（`missing-signer`）
-
-| | |
-|---|---|
-| 有漏洞的程序 | [`7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2`](https://solscan.io/account/7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2?cluster=testnet) |
-| 修复后的程序 | [`9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq`](https://solscan.io/account/9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq?cluster=testnet) |
-| 攻击交易（真跑过一次） | [`2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW`](https://solscan.io/tx/2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW?cluster=testnet) |
-| 同一个调用打到修复版上 | `InstructionError: [0, Custom(3010)]` |
-| 攻击挪动的金库 | 一个计数器，`1000 → 500` |
-
-**第二课 —— 不属于它的那个账户**（`missing-owner`）
-
-| | |
-|---|---|
-| 有漏洞的程序 | [`38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL`](https://solscan.io/account/38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL?cluster=testnet) |
-| 修复后的程序 | [`BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93`](https://solscan.io/account/BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93?cluster=testnet) |
-| 攻击者伪造的程序 | [`AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR`](https://solscan.io/account/AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR?cluster=testnet) |
-| 攻击交易（真跑过一次） | [`5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG`](https://solscan.io/tx/5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG?cluster=testnet) |
-| 同一个调用打到修复版上 | `InstructionError: [1, Custom(3007)]` |
-| 攻击挪动的金库 | lamports，`50,000,000 → 0` |
-
-两个金库不是同一种东西，README 不会含糊过去：第一课的金库装的是一个计数器，攻击把它从 1000 挪到 500。第二课的金库装的是 lamports，攻击把 0.05 SOL 全部挪了出去 —— 真金白银，只是发生在 testnet 上。
 
 ## 快速开始
 
