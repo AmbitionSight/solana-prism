@@ -4,19 +4,17 @@ import {
   ATTACK_MS,
   dangerPulseKeyframes,
   fixedKeyframes,
+  flowGeometry,
   successPulseKeyframes,
   vulnerableKeyframes,
 } from '../lib/keyframes';
-import { VAULT_LAYERS } from '../config/layers';
+import { useLesson } from '../lib/lessonContext';
 import type { AttackState } from '../lib/steps';
 import AttackDot from './AttackDot';
 import LayerCard from './LayerCard';
 
 export type LayersMode = 'hidden' | 'seeded' | 'decomposed' | 'flow';
 
-const COUNT = VAULT_LAYERS.length;
-/** One connector per gap between consecutive cards. */
-const LINK_COUNT = COUNT - 1;
 /** Each card leaves the centre a beat after the one above it. */
 const SCATTER_STAGGER_MS = 150;
 /** ...and settles into the flow a shorter beat after the one above it. */
@@ -29,8 +27,8 @@ const SETTLE_STAGGER_MS = 70;
  * cards (a transform off the container's centre) so the two share one origin and
  * a retune of the geometry moves both.
  */
-function linkOffsetY(index: number): number {
-  return layerTopY(index) + LAYER_HEIGHT + LAYER_GAP / 2 - stackHeight(COUNT) / 2;
+function linkOffsetY(index: number, count: number): number {
+  return layerTopY(index) + LAYER_HEIGHT + LAYER_GAP / 2 - stackHeight(count) / 2;
 }
 
 interface ContractLayersProps {
@@ -74,6 +72,10 @@ export default function ContractLayers({
   onAttackEnd,
   originRects,
 }: ContractLayersProps) {
+  const { layers } = useLesson();
+  /** One connector per gap between consecutive cards. */
+  const linkCount = layers.length - 1;
+  const geo = flowGeometry(layers);
   const containerRef = useRef<HTMLDivElement>(null);
   /** Per-card start offsets, derived from where the code boxes were. */
   const [origins, setOrigins] = useState<Record<string, { x: number; y: number }> | null>(null);
@@ -125,16 +127,16 @@ export default function ContractLayers({
   const seeded = activeMode === 'seeded';
 
   const containerStyle = {
-    '--stack-height': `${stackHeight(COUNT)}px`,
+    '--stack-height': `${stackHeight(layers.length)}px`,
     '--layer-height': `${LAYER_HEIGHT}px`,
     '--layer-gap': `${LAYER_GAP}px`,
     '--attack-duration': `${ATTACK_MS}ms`,
   } as CSSProperties;
 
   const keyframes = [
-    vulnerableKeyframes(),
-    fixedKeyframes(),
-    dangerPulseKeyframes(),
+    vulnerableKeyframes(geo),
+    fixedKeyframes(geo),
+    dangerPulseKeyframes(geo),
     successPulseKeyframes(),
   ].join('');
 
@@ -151,7 +153,7 @@ export default function ContractLayers({
         data-testid="layers-container"
         data-mode={activeMode}
       >
-        {VAULT_LAYERS.map((layer, index) => (
+        {layers.map((layer, index) => (
           <Fragment key={layer.id}>
             <LayerCard
               key={layer.id}
@@ -166,7 +168,7 @@ export default function ContractLayers({
                   : seeded
                     ? (origins?.[layer.id]?.y ?? 0)
                     : activeMode === 'flow'
-                      ? stackedOffsetY(index, COUNT)
+                      ? stackedOffsetY(index, layers.length)
                       : 0
               }
               transitionDelayMs={
@@ -179,11 +181,11 @@ export default function ContractLayers({
             />
             {/* Between consecutive cards: the gap below this one. Rendered in
                 every mode; `.layers-container.flow` is what reveals it. */}
-            {index < LINK_COUNT && (
+            {index < linkCount && (
               <div
                 className="layer-connector"
                 aria-hidden="true"
-                style={{ '--y': `${linkOffsetY(index)}px` } as CSSProperties}
+                style={{ '--y': `${linkOffsetY(index, layers.length)}px` } as CSSProperties}
               />
             )}
           </Fragment>

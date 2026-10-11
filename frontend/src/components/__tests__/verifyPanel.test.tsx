@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import VerifyPanel from '../VerifyPanel';
 import { MESSAGES, formatCluster } from '../../i18n/messages';
-import { PENDING, VERIFICATION, solscanTxUrl } from '../../config/verification';
+import { PENDING, solscanTxUrl } from '../../config/verification';
 import type { VerifyEvidence } from '../../config/verification';
+import { shippedLesson } from '../../__tests__/shipped';
 import { baselines, render } from './harness';
+
+/** The on-chain evidence a lesson ships, read from the same bytes the app fetches. */
+const VERIFICATION = shippedLesson().verification;
 
 /**
  * Step 6 gains one row and keeps its two voices.

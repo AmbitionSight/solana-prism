@@ -4,7 +4,11 @@ import type { ReactNode } from 'react';
 import DevnetRun from '../DevnetRun';
 import { LanguageContext } from '../../i18n/language';
 import { MESSAGES, formatCluster, type Language } from '../../i18n/messages';
-import { PENDING, VERIFICATION } from '../../config/verification';
+import { PENDING } from '../../config/verification';
+import { shippedLesson } from '../../__tests__/shipped';
+
+/** The shipped lesson's program ids, read from the bytes the app fetches. */
+const VERIFICATION = shippedLesson().verification;
 
 /**
  * The real-run entry point is opt-in, and the opt-in test is the whole guard:

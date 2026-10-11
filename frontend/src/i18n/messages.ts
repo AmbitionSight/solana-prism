@@ -90,8 +90,9 @@ export interface Messages {
      filled.
 
      Only the labels and the two notes are copy. The one address that exists is
-     config (`VERIFICATION.adminPubkey`) and is elided for display; writing it
-     into the catalogue would put a value that changes on redeploy into a
+     lesson data (`verification.adminPubkey`, fetched with the lesson) and is
+     elided for display; writing it into the catalogue would put a value that
+     changes on redeploy into a
      translated string. The first note is a back-reference (S0 wrote it in); the
      second is a fact about the platform, not a back-reference — on Solana the
      caller supplies this and nothing checks who they are. */
@@ -209,6 +210,13 @@ export interface Messages {
    * and it is reused for the end-of-lesson control on the retry page.
    */
   backToLessons: string;
+  /**
+   * The shell now loads the lesson list and each lesson from static files, so
+   * both have a moment of "not yet" and a possible failure. Neither may be a
+   * blank screen, so each state says itself here like every other string.
+   */
+  lessonsLoading: string;
+  lessonLoadError: string;
 
   /* Lesson one, as the home page lists it: a title, and the one-line
      description of the vulnerability the lesson teaches. */
@@ -218,8 +226,8 @@ export interface Messages {
   /* ---- The eight-page narrative tail (pages 4, 6, 7, 8) ---- */
 
   /* Page 4 — the payoff of the blank left on page 3: the caller simply writes
-     the admin's public address into the slot. The address itself is config
-     (`VERIFICATION.adminPubkey`), elided at render; only the prose is copy. */
+     the admin's public address into the slot. The address itself is lesson data
+     (`verification.adminPubkey`), elided at render; only the prose is copy. */
   fillTitle: string;
   fillLede: string;
   fillNoHack: string;
@@ -279,14 +287,22 @@ export interface Messages {
 
 export type MessageKey = keyof Messages;
 
-/** The six stage names, so `bilingualName` can be typed narrowly. */
-export type LayerNameKey =
-  | 'stageSetup'
-  | 'stageInstruction'
-  | 'stageAccounts'
-  | 'stageDeclaration'
-  | 'stageManualCheck'
-  | 'stageStateChange';
+/**
+ * The six stage names, as both a type and a runtime list. `bilingualName` is
+ * typed narrowly from it, and the lesson loader validates a fetched stage's
+ * `nameKey` against the same list — one source, so the type and the check that
+ * the JSON cannot give us cannot drift apart.
+ */
+export const LAYER_NAME_KEYS = [
+  'stageSetup',
+  'stageInstruction',
+  'stageAccounts',
+  'stageDeclaration',
+  'stageManualCheck',
+  'stageStateChange',
+] as const;
+
+export type LayerNameKey = (typeof LAYER_NAME_KEYS)[number];
 
 export const MESSAGES: Record<Language, Messages> = {
   en: {
@@ -394,6 +410,8 @@ export const MESSAGES: Record<Language, Messages> = {
     homeTitle: 'Lessons',
     homeLede: 'Solana Prism — one vulnerability per lesson, walked end to end on chain.',
     backToLessons: 'All lessons',
+    lessonsLoading: 'Loading lessons…',
+    lessonLoadError: 'That lesson could not be loaded. It may be missing or malformed.',
     lessonMissingSignerTitle: 'The signature nobody asked for',
     lessonMissingSignerBlurb:
       'A withdraw handler compares the caller against the stored admin — and never asks the runtime to check a signature.',
@@ -556,6 +574,8 @@ export const MESSAGES: Record<Language, Messages> = {
     homeTitle: '课程',
     homeLede: 'Solana Prism —— 每节课只讲一个漏洞，从头到尾走一遍，而且真的上链。',
     backToLessons: '全部课程',
+    lessonsLoading: '正在载入课程…',
+    lessonLoadError: '无法载入这一课。它可能缺失，或者格式有误。',
     lessonMissingSignerTitle: '没人要求过的那枚签名',
     lessonMissingSignerBlurb:
       '一个提现处理函数，把调用者和存着的管理员地址作比较 —— 却从没让运行时验证过签名。',

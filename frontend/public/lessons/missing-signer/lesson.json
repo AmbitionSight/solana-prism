@@ -1,0 +1,98 @@
+{
+  "id": "missing-signer",
+  "layers": [
+    {
+      "id": "S0",
+      "nameKey": "stageSetup",
+      "sayKey": "sayCreateVault",
+      "code": "vault.authority = ctx.accounts.authority.key()",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 0, "y": -195 }
+    },
+    {
+      "id": "S1",
+      "nameKey": "stageInstruction",
+      "sayKey": "sayCall",
+      "code": "withdraw(ctx, amount: 500)",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": -220, "y": -110 }
+    },
+    {
+      "id": "S2",
+      "nameKey": "stageAccounts",
+      "sayKey": "sayHandOver",
+      "code": "vault · authority",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 220, "y": -90 }
+    },
+    {
+      "id": "S3",
+      "nameKey": "stageDeclaration",
+      "sayKey": "sayDeclaration",
+      "sayWhenFixed": "sayDeclarationFixed",
+      "code": "authority: AccountInfo<'info>",
+      "codeWhenFixed": "authority: Signer<'info>",
+      "isSecurityLayer": true,
+      "broken": true,
+      "scatter": { "x": -200, "y": 70 }
+    },
+    {
+      "id": "S4",
+      "nameKey": "stageManualCheck",
+      "sayKey": "sayCompare",
+      "code": "require!(vault.authority == authority.key())",
+      "compare": {
+        "storedKey": "compareStored",
+        "storedFromKey": "compareStoredFrom",
+        "suppliedKey": "compareSupplied",
+        "suppliedNoteKey": "compareSuppliedNote",
+        "resultKey": "compareResult"
+      },
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 210, "y": 90 }
+    },
+    {
+      "id": "S5",
+      "nameKey": "stageStateChange",
+      "sayKey": "sayStateChange",
+      "code": "vault.balance -= amount",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 0, "y": 160 }
+    }
+  ],
+  "contract": {
+    "regions": [
+      { "stageId": "S0", "from": 22, "to": 27 },
+      { "stageId": "S1", "from": 29, "to": 29 },
+      { "stageId": "S4", "from": 31, "to": 35 },
+      { "stageId": "S5", "from": 36, "to": 36 },
+      { "stageId": "S2", "from": 51, "to": 54 },
+      { "stageId": "S3", "from": 55, "to": 56 }
+    ],
+    "excerpt": [
+      { "from": 18, "to": 38 },
+      { "from": 50, "to": 57 }
+    ],
+    "marginNotes": [
+      { "line": 16, "key": "noteDeclareId", "match": "declare_id!" },
+      { "line": 29, "key": "noteHandlerRequires", "match": "pub fn withdraw" },
+      { "line": 36, "key": "noteStateChange", "match": "vault.balance -= amount" },
+      { "line": 52, "key": "noteStructNotSigner", "match": "pub struct Withdraw" },
+      { "line": 56, "key": "noteTheBug", "match": "AccountInfo<'info>," }
+    ]
+  },
+  "verification": {
+    "vulnerableProgramId": "7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2",
+    "fixedProgramId": "9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq",
+    "attackTxSignature": "2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW",
+    "attackTxError": "InstructionError: [0, Custom(3010)]",
+    "adminPubkey": "DMkwnXZ6Gy7X8fkzSyBCdCuk3E2CFrwCmhV9A44qGU7T",
+    "vaultBefore": 1000,
+    "vaultAfter": 500
+  }
+}

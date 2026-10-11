@@ -1,23 +1,21 @@
 /**
  * code.ts — the contract listing shown in step 2, split into stage regions.
  *
- * This module holds no code text. The listing is not hand-maintained: step 2
- * shows the deployed file itself, and that file lives in contractSource.ts,
- * where every line is pinned to the artifact `anchor build` produced. A second
- * copy here — the old excerpt — is exactly how the text on screen and the text
- * that was deployed drift apart, so the copy is gone.
+ * This module holds no code text and no lesson data. Step 2 shows the deployed
+ * file itself, and that file is fetched with the lesson; the structure of how it
+ * is sliced (which lines page 2 shows, which become a boxed stage, and when each
+ * box appears) is lesson data too. Both arrive as a `LessonContract`, so this is
+ * a pure function of what the lesson ships rather than a reading of a module
+ * constant.
  *
- * What is left is the structure: which of the file's lines page 2 actually
- * shows (CONTRACT_EXCERPT), which of those become a boxed stage, and when each
- * box appears. Everything outside the excerpt becomes an `elision` block, so the
- * page can print how many lines it left out rather than silently jumping. The
- * boxed regions come from CONTRACT_REGIONS in source order, so the boxes sweep
- * down the listing the way you read it; the stage numbers on the labels are what
- * make the reordering visible, because read top to bottom they come out
- * 0, 1, 4, 5, 2, 3.
+ * Everything outside the excerpt becomes an `elision` block, so the page can
+ * print how many lines it left out rather than silently jumping. The boxed
+ * regions come in source order, so the boxes sweep down the listing the way you
+ * read it; the stage numbers on the labels are what make the reordering visible,
+ * because read top to bottom they come out 0, 1, 4, 5, 2, 3.
  */
 
-import { CONTRACT_EXCERPT, CONTRACT_LINES, CONTRACT_REGIONS } from './contractSource';
+import type { LessonContract } from './lesson';
 
 /** A run of the file's own lines, boxed as a stage or shown plain. */
 export interface CodeBlock {
@@ -53,37 +51,38 @@ const REVEAL_STEP = 0.08;
  * elisions, must reproduce exactly the excerpt's lines; contractSource's guard
  * keeps the excerpt itself a faithful slice of the file.
  */
-export function codeBlocks(): ListingBlock[] {
+export function codeBlocks(contract: LessonContract): ListingBlock[] {
+  const { lines, regions, excerpt } = contract;
   const blocks: ListingBlock[] = [];
   let cursor = 0;
   let regionIndex = 0;
 
-  for (const range of CONTRACT_EXCERPT) {
+  for (const range of excerpt) {
     if (range.from > cursor) {
       blocks.push({ kind: 'elision', from: cursor, count: range.from - cursor });
     }
 
     let pos = range.from;
     while (pos <= range.to) {
-      const region = CONTRACT_REGIONS[regionIndex];
+      const region = regions[regionIndex];
       if (region && region.from === pos) {
         blocks.push({
           kind: 'code',
           stageId: region.stageId,
           from: pos,
-          lines: CONTRACT_LINES.slice(region.from, region.to + 1),
+          lines: lines.slice(region.from, region.to + 1),
           revealAt: REVEAL_START + regionIndex * REVEAL_STEP,
         });
         pos = region.to + 1;
         regionIndex += 1;
       } else {
-        const nextRegion = CONTRACT_REGIONS[regionIndex];
+        const nextRegion = regions[regionIndex];
         const stop = Math.min(range.to, nextRegion ? nextRegion.from - 1 : range.to);
         blocks.push({
           kind: 'code',
           stageId: null,
           from: pos,
-          lines: CONTRACT_LINES.slice(pos, stop + 1),
+          lines: lines.slice(pos, stop + 1),
         });
         pos = stop + 1;
       }
@@ -92,8 +91,8 @@ export function codeBlocks(): ListingBlock[] {
     cursor = range.to + 1;
   }
 
-  if (cursor < CONTRACT_LINES.length) {
-    blocks.push({ kind: 'elision', from: cursor, count: CONTRACT_LINES.length - cursor });
+  if (cursor < lines.length) {
+    blocks.push({ kind: 'elision', from: cursor, count: lines.length - cursor });
   }
 
   return blocks;

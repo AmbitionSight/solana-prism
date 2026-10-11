@@ -1,6 +1,6 @@
-import { VERIFICATION } from '../config/verification';
 import type { ComparisonSpec } from '../config/layers';
 import { elide } from '../lib/elide';
+import { useLesson } from '../lib/lessonContext';
 import { useLanguage } from '../i18n/language';
 
 /**
@@ -29,9 +29,10 @@ import { useLanguage } from '../i18n/language';
  * content, and the flow's pitch only clears a card of about that height; a third
  * row would make stage 4 overlap its neighbours.
  *
- * The address is config, not copy: it comes from `VERIFICATION.adminPubkey` and
- * is elided for display, with the full value left in `title`. Only the labels
- * and the notes are translated.
+ * The address is lesson data, not copy: it comes from the lesson's
+ * `verification.adminPubkey` (fetched with the lesson) and is elided for
+ * display, with the full value left in `title`. Only the labels and the notes
+ * are translated.
  */
 export default function AddressComparison({
   spec,
@@ -45,7 +46,7 @@ export default function AddressComparison({
 
   // The one real value in the comparison: what `initialize` wrote at S0. The
   // caller's side carries the same address once the attack fills it in.
-  const address = VERIFICATION.adminPubkey;
+  const address = useLesson().verification.adminPubkey;
 
   return (
     <span className="layer-card__compare" data-compare="admin">

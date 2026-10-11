@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  VERIFICATION,
   isDeployed,
   isFilled,
   solscanAccountUrl,
@@ -8,6 +7,7 @@ import {
 } from '../config/verification';
 import { useLanguage } from '../i18n/language';
 import { formatCluster, type MessageKey } from '../i18n/messages';
+import { useLesson } from '../lib/lessonContext';
 import type { VerifyEvidence } from '../config/verification';
 import type { RunVerdict } from '../lib/devnetRun';
 
@@ -57,7 +57,7 @@ export default function VerifyPanel({
   defaultOpen = false,
   runSignature,
   outcome,
-  evidence = VERIFICATION,
+  evidence: evidenceProp,
 }: {
   /**
    * The demo opens the panel by click. A test that renders to a string cannot
@@ -82,13 +82,16 @@ export default function VerifyPanel({
    */
   outcome?: RunVerdict | null;
   /**
-   * The evidence the panel speaks from. Defaults to the repository's real
-   * config; a test overrides it so both voices get exercised, rather than only
-   * the one this repository happens to be in today.
+   * The evidence the panel speaks from. Defaults to the lesson's own verification
+   * (fetched with the lesson); a test overrides it so both voices get exercised,
+   * rather than only the one this repository happens to be in today.
    */
   evidence?: VerifyEvidence;
 } = {}) {
   const { t } = useLanguage();
+  const lesson = useLesson();
+  /** The lesson's own evidence unless a test hands in a different set. */
+  const evidence = evidenceProp ?? lesson.verification;
   const [open, setOpen] = useState(defaultOpen);
   const [videoBroken, setVideoBroken] = useState(false);
   /**

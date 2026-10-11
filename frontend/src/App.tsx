@@ -21,9 +21,11 @@ import TxCard, { type TxPayload } from './components/TxCard';
 import VerifyPanel from './components/VerifyPanel';
 import WalletButton from './components/WalletButton';
 import WhyItHappens from './components/WhyItHappens';
-import { VERIFICATION } from './config/verification';
+import { PLATFORM } from './config/verification';
 import { DEMO_SIGNER_PUBKEY } from './config/demoSigner';
 import { useLanguage } from './i18n/language';
+import { LessonContext } from './lib/lessonContext';
+import type { Lesson } from './lib/lesson';
 import { controlStatus, executeChainRun, verdictOf, type ChainResult } from './lib/devnetRun';
 import { executeDemoAttack } from './lib/demoAttack';
 import { attackPorts, createVaultReader } from './lib/solanaChain';
@@ -68,11 +70,22 @@ const DECOMPOSE_MS = 1600;
  * without it (every unit test, and the fixtures) is byte-for-byte what it was
  * before the shell existed: with no callback there is no control to draw. The
  * shell always passes one, so a learner inside the app is never trapped.
+ *
+ * `lesson` is the substance being rendered — its stages, its contract, its
+ * on-chain evidence — fetched from the lesson folder and handed here as a prop.
+ * The app no longer imports any of it, so a test can render a lesson object with
+ * no network, and a second lesson needs no change to this file. It is provided
+ * to the tree below through `LessonContext`.
  */
 export default function App({
+  lesson,
   initialStep = 1,
   onExit,
-}: { initialStep?: Step; onExit?: () => void } = {}) {
+}: {
+  lesson: Lesson;
+  initialStep?: Step;
+  onExit?: () => void;
+}) {
   const { t } = useLanguage();
   const [step, setStep] = useState<Step>(initialStep);
   /**
@@ -249,7 +262,7 @@ export default function App({
     clearRealRun();
 
     const token = (runToken.current += 1);
-    const connection = new Connection(VERIFICATION.rpcEndpoint, 'confirmed');
+    const connection = new Connection(PLATFORM.rpcEndpoint, 'confirmed');
     const stale = () => runToken.current !== token;
 
     // Set before planning so the button is disabled through the pool scan too,
@@ -260,10 +273,10 @@ export default function App({
       connection,
       {
         isFixed,
-        vulnerableProgramId: VERIFICATION.vulnerableProgramId,
-        fixedProgramId: VERIFICATION.fixedProgramId,
-        adminPubkey: VERIFICATION.adminPubkey,
-        poolSize: VERIFICATION.poolSize,
+        vulnerableProgramId: lesson.verification.vulnerableProgramId,
+        fixedProgramId: lesson.verification.fixedProgramId,
+        adminPubkey: lesson.verification.adminPubkey,
+        poolSize: PLATFORM.poolSize,
       },
       {
         onTarget: (target) => {
@@ -301,7 +314,7 @@ export default function App({
       setChainBusy(false);
       setDemoBlocked({ kind: 'failed', reason: messageOf(error) });
     });
-  }, [clearRealRun, isFixed]);
+  }, [clearRealRun, isFixed, lesson]);
 
   const handleAttackEnd = useCallback(() => {
     // The dot's drop is over; the verdict waits for the chain. There is no local
@@ -322,7 +335,7 @@ export default function App({
     if (!provider || !walletAddress) return;
 
     const token = (runToken.current += 1);
-    const connection = new Connection(VERIFICATION.rpcEndpoint, 'confirmed');
+    const connection = new Connection(PLATFORM.rpcEndpoint, 'confirmed');
     const stale = () => runToken.current !== token;
 
     setChainBusy(true);
@@ -337,15 +350,15 @@ export default function App({
       {
         config: {
           isFixed,
-          vulnerableProgramId: VERIFICATION.vulnerableProgramId,
-          fixedProgramId: VERIFICATION.fixedProgramId,
-          adminPubkey: VERIFICATION.adminPubkey,
-          poolSize: VERIFICATION.poolSize,
+          vulnerableProgramId: lesson.verification.vulnerableProgramId,
+          fixedProgramId: lesson.verification.fixedProgramId,
+          adminPubkey: lesson.verification.adminPubkey,
+          poolSize: PLATFORM.poolSize,
         },
         // A vault is identified by the program that owns it. Only the vulnerable
         // build scans the pool, so its id is the owner the reader insists on —
         // that is what keeps the fixed build's vault from being picked.
-        read: createVaultReader(connection, new PublicKey(VERIFICATION.vulnerableProgramId)),
+        read: createVaultReader(connection, new PublicKey(lesson.verification.vulnerableProgramId)),
         portsFor: (programId) => attackPorts(connection, provider, programId),
         cancelled: stale,
       },
@@ -380,7 +393,7 @@ export default function App({
       setChainBusy(false);
       setChainResult({ kind: 'failed', reason: messageOf(error) });
     });
-  }, [provider, walletAddress, isFixed]);
+  }, [provider, walletAddress, isFixed, lesson]);
 
   /** Where step 2's stage boxes sat, handed to the flow so the cards start there. */
   const regionRects = useRef<Record<string, DOMRect>>({});
@@ -435,7 +448,7 @@ export default function App({
         isFixed={isFixed}
         providerPresent={provider !== null}
         connected={walletAddress !== null}
-        programId={isFixed ? VERIFICATION.fixedProgramId : VERIFICATION.vulnerableProgramId}
+        programId={isFixed ? lesson.verification.fixedProgramId : lesson.verification.vulnerableProgramId}
         status={chainStatus}
         onRun={handleRealRun}
       />
@@ -482,9 +495,10 @@ export default function App({
   );
 
   return (
-    // data-step is the machine-readable current step. The visible page counter
-    // was removed, so the verification harness reads this instead of scraping
-    // the DOM for text that is no longer rendered.
+    <LessonContext.Provider value={lesson}>
+    {/* data-step is the machine-readable current step. The visible page counter
+        was removed, so the verification harness reads this instead of scraping
+        the DOM for text that is no longer rendered. */}
     <div className="app" data-step={step}>
       {/* The way out, at every page of the lesson. Deliberately in the top-left
           corner rather than in the top-right chrome: the flow's cards reach into
@@ -578,6 +592,7 @@ export default function App({
         )}
       </main>
     </div>
+    </LessonContext.Provider>
   );
 }
 

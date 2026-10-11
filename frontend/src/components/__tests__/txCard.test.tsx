@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import TxCard, { type TxPayload } from '../TxCard';
 import { MESSAGES } from '../../i18n/messages';
-import { VERIFICATION } from '../../config/verification';
 import { vaultAddress } from '../../lib/devnet';
 import { elide } from '../../lib/elide';
+import { shippedLesson } from '../../__tests__/shipped';
 import { baselines, render } from './harness';
+
+/** The shipped lesson's on-chain evidence, read from the bytes the app fetches. */
+const VERIFICATION = shippedLesson().verification;
 
 /**
  * The transaction card is where the demo's argument is easiest to fake: the two

@@ -3,22 +3,40 @@ import {
   BOUNCE_PX,
   SECOND_BOUNCE_PX,
   DANGER_PULSE_ANIMATION,
-  EXIT_Y,
   FIXED_ANIMATION,
   FIXED_HIT_PCT,
   FIXED_HIT2_PCT,
-  IMPACT_Y,
-  SECURITY_INDEX,
   SUCCESS_PULSE_ANIMATION,
   VULNERABLE_ANIMATION,
-  VULNERABLE_HIT_PCT,
   dangerPulseKeyframes,
   fixedKeyframes,
+  flowGeometry,
+  impactY,
   successPulseKeyframes,
+  vulnerableHitPct,
   vulnerableKeyframes,
 } from '../keyframes';
-import { BLOCK_CLEARANCE, dropStartY, layerMidY, layerTopY, stackHeight } from '../geometry';
-import { VAULT_LAYERS } from '../../config/layers';
+import {
+  BLOCK_CLEARANCE,
+  LAYER_GAP,
+  dropStartY,
+  layerMidY,
+  layerTopY,
+  stackHeight,
+} from '../geometry';
+import { shippedLesson } from '../../__tests__/shipped';
+
+/**
+ * The generator is pure, so everything it used to read from a module constant is
+ * derived here once from the shipped lesson's flow. The assertions below are
+ * unchanged; only where the numbers come from moved.
+ */
+const VAULT_LAYERS = shippedLesson().layers;
+const GEO = flowGeometry(VAULT_LAYERS);
+const SECURITY_INDEX = GEO.securityIndex;
+const IMPACT_Y = impactY(GEO);
+const EXIT_Y = stackHeight(GEO.count) + LAYER_GAP;
+const VULNERABLE_HIT_PCT = vulnerableHitPct(GEO);
 
 /** Every `translateY(<n>px)` value appearing in a keyframes string. */
 function translateYs(css: string): number[] {
@@ -107,20 +125,20 @@ describe('keyframes — 所有坐标都由 geometry 派生', () => {
   ];
 
   it('圆点从不离开 geometry 定义的轨道', () => {
-    for (const y of translateYs(vulnerableKeyframes() + fixedKeyframes())) {
+    for (const y of translateYs(vulnerableKeyframes(GEO) + fixedKeyframes(GEO))) {
       expect(y).toBeGreaterThanOrEqual(dropStartY());
       expect(y).toBeLessThanOrEqual(EXIT_Y);
     }
   });
 
   it('geometry 定义的每个锚点都精确出现在关键帧里', () => {
-    const produced = new Set(translateYs(vulnerableKeyframes() + fixedKeyframes()));
+    const produced = new Set(translateYs(vulnerableKeyframes(GEO) + fixedKeyframes(GEO)));
     const missing = anchors().filter((y) => !produced.has(y));
     expect(missing).toEqual([]);
   });
 
   it('下落过程单调向下, 不回头', () => {
-    const ys = translateYs(vulnerableKeyframes()).filter((y) => y >= 0);
+    const ys = translateYs(vulnerableKeyframes(GEO)).filter((y) => y >= 0);
     for (let i = 1; i < ys.length; i++) {
       expect(ys[i]).toBeGreaterThanOrEqual(ys[i - 1]);
     }
@@ -129,16 +147,16 @@ describe('keyframes — 所有坐标都由 geometry 派生', () => {
 
 describe('keyframes — 漏洞版(穿透)', () => {
   it('名字与 animation-name 常量一致', () => {
-    expect(vulnerableKeyframes()).toContain(`@keyframes ${VULNERABLE_ANIMATION}`);
+    expect(vulnerableKeyframes(GEO)).toContain(`@keyframes ${VULNERABLE_ANIMATION}`);
   });
 
   it('从栈顶之上进入', () => {
-    expect(vulnerableKeyframes()).toContain(`translateY(${dropStartY()}px)`);
+    expect(vulnerableKeyframes(GEO)).toContain(`translateY(${dropStartY()}px)`);
     expect(dropStartY()).toBeLessThan(layerTopY(0));
   });
 
   it('逐层经过每一层的中心', () => {
-    const css = vulnerableKeyframes();
+    const css = vulnerableKeyframes(GEO);
     for (let index = 0; index < VAULT_LAYERS.length; index++) {
       expect(css).toContain(`translateY(${layerMidY(index)}px)`);
     }
@@ -146,7 +164,7 @@ describe('keyframes — 漏洞版(穿透)', () => {
 
   it('最终穿出栈底并放大', () => {
     expect(EXIT_Y).toBeGreaterThan(stackHeight(VAULT_LAYERS.length));
-    const css = vulnerableKeyframes();
+    const css = vulnerableKeyframes(GEO);
     expect(css).toContain(`translateY(${EXIT_Y}px) scale(1.5)`);
     expect(css).toContain(`translateY(${EXIT_Y}px) scale(3)`);
   });
@@ -154,7 +172,7 @@ describe('keyframes — 漏洞版(穿透)', () => {
 
 describe('keyframes — 修复版(拦停)', () => {
   it('名字与 animation-name 常量一致', () => {
-    expect(fixedKeyframes()).toContain(`@keyframes ${FIXED_ANIMATION}`);
+    expect(fixedKeyframes(GEO)).toContain(`@keyframes ${FIXED_ANIMATION}`);
   });
 
   it('拦停位置在安全层顶边之上, 而不是层内', () => {
@@ -164,13 +182,13 @@ describe('keyframes — 修复版(拦停)', () => {
   });
 
   it('全程最深只到拦停位置, 绝不进入安全层', () => {
-    const deepest = Math.max(...translateYs(fixedKeyframes()).filter((y) => y > 0));
+    const deepest = Math.max(...translateYs(fixedKeyframes(GEO)).filter((y) => y > 0));
     expect(deepest).toBe(IMPACT_Y);
     expect(deepest).toBeLessThan(layerTopY(SECURITY_INDEX));
   });
 
   it('只经过安全层之上的层', () => {
-    const css = fixedKeyframes();
+    const css = fixedKeyframes(GEO);
     for (let index = 0; index < SECURITY_INDEX; index++) {
       expect(css).toContain(`translateY(${layerMidY(index)}px)`);
     }
@@ -178,21 +196,21 @@ describe('keyframes — 修复版(拦停)', () => {
   });
 
   it('两撞两弹, 且第二次弹跳幅度更小', () => {
-    const css = fixedKeyframes();
+    const css = fixedKeyframes(GEO);
     expect(css).toContain(`${FIXED_HIT_PCT}%{transform:translateY(${IMPACT_Y}px)}`);
     expect(css).toContain(`${FIXED_HIT2_PCT}%{transform:translateY(${IMPACT_Y}px)}`);
     expect(BOUNCE_PX).toBeGreaterThan(SECOND_BOUNCE_PX);
   });
 
   it('结束时淡出(检查的是最后一帧, 不是任何一帧)', () => {
-    const parsed = frames(fixedKeyframes());
+    const parsed = frames(fixedKeyframes(GEO));
     const last = parsed[parsed.length - 1];
     expect(last.pct).toBe(100);
     expect(last.body).toContain('opacity:0');
   });
 
   it('两次撞击时仍然完全不透明, 不能在落地前就淡掉', () => {
-    const css = fixedKeyframes();
+    const css = fixedKeyframes(GEO);
     expect(opacityAt(css, FIXED_HIT_PCT)).toBe(1);
     expect(opacityAt(css, 64)).toBe(1);
     expect(opacityAt(css, FIXED_HIT2_PCT)).toBe(1);
@@ -204,7 +222,7 @@ describe('keyframes — 修复版(拦停)', () => {
 
 describe('keyframes — 漏洞版全程不透明', () => {
   it('穿过安全层的那一刻仍然是完全不透明', () => {
-    const css = vulnerableKeyframes();
+    const css = vulnerableKeyframes(GEO);
     expect(opacityAt(css, 0)).toBe(0);
     expect(opacityAt(css, VULNERABLE_HIT_PCT)).toBe(1);
     expect(opacityAt(css, 100)).toBe(1);
@@ -213,11 +231,11 @@ describe('keyframes — 漏洞版全程不透明', () => {
 
 describe('keyframes — 层 flash 与圆点到达同步', () => {
   it('红 pulse 打在圆点穿过安全层的同一百分比', () => {
-    expect(vulnerableKeyframes()).toContain(
+    expect(vulnerableKeyframes(GEO)).toContain(
       `${VULNERABLE_HIT_PCT}%{transform:translateY(${layerMidY(SECURITY_INDEX)}px)}`,
     );
-    expect(dangerPulseKeyframes()).toContain(`@keyframes ${DANGER_PULSE_ANIMATION}`);
-    expect(dangerPulseKeyframes()).toContain(`${VULNERABLE_HIT_PCT}%`);
+    expect(dangerPulseKeyframes(GEO)).toContain(`@keyframes ${DANGER_PULSE_ANIMATION}`);
+    expect(dangerPulseKeyframes(GEO)).toContain(`${VULNERABLE_HIT_PCT}%`);
   });
 
   it('绿 pulse 打在圆点两次撞上安全层的同一百分比', () => {

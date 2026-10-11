@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import LayerCard from '../LayerCard';
-import { VAULT_LAYERS } from '../../config/layers';
-import { VERIFICATION } from '../../config/verification';
 import { elide } from '../../lib/elide';
 import { MESSAGES } from '../../i18n/messages';
+import { shippedLesson } from '../../__tests__/shipped';
 import { render } from './harness';
 
 /**
@@ -26,8 +25,10 @@ import { render } from './harness';
  * how the rest of the suite checks the flow (see app-default-path.test.tsx).
  */
 
+const LESSON = shippedLesson();
+
 function layerById(id: string) {
-  const layer = VAULT_LAYERS.find((candidate) => candidate.id === id);
+  const layer = LESSON.layers.find((candidate) => candidate.id === id);
   if (!layer) throw new Error(`no stage ${id}`);
   return layer;
 }
@@ -51,7 +52,7 @@ function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
 
-const ELIDED = elide(VERIFICATION.adminPubkey);
+const ELIDED = elide(LESSON.verification.adminPubkey);
 
 describe('Stage 4 — 比对的两个地址', () => {
   it('把配置里的管理员地址省略后渲染出来', () => {
@@ -59,7 +60,7 @@ describe('Stage 4 — 比对的两个地址', () => {
     // DOM's `title`, never only in the shortened text.
     const html = card('S4');
     expect(html).toContain(ELIDED);
-    expect(html).toContain(`title="${VERIFICATION.adminPubkey}"`);
+    expect(html).toContain(`title="${LESSON.verification.adminPubkey}"`);
   });
 
   it('管理员地址只出现一次 —— 只属于金库那一侧', () => {
@@ -79,7 +80,7 @@ describe('Stage 4 — 比对的两个地址', () => {
     // one. (The raw address appears once, in the vault value's `title`.)
     const withoutTitle = html.replace(/title="[^"]*"/g, '');
     expect(withoutTitle.split(ELIDED).length - 1).toBe(1);
-    expect(withoutTitle).not.toContain(VERIFICATION.adminPubkey);
+    expect(withoutTitle).not.toContain(LESSON.verification.adminPubkey);
   });
 
   it('结果行不在这张卡上', () => {
@@ -119,6 +120,6 @@ describe('Stage 4 — 比对的两个地址', () => {
     // body would blow the card's layout apart and defeat the shared elision.
     const html = card('S4');
     const bodyOnly = html.replace(/title="[^"]*"/g, '');
-    expect(bodyOnly).not.toContain(VERIFICATION.adminPubkey);
+    expect(bodyOnly).not.toContain(LESSON.verification.adminPubkey);
   });
 });

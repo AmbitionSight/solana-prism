@@ -4,9 +4,8 @@ import { useLanguage } from '../i18n/language';
 import { bilingualName, formatCluster } from '../i18n/messages';
 import { highlightRust } from '../lib/highlight';
 import { codeBlocks } from '../lib/code';
-import { MARGIN_NOTES, type MarginNoteKey } from '../lib/contractSource';
-import { VAULT_LAYERS } from '../config/layers';
-import { VERIFICATION } from '../config/verification';
+import type { MarginNoteKey } from '../lib/contractSource';
+import { useLesson } from '../lib/lessonContext';
 
 const LINE_STAGGER_MS = 60;
 
@@ -41,15 +40,17 @@ interface Step2CodeProps {
  */
 export default function Step2Code({ onRegionRects }: Step2CodeProps) {
   const { language, t } = useLanguage();
-  const blocks = codeBlocks();
+  const { layers, contract, verification } = useLesson();
+  const blocks = codeBlocks(contract);
   const duration = AUTO_ADVANCE_MS[2] ?? 0;
   /** Scopes the measurement below to this listing, not the whole document. */
   const cardRef = useRef<HTMLPreElement>(null);
 
   // Notes are keyed by absolute line index, so build the lookup once per render
-  // rather than scanning MARGIN_NOTES for every one of the file's lines.
+  // rather than scanning the lesson's margin notes for every one of the file's
+  // lines.
   const noteByLine = new Map<number, MarginNoteKey>(
-    MARGIN_NOTES.map((note) => [note.line, note.key]),
+    contract.marginNotes.map((note) => [note.line, note.key]),
   );
 
   // The measured element is a run of code lines, never the boxed block: the
@@ -98,7 +99,7 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
     <section className="step2" style={style} data-testid="step2-code">
       <div className="contract-status" data-testid="contract-status">
         <span className="contract-status__name">prism_vulnerable</span>
-        <span className="contract-status__id">{VERIFICATION.vulnerableProgramId}</span>
+        <span className="contract-status__id">{verification.vulnerableProgramId}</span>
         <span className="contract-status__live">{formatCluster(t.contractLive)}</span>
       </div>
       {/* What is on screen, stated on the page: this is sections of the file,
@@ -127,7 +128,7 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
             }
 
             const stage = block.stageId
-              ? VAULT_LAYERS.find((layer) => layer.id === block.stageId)
+              ? layers.find((layer) => layer.id === block.stageId)
               : undefined;
             const name = stage ? bilingualName(language, stage.nameKey) : undefined;
 

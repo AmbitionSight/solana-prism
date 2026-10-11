@@ -6,6 +6,7 @@ import LanguageProvider from '../i18n/LanguageProvider';
 import App from '../App';
 import { MESSAGES } from '../i18n/messages';
 import type { SolanaProvider } from '../lib/wallet';
+import { shippedLesson } from './shipped';
 
 /**
  * The default path (no wallet) must stay deterministic.
@@ -54,7 +55,7 @@ function renderApp(initialStep: 1 | 4 | 5): string {
   try {
     return renderToStaticMarkup(
       <LanguageProvider>
-        <App initialStep={initialStep} />
+        <App lesson={shippedLesson()} initialStep={initialStep} />
       </LanguageProvider>,
     );
   } finally {

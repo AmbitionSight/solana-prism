@@ -111,6 +111,15 @@
   color: var(--color-text-secondary);
 }
 
+/* The "loading" / "could not load" line the shell shows while the lesson list
+   and each lesson folder are fetched. Copy, not chrome: same measure as the
+   lede so a slow load reads as the page still arriving rather than a blank. */
+.home__status {
+  max-width: 560px;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+
 .lesson-list {
   margin: 0;
   padding: 0;

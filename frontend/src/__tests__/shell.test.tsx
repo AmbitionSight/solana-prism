@@ -4,23 +4,23 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import LanguageProvider from '../i18n/LanguageProvider';
 import Home from '../components/Home';
 import Shell from '../components/Shell';
-import { LESSONS } from '../config/lessons';
 import { MESSAGES } from '../i18n/messages';
+import { shippedIndex, shippedLesson } from './shipped';
 
 /**
  * The shell is what turns the eight pages into *a* lesson rather than *the*
  * app. Two things about it are worth a machine guard, neither of which the
  * browser run in `tools/shoot.mjs` can pin down on its own:
  *
- *   1. the home page reads its entries from `config/lessons.ts`, so a second
- *      lesson is a data change — proved by iterating `LESSONS` rather than
- *      asserting a title that happens to be there;
+ *   1. the home page reads its entries from data (`lessons/index.json`, fetched
+ *      by the shell), so a second lesson is an upload — proved by iterating the
+ *      shipped index rather than asserting a title that happens to be there;
  *   2. entering and leaving swaps between the two surfaces, and entering lands
  *      on the lesson's first page.
  *
- * `renderToStaticMarkup` runs no effects and cannot click, so the "inside a
- * lesson" case is held open with `initialOpenLessonId`, exactly as the default
- * path's test holds a step open with `initialStep`.
+ * `renderToStaticMarkup` runs no effects and cannot fetch or click, so the list
+ * and the open lesson are supplied through the shell's `initial*` props — the
+ * same trick the default path uses with `initialStep`.
  */
 
 function render(node: ReactNode): string {
@@ -44,13 +44,15 @@ function render(node: ReactNode): string {
   }
 }
 
+const LESSONS = shippedIndex();
+
 describe('shell — 主页列出课程, 条目来自数据', () => {
   it('课程列表非空, 否则下面的遍历什么都证明不了', () => {
     expect(LESSONS.length).toBeGreaterThan(0);
   });
 
   it('每一个课程都渲染出标题与一句漏洞描述', () => {
-    const html = render(<Home onOpenLesson={() => {}} />);
+    const html = render(<Home lessons={LESSONS} onOpenLesson={() => {}} />);
     for (const lesson of LESSONS) {
       expect(html).toContain(`data-testid="lesson-${lesson.id}"`);
       expect(html).toContain(MESSAGES.en[lesson.title]);
@@ -58,10 +60,22 @@ describe('shell — 主页列出课程, 条目来自数据', () => {
     }
   });
 
-  it('课程条目数就是配置里的课程数', () => {
-    const html = render(<Home onOpenLesson={() => {}} />);
+  it('课程条目数就是列表里的课程数', () => {
+    const html = render(<Home lessons={LESSONS} onOpenLesson={() => {}} />);
     const count = html.match(/data-testid="lesson-/g)?.length ?? 0;
     expect(count).toBe(LESSONS.length);
+  });
+
+  it('列表还没到时说的是"正在载入", 而不是一个空列表', () => {
+    const html = render(<Home lessons={null} onOpenLesson={() => {}} />);
+    expect(html).toContain(MESSAGES.en.lessonsLoading);
+    expect(html).not.toContain('lesson-card');
+  });
+
+  it('载入失败时如实说失败, 而不是装作没有课程', () => {
+    const html = render(<Home lessons={null} error onOpenLesson={() => {}} />);
+    expect(html).toContain(MESSAGES.en.lessonLoadError);
+    expect(html).not.toContain(MESSAGES.en.lessonsLoading);
   });
 
   it('中文模式下主页文案是中文', () => {
@@ -76,22 +90,34 @@ describe('shell — 主页列出课程, 条目来自数据', () => {
 });
 
 describe('shell — 进入与退出课程', () => {
+  const LIST = shippedIndex();
+  const LESSON = shippedLesson();
+
   it('默认打开的是主页, 不是课程', () => {
-    const html = render(<Shell />);
+    const html = render(<Shell initialLessons={LIST} />);
     expect(html).toContain('data-testid="lesson-missing-signer"');
     expect(html).not.toContain('class="app"');
   });
 
   it('进入课程后打开的是第一页', () => {
-    const html = render(<Shell initialOpenLessonId="missing-signer" />);
+    const html = render(
+      <Shell initialLessons={LIST} initialOpenLessonId="missing-signer" initialLesson={LESSON} />,
+    );
     expect(html).toContain('data-step="1"');
     // The lesson's chrome carries the way back out, so nobody is trapped.
     expect(html).toContain('data-testid="exit-lesson"');
   });
 
-  it('不存在的课程 id 不进入课程, 而是留在主页', () => {
-    const html = render(<Shell initialOpenLessonId="no-such-lesson" />);
+  it('不在列表里的课程 id 不进入课程, 而是留在主页', () => {
+    const html = render(<Shell initialLessons={LIST} initialOpenLessonId="no-such-lesson" />);
     expect(html).not.toContain('class="app"');
     expect(html).toContain('data-testid="lesson-missing-signer"');
+  });
+
+  it('课程还在载入时说的是"正在载入", 并留下退出的路', () => {
+    const html = render(<Shell initialLessons={LIST} initialOpenLessonId="missing-signer" />);
+    expect(html).not.toContain('class="app"');
+    expect(html).toContain(MESSAGES.en.lessonsLoading);
+    expect(html).toContain('data-testid="exit-lesson"');
   });
 });

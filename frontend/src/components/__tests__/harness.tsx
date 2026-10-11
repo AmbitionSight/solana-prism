@@ -3,8 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
 import { LanguageContext } from '../../i18n/language';
+import { LessonContext } from '../../lib/lessonContext';
 import { MESSAGES, type Language } from '../../i18n/messages';
 import type { SolanaProvider } from '../../lib/wallet';
+import { shippedLesson } from '../../__tests__/shipped';
 
 /**
  * Shared test furniture for the components this feature touches.
@@ -38,11 +40,16 @@ export function baselines(): DefaultRenders {
   ) as DefaultRenders;
 }
 
-/** Render inside a language context, so a component needs no provider. */
+/**
+ * Render inside a language context and the shipped lesson, so a component needs
+ * no provider of its own. The lesson comes from the same bytes the app fetches;
+ * a component that reads `useLesson()` (the comparison's address, the panel's
+ * evidence) renders exactly what it renders in the app.
+ */
 export function render(node: ReactNode, language: Language = 'en'): string {
   return renderToStaticMarkup(
     <LanguageContext.Provider value={{ language, setLanguage: () => {}, t: MESSAGES[language] }}>
-      {node}
+      <LessonContext.Provider value={shippedLesson()}>{node}</LessonContext.Provider>
     </LanguageContext.Provider>,
   );
 }

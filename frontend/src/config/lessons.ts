@@ -1,38 +1,23 @@
 /**
- * lessons.ts — the catalogue of lessons the platform offers.
+ * lessons.ts — the shape of one entry in the lesson list.
  *
- * The home page reads this list rather than a hand-written block of JSX, so a
- * second lesson is a data change here (plus its copy in the message catalogue)
- * and nothing else. That is the whole point of the file: today there is exactly
- * one lesson, and the home page must not be built in a way that treats "one" as
- * a fact about the markup.
+ * The list itself is no longer here. It is a file in the platform's lessons
+ * directory (`public/lessons/index.json`), fetched at runtime by the shell, so
+ * adding a lesson is an upload and not a code change. What remains is the shape
+ * each entry must have.
  *
- * Deliberately NOT here yet: the lesson itself as data. The eight pages still
- * live in `App.tsx` and are hard-wired to lesson one — turning the narrative
- * into data is a later, larger job, and this file only carries what the home
- * page has to know to *list* a lesson and hand its id to the shell.
- *
- * `title` and `blurb` are catalogue keys, not strings. The copy is therefore in
- * both languages by construction (`messages.ts` types both languages against one
- * interface), and a key that exists in neither is a compile error rather than a
- * blank row on the home page.
+ * `title` and `blurb` are catalogue keys, not strings, so the home page renders
+ * them through the message catalogue in whichever language is active. The type
+ * still says so; the loader checks it at runtime, because JSON cannot.
  */
 
 import type { MessageKey } from '../i18n/messages';
 
-export interface Lesson {
-  /** Stable id. Also the harness's entry selector (`lesson-<id>`). */
+export interface LessonIndexEntry {
+  /** Stable id. Also the folder name, and the harness's entry selector (`lesson-<id>`). */
   id: string;
   /** Catalogue key for the lesson's title. */
   title: MessageKey;
   /** Catalogue key for the one-line description of the vulnerability taught. */
   blurb: MessageKey;
 }
-
-export const LESSONS: Lesson[] = [
-  {
-    id: 'missing-signer',
-    title: 'lessonMissingSignerTitle',
-    blurb: 'lessonMissingSignerBlurb',
-  },
-];

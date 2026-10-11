@@ -21,6 +21,16 @@ const PAIRS = [
     source: '../../../contract/programs/prism_vulnerable/src/lib.rs',
   },
   {
+    // The contract the lesson actually serves. It is pinned straight to the
+    // deployed source, not merely to the provenance copy, so the chain of
+    // custody from `anchor build`'s artifact to the fetched bytes is one link
+    // long: if either end drifts, this fails.
+    title:
+      'lessons/missing-signer/contract.rs mirrors contract/programs/prism_vulnerable/src/lib.rs',
+    copy: '../../public/lessons/missing-signer/contract.rs',
+    source: '../../../contract/programs/prism_vulnerable/src/lib.rs',
+  },
+  {
     title: 'prism_fixed.rs.txt mirrors contract/programs/prism_fixed/src/lib.rs',
     copy: '../../public/source/prism_fixed.rs.txt',
     source: '../../../contract/programs/prism_fixed/src/lib.rs',

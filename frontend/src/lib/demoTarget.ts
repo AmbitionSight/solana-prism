@@ -28,7 +28,7 @@
 
 import { PublicKey } from '@solana/web3.js';
 import { vaultAddress, nextFreshVault, type VaultReader } from './devnet';
-import { VERIFICATION, isFilled } from '../config/verification';
+import { isFilled } from '../config/verification';
 
 /** Which pool vault the animated path names when the chain cannot be read. */
 export const FALLBACK_VAULT_INDEX = 0;
@@ -42,8 +42,9 @@ export interface DemoTarget {
 /**
  * The values `resolveDemoTarget` reads, taken as a parameter so the states this
  * repository is not currently in — an unset admin, an empty pool — stay
- * testable. `VERIFICATION` satisfies it and is the default, so call sites that
- * only want the real config need not pass anything.
+ * testable. The values are lesson facts (the program id and the admin address)
+ * plus the platform's pool size; they are passed in rather than read from a
+ * module constant, so the animated path names whatever lesson is open.
  */
 export interface DemoTargetConfig {
   vulnerableProgramId: string;
@@ -60,7 +61,7 @@ export type DemoTargetResolution =
 
 export async function resolveDemoTarget(
   read: VaultReader | null,
-  config: DemoTargetConfig = VERIFICATION,
+  config: DemoTargetConfig,
 ): Promise<DemoTargetResolution> {
   // Checked before `new PublicKey(...)` and before the scan, exactly as
   // `planChainRun` orders its guards: a placeholder authority must never become

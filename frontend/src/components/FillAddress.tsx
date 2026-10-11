@@ -1,5 +1,5 @@
-import { VERIFICATION } from '../config/verification';
 import { elide } from '../lib/elide';
+import { useLesson } from '../lib/lessonContext';
 import { useLanguage } from '../i18n/language';
 
 /**
@@ -14,10 +14,10 @@ import { useLanguage } from '../i18n/language';
  * heading that said otherwise would be a different, false claim about what the
  * demo shows.
  *
- * The address is config (`VERIFICATION.adminPubkey`), elided for display with
- * the full value in `title` — never a literal in the copy. The field label and
- * the placeholder are identifiers, not translation, so they stay out of the
- * catalogue.
+ * The address is lesson data (the lesson's `verification.adminPubkey`), elided
+ * for display with the full value in `title` — never a literal in the copy. The
+ * field label and the placeholder are identifiers, not translation, so they stay
+ * out of the catalogue.
  */
 
 const FIELD = 'authority:';
@@ -25,7 +25,7 @@ const PLACEHOLDER = '？？？';
 
 export default function FillAddress() {
   const { t } = useLanguage();
-  const address = VERIFICATION.adminPubkey;
+  const address = useLesson().verification.adminPubkey;
 
   return (
     <section className="fill-address" data-testid="fill-address">

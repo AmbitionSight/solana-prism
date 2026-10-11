@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { highlightRust } from '../highlight';
-import { CONTRACT_LINES } from '../contractSource';
+import { shippedLesson } from '../../__tests__/shipped';
+
+/** The deployed contract's own lines, as the lesson ships them. */
+const CONTRACT_LINES = shippedLesson().contract.lines;
 
 describe('highlightRust', () => {
   it('关键字标红', () => {

@@ -1,49 +1,55 @@
 import { describe, it, expect } from 'vitest';
-import { CONTRACT_EXCERPT, CONTRACT_LINES, CONTRACT_REGIONS, MARGIN_NOTES } from '../contractSource';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { MESSAGES } from '../../i18n/messages';
-import { VAULT_LAYERS } from '../../config/layers';
-import { VERIFICATION } from '../../config/verification';
+import { shippedLesson } from '../../__tests__/shipped';
 
 /**
- * The listing is the deployed contract, not a paraphrase of it. The copy in
- * public/source is already guarded byte-for-byte against contract/ by
- * source-assets.test.ts, so pinning the listing to *it* puts the displayed text
- * on the same chain of custody as the file the closing note links to.
+ * The listing is the deployed contract, not a paraphrase of it.
+ *
+ * It used to be `CONTRACT_LINES`, a module constant pinned line-for-line to
+ * `public/source/prism_vulnerable.rs.txt`. The contract is now a file the lesson
+ * folder ships and the app fetches, so the same guarantee is stated against the
+ * bytes the app actually renders: the lesson's `contract.rs` must equal the
+ * provenance copy line for line, and the regions and margin notes must land on
+ * that text. `source-assets.test.ts` pins the provenance copy byte-for-byte to
+ * `contract/`, so the chain of custody runs unbroken from the deployed artifact
+ * to the screen.
  */
-const SOURCES = import.meta.glob('/public/source/prism_vulnerable.rs.txt', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
+const LESSON = shippedLesson();
+const { lines: CONTRACT_LINES, regions: CONTRACT_REGIONS, excerpt: CONTRACT_EXCERPT } =
+  LESSON.contract;
+
+/** The provenance copy, read as the app would read the fetched file. */
+const SOURCE_FILE = readFileSync(
+  fileURLToPath(new URL('../../../public/lessons/missing-signer/contract.rs', import.meta.url)),
+  'utf8',
+);
 
 describe('contractSource — 显示的就是链上那份', () => {
-  it('真的读到了对照文件', () => {
-    const files = Object.values(SOURCES);
-    expect(files.length).toBe(1);
-    expect(files[0].length).toBeGreaterThan(500);
+  it('真的读到了合同文件', () => {
+    expect(SOURCE_FILE.length).toBeGreaterThan(500);
   });
 
-  it('逐行等于 public/source 里那份', () => {
-    const original = Object.values(SOURCES)[0].replace(/\r\n/g, '\n').split('\n');
-    // The file ends with a trailing newline, which split() turns into a final
-    // empty string; the listing does not carry it.
+  it('课程里的合同逐行等于版本副本', () => {
+    const original = SOURCE_FILE.replace(/\r\n/g, '\n').split('\n');
     if (original[original.length - 1] === '') original.pop();
     expect(CONTRACT_LINES).toEqual(original);
   });
 
   /**
-   * The status bar prints VERIFICATION.vulnerableProgramId and the listing
+   * The status bar prints `verification.vulnerableProgramId` and the listing
    * prints the `declare_id!` from the contract file. Both are guarded on their
-   * own; nothing yet ties them to each other. After a future `anchor keys sync`
-   * they could drift apart and the demo would contradict itself in the one place
-   * whose whole job is saying "this is the real program".
+   * own; this ties them to each other, so a future `anchor keys sync` cannot
+   * make the demo contradict itself in the one place whose whole job is saying
+   * "this is the real program".
    */
   it('状态栏里的 program id 就是代码里 declare_id! 的那一个', () => {
     const line = CONTRACT_LINES.find((l) => l.includes('declare_id!'));
     expect(line, '没有找到 declare_id!').toBeDefined();
     const match = /declare_id!\("([^"]+)"\)/.exec(line!);
     expect(match, 'declare_id! 的形状变了').not.toBeNull();
-    expect(match![1]).toBe(VERIFICATION.vulnerableProgramId);
+    expect(match![1]).toBe(LESSON.verification.vulnerableProgramId);
   });
 });
 
@@ -80,14 +86,13 @@ describe('contractSource — 阶段区域落在正确的行上', () => {
   });
 
   /**
-   * The stage ids in CONTRACT_REGIONS are a closed set that has to match the
-   * layers the rest of the demo is built from. The other tests hardcode the
-   * literals, so a rename in layers.ts would not move them; this one reads the
-   * ids from their source.
+   * The stage ids in the regions are a closed set that has to match the layers
+   * the rest of the demo is built from — now both fetched from the lesson, so
+   * this reads the ids from the data rather than from two module constants.
    */
-  it('阶段 id 与 VAULT_LAYERS 完全对齐', () => {
+  it('阶段 id 与课程里的 layers 完全对齐', () => {
     expect([...CONTRACT_REGIONS.map((r) => r.stageId)].sort()).toEqual(
-      [...VAULT_LAYERS.map((l) => l.id)].sort(),
+      [...LESSON.layers.map((l) => l.id)].sort(),
     );
   });
 });
@@ -126,8 +131,10 @@ describe('contractSource — 展示的是节选, 但每一行仍是原文', () =
 });
 
 describe('contractSource — 中文旁注', () => {
+  const NOTES = LESSON.contract.marginNotes;
+
   it('每条旁注都指向文件里真实存在的一行', () => {
-    for (const note of MARGIN_NOTES) {
+    for (const note of NOTES) {
       expect(note.line, `line ${note.line} 越界`).toBeLessThan(CONTRACT_LINES.length);
       expect(CONTRACT_LINES[note.line].trim().length, `line ${note.line} 是空行`).toBeGreaterThan(0);
       // The note's `match` pins it to its line's content: without this, a line
@@ -137,12 +144,12 @@ describe('contractSource — 中文旁注', () => {
   });
 
   it('行号不重复', () => {
-    const lines = MARGIN_NOTES.map((n) => n.line);
+    const lines = NOTES.map((n) => n.line);
     expect(new Set(lines).size).toBe(lines.length);
   });
 
   it('每条旁注两种语言都有内容', () => {
-    for (const note of MARGIN_NOTES) {
+    for (const note of NOTES) {
       expect(MESSAGES.en[note.key].trim().length).toBeGreaterThan(0);
       expect(MESSAGES.zh[note.key].trim().length).toBeGreaterThan(0);
     }
