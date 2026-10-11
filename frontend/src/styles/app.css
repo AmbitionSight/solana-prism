@@ -12,8 +12,10 @@
   justify-content: center;
   /* Tight on purpose: every page has to fit a 1280x820 viewport with no scroll,
      so the vertical padding is spent only where it is needed to keep the
-     top-controls off the content. Layer geometry lives in lib/geometry.ts. */
-  padding: 16px 24px;
+     top-controls off the content. Layer geometry lives in lib/geometry.ts.
+     The post-attack state now keeps the flow visible *and* the verdict, so the
+     pages that carry both buy space back here and in the inter-block gaps. */
+  padding: 10px 24px;
 }
 
 /* ---------- Chrome ---------- */
@@ -93,7 +95,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
 }
 
 /* ---------- Step 1: title ---------- */
@@ -354,7 +356,41 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+}
+
+/* The retry page's footer once the attack has run: the two-version reading on
+   the left, the verdict it produced on the right. Stacked, the reading and the
+   verdict — with the flow still up above them as the evidence — were taller
+   than the fold; side by side the block is as tall as its taller half. The
+   reading keeps the larger share because it is the wider content (a copy column
+   beside a table); the verdict column is sized to its copy. */
+.footer-pair {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.footer-pair__verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* In the narrow verdict column the sentence that frames the refusal would wrap
+   to two lines at the body size; one step down keeps it a single line, which is
+   what "one-line detail" means. */
+.footer-pair__verdict .attack-result__body {
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .footer-pair {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes rise-in {
@@ -405,7 +441,7 @@
 }
 
 .execute-btn {
-  padding: 10px 26px;
+  padding: 8px 24px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-bg);
@@ -434,15 +470,22 @@
 }
 
 .attack-result__title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .attack-result__body {
-  margin-top: 4px;
-  font-size: 15px;
+  margin-top: 2px;
+  font-size: 14px;
   color: var(--color-text-secondary);
+}
+
+/* The chain's own error is a long JSON blob; at the body size it wraps to two
+   lines in the verdict column and reads as noise. Mono at 12px keeps it on one
+   line without shrinking the human sentence above it. */
+.attack-result__body code {
+  font-size: 12px;
 }
 
 .attack-result--success .attack-result__title {
@@ -456,22 +499,22 @@
 /* ---------- Closing note ---------- */
 
 .closing {
-  max-width: 640px;
-  margin-top: 8px;
-  padding-top: 20px;
+  max-width: 720px;
+  margin-top: 4px;
+  padding-top: 12px;
   border-top: 1px solid var(--color-border);
   text-align: center;
   animation: rise-in 500ms var(--ease-apple) both;
 }
 
 .closing__declaration {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--color-text);
 }
 
 .closing__real-world {
-  margin-top: 10px;
-  font-size: 14px;
+  margin-top: 6px;
+  font-size: 13px;
   color: var(--color-text-secondary);
 }
 
@@ -479,13 +522,13 @@
    --color-text-tertiary as 2.5:1, "FAILS WCAG AA ... Do not use it for copy
    that carries meaning". The attribution carries meaning. */
 .closing__source-note {
-  margin-top: 6px;
+  margin-top: 3px;
   font-size: 12px;
   color: var(--color-text-secondary);
 }
 
 .closing__links-label {
-  margin-top: 18px;
+  margin-top: 10px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -493,8 +536,8 @@
 }
 
 .closing__links {
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: 3px;
+  font-size: 12px;
 }
 
 .closing__links a {
@@ -518,7 +561,7 @@
 }
 
 .verify__toggle {
-  padding: 8px 18px;
+  padding: 6px 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-secondary);
@@ -807,12 +850,12 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 6px;
+  gap: 5px;
   animation: rise-in var(--duration-normal) var(--ease-apple) both;
 }
 
 .page-intro__title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -957,7 +1000,7 @@
 .cmp-table {
   width: 100%;
   max-width: 720px;
-  margin: 18px 0;
+  margin: 10px 0;
   border-collapse: collapse;
   font-size: 14px;
   text-align: left;
@@ -1013,7 +1056,7 @@
 
 .why__conclusion,
 .retry__conclusion {
-  margin-top: 14px;
+  margin-top: 8px;
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
@@ -1026,8 +1069,8 @@
 .retry__grid {
   width: 100%;
   display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
-  gap: 28px;
+  grid-template-columns: 0.75fr 1.25fr;
+  gap: 24px;
   align-items: start;
 }
 
@@ -1035,28 +1078,32 @@
 .retry__table {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .retry__copy {
   text-align: left;
 }
 
+.retry__copy .page-intro__body {
+  font-size: 13px;
+}
+
 /* Tighter than the shared table: in a half-width column the cells wrap, and at
    the shared size that wrapping alone was taller than the copy beside it. */
 .retry__table .cmp-table {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .retry__table .cmp-table th,
 .retry__table .cmp-table td {
-  padding: 5px 8px;
+  padding: 2px 8px;
 }
 
 .retry__copy .retry__conclusion {
-  margin-top: 4px;
-  font-size: 15px;
+  margin-top: 2px;
+  font-size: 14px;
 }
 
 @media (max-width: 720px) {

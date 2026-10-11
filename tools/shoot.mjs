@@ -77,17 +77,20 @@ try {
 
 /**
  * Copy that must be fully translated in Chinese mode, checked in the state the
- * final assertions run in (vulnerable result + verify panel open). Layer names
- * are excluded on purpose: they render bilingually ("运行时 Runtime"), so their
- * English form is *supposed* to still be on screen.
+ * final assertions run in (vulnerable result + verify panel open, with the flow
+ * now visible beneath them). Layer names are excluded on purpose: they render
+ * bilingually ("运行时 Runtime"), so their English form is *supposed* to still
+ * be on screen.
  *
  * The flow's own copy — the stage names and the "No signature required" badge —
- * is NOT in these lists. Since the post-attack state hides the flow to fit the
- * viewport (both the final assertions and the `step5-verify-panel` shot run with
- * `attackState === 'done'`), `body.innerText` omits it by design. Asserting it
- * here would either fail on a hidden node or pass vacuously; it is checked
- * against the layer container's `textContent` instead — the same DOM, just not
- * painted. See the `flow-zh-ok` expectation below.
+ * is NOT in these lists. It is checked against the layer container's
+ * `textContent` instead (see the `flow-zh-ok` expectation below), which keeps
+ * that check pointed at the flow whichever page chrome is around it.
+ *
+ * 'Recorded walkthrough' used to be in this list for the verify panel's video
+ * caption, which no longer exists; a string the app never renders passes the
+ * "is it still English" filter vacuously, so it was removed rather than left
+ * looking like a check.
  */
 const MUST_BE_TRANSLATED = [
   'Execute',
@@ -97,7 +100,6 @@ const MUST_BE_TRANSLATED = [
   'Attack transaction',
   'Vault balance',
   'Same call, fixed build',
-  'Recorded walkthrough',
 ];
 
 /** ...and the Chinese that must actually have replaced it (visible chrome). */
@@ -309,31 +311,25 @@ const PLAN = [
     expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Attack Successful' },
     shot: 'step5-result-success',
   },
-  {
-    // The note ships with the result, so it must be present whenever the result
-    // is — and it must be the real copy, not an empty shell that satisfies a
-    // selector. The text check is what makes that distinction.
-    wait: `__prism.has('${SQL.closing}')`,
-    after: 400,
-    expect: {
-      expression: `__prism.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
-      contains: 'closing-present',
-    },
-    shot: 'step5-closing-note',
-  },
   { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
   {
-    // The condition IS the predicate. Waiting only for the panel and then
-    // sleeping would pass on a sleep rather than on the invariant — measured:
-    // for ~20ms after the click the panel exists with neither child, which is
-    // the very state this is supposed to reject.
-    wait:
-      `__prism.has('${SQL.verifyPanel}') && ` +
-      `(__prism.has('.verify__panel video') || __prism.has('.verify__video-fallback'))`,
+    // The panel is opened and shows its rows. It is NOT true in this repository
+    // that a video or a fallback note is there: the recording is not served, and
+    // the placeholder sentence that stood in for it was removed on purpose. The
+    // honest assertion is the one below — the panel opened and at least one of
+    // its evidence rows rendered. `.verify__row` is a real row, so this can
+    // still fail if the panel opens empty; it does not wait on a ghost.
+    //
+    // The condition is the predicate, not a sleep: for ~20ms after the click the
+    // panel exists with no rows yet, which is the state this is meant to reject.
+    wait: `__prism.has('${SQL.verifyPanel}') && __prism.has('.verify__panel .verify__row')`,
     after: 400,
     expect: {
-      expression: `(__prism.has('.verify__panel video') || __prism.has('.verify__video-fallback')) ? 'neither-empty-nor-video' : 'EMPTY-VIDEO-BOX'`,
-      contains: 'neither-empty-nor-video',
+      expression: `(() => {
+        const n = document.querySelectorAll('.verify__panel .verify__row').length;
+        return n > 0 ? 'panel-ok rows=' + n : 'PANEL-EMPTY';
+      })()`,
+      contains: 'panel-ok',
     },
     shot: 'step5-verify-panel',
   },
@@ -396,9 +392,23 @@ const PLAN = [
     shot: 'en-restored',
   },
 
-  // --- page 6: why the mistake is made (the flow stays mounted but hidden)
+  // --- page 6: why the mistake is made (the flow stays mounted but hidden).
+  // The closing note moved here from under the attack result: it explains *why
+  // this class of mistake happens* and cites the Solend incident, which is this
+  // page's subject, not the attack page's. Checked where it actually is.
   { wait: `__prism.step() === 5`, press: 'ArrowDown' },
   { wait: `__prism.step() === 6`, after: 500, shot: 'step6-why' },
+  {
+    // And it must carry the real copy, not an empty shell that satisfies a
+    // selector. The text check is what makes that distinction.
+    wait: `__prism.has('${SQL.closing}')`,
+    after: 200,
+    expect: {
+      expression: `__prism.text('${SQL.closing}').includes('declaration, not a line of logic') ? 'closing-present' : 'CLOSING-COPY-MISSING'`,
+      contains: 'closing-present',
+    },
+    shot: 'step6-closing-note',
+  },
   // --- page 7: the fix — one declaration
   { wait: `__prism.step() === 6`, press: 'ArrowDown' },
   { wait: `__prism.step() === 7`, after: 500, shot: 'step7-fix' },

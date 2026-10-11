@@ -1,4 +1,5 @@
 import { useLanguage } from '../i18n/language';
+import ClosingNote from './ClosingNote';
 
 /**
  * Page 6 — why a competent person writes this bug.
@@ -10,6 +11,12 @@ import { useLanguage } from '../i18n/language';
  * one proves nothing. The two panes are the two languages side by side; the
  * table is the structural difference underneath; the closing line is the whole
  * lesson in one sentence.
+ *
+ * The closing note lives here rather than under the attack result. It explains
+ * *why this class of mistake happens* and cites the Solend incident — that is
+ * this page's subject, not the attack page's, where it only pushed the flow and
+ * the verdict past the fold. The attack page keeps the evidence (the flow) and
+ * the verdict; the why page keeps the explanation.
  *
  * The code samples are literals — they are the same in both languages.
  */
@@ -67,6 +74,8 @@ export default function WhyItHappens() {
 
       <p className="page-intro__lede why__conclusion">{t.whyConclusion}</p>
       <p className="page-intro__note">{t.whyNote}</p>
+
+      <ClosingNote />
     </section>
   );
 }

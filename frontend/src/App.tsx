@@ -9,7 +9,6 @@ import {
   type Step,
 } from './lib/steps';
 import AttackResult from './components/AttackResult';
-import ClosingNote from './components/ClosingNote';
 import ContractLayers, { type LayersMode } from './components/ContractLayers';
 import DevnetRun from './components/DevnetRun';
 import FillAddress from './components/FillAddress';
@@ -386,12 +385,16 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
 
   // Pages 6 and 7 are not part of the flow's story: the flow stays mounted (its
   // DOM identity is load-bearing across pages 3-8) but is taken out of the
-  // layout while the two-pane comparison and the diff are read. The post-attack
-  // state joins them: once the verdict has landed the flow has done its job, and
-  // leaving it up pushes the result, the closing note and the verify panel past
-  // a 1280x820 fold. Hiding it — not unmounting it — keeps the DOM identity the
-  // harness's iron rule 1 depends on.
-  const flowHidden = step === 6 || step === 7 || attackState === 'done';
+  // layout while the two-pane comparison and the diff are read. Hiding it — not
+  // unmounting it — keeps the DOM identity the harness's iron rule 1 depends on.
+  //
+  // The post-attack state deliberately does NOT hide it. The flow is the
+  // evidence the verdict is drawn from, and its final state on the attack page —
+  // the flawed node still red, the comparison node filled and matching — is what
+  // the reader should be left looking at. It fits, because the closing note that
+  // used to sit under the verdict has moved to the page that is actually about
+  // why the mistake is made.
+  const flowHidden = step === 6 || step === 7;
 
   // Stage 4's caller slot is blank until the attack supplies the admin's address.
   const slotFilled = step >= SLOT_FILLED_FROM_STEP;
@@ -446,6 +449,30 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
     </div>
   );
 
+  // The verdict and the evidence that frame it: the chain's own answer, the one
+  // sentence saying what that answer does and does not show, and the control
+  // that opens the panel behind it. It stays on the page the attack happened on,
+  // under the flow it was drawn from — on the retry page, beside the reading.
+  const attackVerdict = (
+    <>
+      <AttackResult
+        isFixed={isFixed}
+        outcome={chainVerdict?.verdict ?? undefined}
+        detail={chainVerdict?.detail}
+      />
+      {/* What the real evidence does and does not show. Both lines are only
+          reachable through a real run: with no chain answer there is no verdict
+          here to annotate. */}
+      {chainVerdict?.verdict === 'success' && (
+        <p className="attack-result__body">{t.chainNotLamports}</p>
+      )}
+      {chainVerdict?.verdict === 'rejected' && (
+        <p className="attack-result__body">{t.chainTxFailed}</p>
+      )}
+      <VerifyPanel runSignature={chainVerdict?.signature} outcome={chainVerdict?.verdict} />
+    </>
+  );
+
   return (
     // data-step is the machine-readable current step. The visible page counter
     // was removed, so the verification harness reads this instead of scraping
@@ -491,29 +518,22 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
               {(step === 5 || step === 8) && attackControls}
               {step === 6 && <WhyItHappens />}
               {step === 7 && <TheFix />}
-              {step === 8 && <RetryRefused />}
 
-              {attackState === 'done' && (
+              {/* The retry page's footer once the attack has run: the reading
+                  and the verdict side by side. Stacked, they — with the flow
+                  still up as the evidence — were taller than the 1280x820 fold;
+                  side by side the section is as tall as its taller half, so the
+                  flow, the reading and the verdict all fit at once. Read left
+                  then right, the same order they are stacked in everywhere else. */}
+              {step === 8 && attackState === 'done' ? (
+                <div className="footer-pair">
+                  <RetryRefused />
+                  <div className="footer-pair__verdict">{attackVerdict}</div>
+                </div>
+              ) : (
                 <>
-                  <AttackResult
-                    isFixed={isFixed}
-                    outcome={chainVerdict?.verdict ?? undefined}
-                    detail={chainVerdict?.detail}
-                  />
-                  {/* What the real evidence does and does not show. Both lines
-                      are only reachable through a real run: with no chain answer
-                      there is no verdict here to annotate. */}
-                  {chainVerdict?.verdict === 'success' && (
-                    <p className="attack-result__body">{t.chainNotLamports}</p>
-                  )}
-                  {chainVerdict?.verdict === 'rejected' && (
-                    <p className="attack-result__body">{t.chainTxFailed}</p>
-                  )}
-                  <ClosingNote />
-                  <VerifyPanel
-                    runSignature={chainVerdict?.signature}
-                    outcome={chainVerdict?.verdict}
-                  />
+                  {step === 8 && <RetryRefused />}
+                  {attackState === 'done' && attackVerdict}
                 </>
               )}
             </div>
