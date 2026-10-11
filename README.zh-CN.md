@@ -129,8 +129,10 @@ Test Files  33 passed (33)
 - **单元测试全绿** —— 33 个文件，359 个测试。✅
 - **尚未托管** —— 没有公开网址。本地用 `npm run dev` 跑。
 - **录制的演示早于第二课** —— `docs/screenshots/` 里只有第一课。
-- **没有 CI** —— 没有任何东西自动跑测试套件。
+- **CI 跑前端** —— `.github/workflows/ci.yml` 在每次 push 和 pull request 上跑
+  `npm ci`、`npm test` 和 `npm run build`。它不构建合约：那需要 `cargo-build-sbf`
+  和 platform-tools，标准 runner 上没有（见 `contract/README.md`）。
 
 ## 许可证
 
-本仓库没有 `LICENSE` 文件。在补上一份之前，不授予任何授权。
+本项目采用 [MIT 许可证](LICENSE)。

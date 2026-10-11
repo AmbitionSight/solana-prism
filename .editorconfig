@@ -1,0 +1,22 @@
+# https://editorconfig.org
+# Every file in this repository is LF and space-indented. The Rust crates use
+# four spaces; everything else uses two. The provenance copies under
+# frontend/public/ are compared byte for byte against contract/, so if an
+# editor rewrites their line endings or trailing whitespace it breaks the
+# suite — leaving these rules at their defaults keeps that from happening.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.rs]
+indent_size = 4
+
+# Two trailing spaces in Markdown are a hard line break, so do not trim them.
+[*.md]
+trim_trailing_whitespace = false

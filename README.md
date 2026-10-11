@@ -185,9 +185,11 @@ was falsified.
 - **Not yet hosted** — there is no public URL. Run it locally with `npm run dev`.
 - **The recorded walkthrough predates lesson two** — `docs/screenshots/` shows
   lesson one only.
-- **No CI** — nothing runs the suite automatically.
+- **CI runs the frontend** — `.github/workflows/ci.yml` runs `npm ci`,
+  `npm test` and `npm run build` on every push and pull request. It does not
+  build the contracts: that needs `cargo-build-sbf` and platform-tools, which a
+  stock runner does not have (see `contract/README.md`).
 
 ## License
 
-There is no `LICENSE` file in this repository. Until one is added, no license is
-granted.
+This project is [MIT licensed](LICENSE).

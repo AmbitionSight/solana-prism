@@ -1,0 +1,45 @@
+# CI covers the frontend only.
+#
+# The Anchor programs are NOT built here. Producing Solana bytecode needs
+# `cargo-build-sbf` plus platform-tools (a custom LLVM backend), which are
+# published for Linux and macOS only and are not on a stock runner — see
+# contract/README.md. A green run of this workflow says the frontend's suite
+# and build pass; it says nothing about whether the contracts compile.
+#
+# A host `cargo check` job is deliberately not added. The programs are ordinary
+# Rust crates and `anchor-lang` does build for the host, but that path has never
+# been run from a machine with the crates available, so there is no evidence the
+# job would pass rather than be red on every push. Add it only alongside proof
+# that it is green.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend — test and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the `engines.node` floor in frontend/package.json (>=20.10.0).
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci`, not `npm install`: the lockfile is committed and installs must
+      # be reproducible.
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
