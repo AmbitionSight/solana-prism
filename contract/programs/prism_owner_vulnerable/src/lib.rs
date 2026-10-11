@@ -19,7 +19,7 @@ use anchor_lang::prelude::*;
 // The real address, written by `anchor keys sync` from
 // target/deploy/prism_owner_vulnerable-keypair.json. Anchor derives `#[account]`'s
 // Owner from this, so it has to match the keypair the program is built with.
-declare_id!("11111111111111111111111111111111");
+declare_id!("38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL");
 
 #[program]
 pub mod prism_owner_vulnerable {

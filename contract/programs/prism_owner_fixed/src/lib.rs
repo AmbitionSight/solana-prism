@@ -11,7 +11,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("11111111111111111111111111111111");
+declare_id!("BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93");
 
 #[program]
 pub mod prism_owner_fixed {

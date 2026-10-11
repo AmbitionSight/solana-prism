@@ -20,11 +20,13 @@ prism_fixed = "9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq"
 [programs.testnet]
 prism_vulnerable = "7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2"
 prism_fixed = "9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq"
-# Lesson two. `anchor keys sync` fills these from the keypairs `anchor build`
-# writes; until then they are placeholders and the build is what produces them.
-prism_owner_vulnerable = "11111111111111111111111111111111"
-prism_owner_fixed = "11111111111111111111111111111111"
-prism_counterfeit = "11111111111111111111111111111111"
+# Lesson two: the protocol's two builds, and the attacker's tool. The same three
+# addresses are written into each program's `declare_id!` — Anchor derives
+# `#[account]`'s Owner from that, so a mismatch here makes the runtime reject the
+# credit account.
+prism_owner_vulnerable = "38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL"
+prism_owner_fixed = "BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93"
+prism_counterfeit = "AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR"
 
 # Plan C fallback: the same keypairs run against a local validator, which is how
 # the four attack assertions were first proven before a public cluster was
