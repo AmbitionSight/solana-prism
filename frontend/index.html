@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Inline empty icon: without it every load logs a 404, which would make
-         the harness's console-error gate noisy for no reason. -->
-    <link rel="icon" href="data:," />
+    <!-- A real icon, and it has to be a real one: an inline empty data URI used
+         to stand here purely to keep the harness's console-error gate quiet. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Solana Prism</title>
   </head>
   <body>

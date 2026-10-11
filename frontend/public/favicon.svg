@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Solana Prism">
+  <title>Solana Prism</title>
+  <!--
+    One beam arrives; the prism takes it apart; what leaves is a spectrum.
+    The mark is the product — one contract in, its stages out — and the three
+    rays carry the three colours this demo's own tokenizer gives Rust: the
+    keyword red, the type blue, and the comment grey.
+
+    The outline is ink that follows the browser's colour scheme, because a dark
+    mark on a dark tab bar is not a logo. The default is a mid grey rather than
+    black: a browser that ignores `prefers-color-scheme` inside an SVG still gets
+    a mark that is visible on both a light and a dark tab, instead of one that
+    disappears. The queries only sharpen it where they are honoured.
+  -->
+  <style>
+    .ink { stroke: #6e6e73; }
+    @media (prefers-color-scheme: light) {
+      .ink { stroke: #1d1d1f; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #f5f5f7; }
+    }
+  </style>
+  <g fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path class="ink" d="M2 33 H20" />
+    <path class="ink" d="M32 11 L56 52 H8 Z" />
+    <path stroke="#0071e3" d="M46 33 L62 20" />
+    <path stroke="#d70015" d="M46 33 H62" />
+    <path stroke="#a1a1a6" d="M46 33 L62 46" />
+  </g>
+</svg>
