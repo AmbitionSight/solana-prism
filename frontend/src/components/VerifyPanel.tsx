@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  PENDING,
   VERIFICATION,
   isDeployed,
   isFilled,
@@ -10,6 +9,7 @@ import {
 import { useLanguage } from '../i18n/language';
 import { formatCluster, type MessageKey } from '../i18n/messages';
 import type { VerifyEvidence } from '../config/verification';
+import type { RunVerdict } from '../lib/devnetRun';
 
 const VIDEO_SRC = '/demo-verify.mp4';
 
@@ -56,6 +56,7 @@ function Row({ labelKey, value, href }: RowProps) {
 export default function VerifyPanel({
   defaultOpen = false,
   runSignature,
+  outcome,
   evidence = VERIFICATION,
 }: {
   /**
@@ -69,6 +70,17 @@ export default function VerifyPanel({
    * run has one. Absent, no row is rendered at all.
    */
   runSignature?: string;
+  /**
+   * What the run this panel describes concluded.
+   *
+   * The panel is always rendered under a verdict that has already landed, so the
+   * row that describes the run's own effect on the vault — its balance — is
+   * spoken from here rather than from a fixed demo constant. Only a `success`
+   * moved the balance; a `rejected` run was stopped by the runtime and changed
+   * no state, and a `failed` run never reached the chain. Passing this as a prop
+   * (alongside `runSignature`) keeps the panel told, never guessing.
+   */
+  outcome?: RunVerdict | null;
   /**
    * The evidence the panel speaks from. Defaults to the repository's real
    * config; a test overrides it so both voices get exercised, rather than only
@@ -154,15 +166,25 @@ export default function VerifyPanel({
                 href={solscanTxUrl(runSignature)}
               />
             )}
-            {/* The balance is a number the contract is written to produce, not
-                one anyone has read off a chain. With nothing deployed it is
-                pending like everything else here. */}
-            <Row
-              labelKey="verifyVaultBalance"
-              value={
-                deployed ? `${VERIFICATION.vaultBefore} → ${VERIFICATION.vaultAfter}` : PENDING
-              }
-            />
+            {/* The balance is the one row that describes what a *run* did, so
+                it is rendered from that run's outcome and not as a fixed demo
+                constant. Only a successful attack moves the vault (the
+                vulnerable build's 1000 -> 500); a run the runtime refused
+                changed no state, and putting the drain's numbers beneath
+                "Transaction Rejected" would read as money that moved anyway.
+                A refusal therefore states the truth — nothing changed — and a
+                run with no verdict (or one that never reached the chain) shows
+                no balance row at all, because there is no balance it can
+                honestly speak about. */}
+            {outcome === 'success' && (
+              <Row
+                labelKey="verifyVaultBalance"
+                value={`${evidence.vaultBefore} → ${evidence.vaultAfter}`}
+              />
+            )}
+            {outcome === 'rejected' && (
+              <Row labelKey="verifyVaultBalance" value={t.verifyBalanceUnchanged} />
+            )}
             <Row
               labelKey="verifyFixedProgram"
               value={fixedProgramId}

@@ -69,3 +69,42 @@ describe('VerifyPanel — 本次运行的签名', () => {
     expect(html).not.toContain(formatCluster(MESSAGES.en.verifyClaimDeployed));
   });
 });
+
+/**
+ * The balance row describes what a *run* did, so it is spoken from that run's
+ * outcome. The one thing it must never do is show a drain beside a refusal: the
+ * vulnerable build's run moves a vault 1000 -> 500, the repaired build's run is
+ * refused by the runtime and moves nothing, and the two must not be conflated on
+ * the page where the refusal is the whole lesson.
+ */
+describe('VerifyPanel — 余额行说的是这一次运行做了什么', () => {
+  const PAIR = `${VERIFICATION.vaultBefore} → ${VERIFICATION.vaultAfter}`;
+
+  it('成功的那次运行显示 1000 → 500', () => {
+    const html = render(<VerifyPanel defaultOpen outcome="success" />);
+    expect(html).toContain(PAIR);
+  });
+
+  it('被拒绝的那次运行绝不显示 1000 → 500', () => {
+    const html = render(<VerifyPanel defaultOpen outcome="rejected" />);
+    expect(html).not.toContain(PAIR);
+  });
+
+  it('被拒绝时说清楚没有变动', () => {
+    const html = render(<VerifyPanel defaultOpen outcome="rejected" />);
+    expect(html).toContain(asText(MESSAGES.en.verifyBalanceUnchanged));
+  });
+
+  it('没有结论的运行不渲染这一行', () => {
+    for (const outcome of [undefined, null, 'failed'] as const) {
+      const html = render(<VerifyPanel defaultOpen outcome={outcome} />);
+      expect(html).not.toContain(PAIR);
+      expect(html).not.toContain(asText(MESSAGES.en.verifyBalanceUnchanged));
+    }
+  });
+
+  it('拒绝时的行仍然挂在同一个标签下', () => {
+    const html = render(<VerifyPanel defaultOpen outcome="rejected" />);
+    expect(html).toContain(asText(MESSAGES.en.verifyVaultBalance));
+  });
+});

@@ -170,6 +170,15 @@ export interface Messages {
   verifyVulnerableProgram: string;
   verifyAttackTx: string;
   verifyVaultBalance: string;
+  /**
+   * The balance row's value on a refused run.
+   *
+   * The 1000 -> 500 pair is the vulnerable build's drain, and belongs only to a
+   * run that actually drained. A refusal must not be shown beside a balance that
+   * moved, so the row states the one thing that is true instead: a rejected
+   * transaction changes no account state.
+   */
+  verifyBalanceUnchanged: string;
   verifyFixedProgram: string;
   verifySameCall: string;
   verifyPending: string;
@@ -345,6 +354,7 @@ export const MESSAGES: Record<Language, Messages> = {
     verifyVulnerableProgram: 'Vulnerable program',
     verifyAttackTx: 'Attack transaction',
     verifyVaultBalance: 'Vault balance',
+    verifyBalanceUnchanged: 'unchanged — a rejected transaction changes no state',
     verifyFixedProgram: 'Fixed program',
     verifySameCall: 'Same call, fixed build',
     verifyPending: 'not deployed yet',
@@ -501,6 +511,7 @@ export const MESSAGES: Record<Language, Messages> = {
     verifyVulnerableProgram: '漏洞版程序',
     verifyAttackTx: '攻击交易',
     verifyVaultBalance: '金库余额',
+    verifyBalanceUnchanged: '未变动 —— 被拒绝的交易不改变任何状态',
     verifyFixedProgram: '修复版程序',
     verifySameCall: '同一调用，修复版',
     verifyPending: '尚未部署',

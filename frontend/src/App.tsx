@@ -386,8 +386,12 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
 
   // Pages 6 and 7 are not part of the flow's story: the flow stays mounted (its
   // DOM identity is load-bearing across pages 3-8) but is taken out of the
-  // layout while the two-pane comparison and the diff are read.
-  const flowHidden = step === 6 || step === 7;
+  // layout while the two-pane comparison and the diff are read. The post-attack
+  // state joins them: once the verdict has landed the flow has done its job, and
+  // leaving it up pushes the result, the closing note and the verify panel past
+  // a 1280x820 fold. Hiding it — not unmounting it — keeps the DOM identity the
+  // harness's iron rule 1 depends on.
+  const flowHidden = step === 6 || step === 7 || attackState === 'done';
 
   // Stage 4's caller slot is blank until the attack supplies the admin's address.
   const slotFilled = step >= SLOT_FILLED_FROM_STEP;
@@ -506,7 +510,10 @@ export default function App({ initialStep = 1 }: { initialStep?: Step } = {}) {
                     <p className="attack-result__body">{t.chainTxFailed}</p>
                   )}
                   <ClosingNote />
-                  <VerifyPanel runSignature={chainVerdict?.signature} />
+                  <VerifyPanel
+                    runSignature={chainVerdict?.signature}
+                    outcome={chainVerdict?.verdict}
+                  />
                 </>
               )}
             </div>

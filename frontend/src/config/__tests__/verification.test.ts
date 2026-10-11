@@ -105,9 +105,13 @@ describe('isDeployed — 由数据推导，不是开关', () => {
     expect(VERIFICATION.faucetUrl).toMatch(/^https:\/\//);
   });
 
-  it('金库余额是合约写出来的值，不是读出来的值', () => {
-    // Guards the shape of the claim, not its truth: these two numbers are what
-    // the source sets and the animation shows. They are not observations.
+  it('金库余额是漏洞版攻击搬动的两个数，不是读出来的值', () => {
+    // Guards the numbers the *vulnerable* build's run moves a vault between, not
+    // an observation of a chain. The framing narrowed when the repaired build
+    // gained a page: its run is refused, so it moves nothing, and the panel
+    // renders this pair only under a `success` verdict (see verifyPanel.test).
+    // The assertion still has teeth — change 500 here and the panel would draw a
+    // drain the source does not perform.
     expect(VERIFICATION.vaultBefore).toBe(1000);
     expect(VERIFICATION.vaultAfter).toBe(500);
   });

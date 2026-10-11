@@ -80,12 +80,19 @@ try {
  * final assertions run in (vulnerable result + verify panel open). Layer names
  * are excluded on purpose: they render bilingually ("运行时 Runtime"), so their
  * English form is *supposed* to still be on screen.
+ *
+ * The flow's own copy — the stage names and the "No signature required" badge —
+ * is NOT in these lists. Since the post-attack state hides the flow to fit the
+ * viewport (both the final assertions and the `step5-verify-panel` shot run with
+ * `attackState === 'done'`), `body.innerText` omits it by design. Asserting it
+ * here would either fail on a hidden node or pass vacuously; it is checked
+ * against the layer container's `textContent` instead — the same DOM, just not
+ * painted. See the `flow-zh-ok` expectation below.
  */
 const MUST_BE_TRANSLATED = [
   'Execute',
   'Verify on-chain',
   'Attack Successful',
-  'No signature required',
   'Vulnerable program',
   'Attack transaction',
   'Vault balance',
@@ -93,16 +100,8 @@ const MUST_BE_TRANSLATED = [
   'Recorded walkthrough',
 ];
 
-/** ...and the Chinese that must actually have replaced it. */
-const MUST_APPEAR_IN_CHINESE = [
-  '执行攻击',
-  '攻击成功',
-  '未要求签名',
-  '链上验证',
-  '金库余额',
-  '账户声明',
-  '状态变更',
-];
+/** ...and the Chinese that must actually have replaced it (visible chrome). */
+const MUST_APPEAR_IN_CHINESE = ['执行攻击', '攻击成功', '链上验证', '金库余额'];
 
 /**
  * Iron rule 1: pages 4 through 9 must reuse the same DOM nodes. If the cards are
@@ -360,7 +359,24 @@ const PLAN = [
   },
   {
     // Stage names are bilingual by design, so the English term must survive.
-    expect: { expression: `__prism.text('.layers-container')`, contains: '账户声明 Account Declaration' },
+    //
+    // This is the flow's translation check, and it reads `textContent` rather
+    // than `innerText` because the flow is deliberately hidden in this state
+    // (the post-attack state fits the viewport only with it out of the layout).
+    // It still has teeth: the three Chinese strings must be present in the
+    // flow's DOM and the English badge must be gone from it.
+    expect: {
+      expression: `(() => {
+        const text = __prism.text('.layers-container');
+        const want = ['账户声明 Account Declaration', '状态变更 State Change', '未要求签名'];
+        const missing = want.filter((s) => !text.includes(s));
+        const leaked = ['No signature required'].filter((s) => text.includes(s));
+        return missing.length === 0 && leaked.length === 0
+          ? 'flow-zh-ok'
+          : 'missing[' + missing.join('|') + '] leaked[' + leaked.join('|') + ']';
+      })()`,
+      contains: 'flow-zh-ok',
+    },
   },
   { wait: `__prism.has('${SQL.langEn}')`, click: SQL.langEn },
   {

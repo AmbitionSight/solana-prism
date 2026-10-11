@@ -63,6 +63,16 @@ export const VERIFICATION = {
    * has to be swappable without touching code.
    */
   faucetUrl: 'https://faucet.solana.com',
+  /**
+   * The two numbers the *vulnerable* build's attack moves a vault between.
+   *
+   * Not an observation: the source sets `vault.balance = 1000` and the call
+   * withdraws 500, so a successful run produces this pair and the animation
+   * shows it. The framing narrowed when page 8 was added — the repaired build
+   * is attacked by the same call and *refused*, so nothing moves there. The
+   * panel now renders this pair only when the run it describes reported
+   * `success`; a refusal is shown as "unchanged", never as these numbers.
+   */
   vaultBefore: 1000,
   vaultAfter: 500,
 } as const;
