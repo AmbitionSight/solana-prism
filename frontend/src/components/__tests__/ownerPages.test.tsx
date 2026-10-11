@@ -9,6 +9,7 @@ import ForgeCredit from '../ForgeCredit';
 import OwnerFix from '../OwnerFix';
 import OwnerResult from '../OwnerResult';
 import OwnerRetry from '../OwnerRetry';
+import OwnerTitle from '../OwnerTitle';
 import WhyOwnership from '../WhyOwnership';
 
 /**
@@ -32,7 +33,16 @@ function render(node: ReactNode, language: Language = 'en'): string {
 const LESSON = shippedOwnerLesson();
 const { vulnerableProgramId } = LESSON.verification;
 
-describe('lesson two — 三张教学页各有各的文案', () => {
+describe('lesson two — 每一页各有各的文案', () => {
+  it('page 1 opens on its own question, not lesson one’s', () => {
+    const html = render(<OwnerTitle />);
+    expect(html).toContain('data-testid="owner-title"');
+    expect(html).toContain(MESSAGES.en.ownerTitleLast);
+    expect(html).toContain(MESSAGES.en.ownerTitleThis);
+    // The whole point of the page: it no longer asks lesson one's question.
+    expect(html).not.toContain(MESSAGES.en.step1Title);
+  });
+
   it('page 4 renders both credits, and the lesson’s own program id', () => {
     const html = render(<ForgeCredit />);
     expect(html).toContain('data-testid="forge-credit"');
@@ -78,6 +88,13 @@ describe('lesson two — 三张教学页各有各的文案', () => {
 });
 
 describe('lesson two — 中文模式下文案真的是中文', () => {
+  it('page 1 is translated', () => {
+    const html = render(<OwnerTitle />, 'zh');
+    expect(html).toContain(MESSAGES.zh.ownerTitleLast);
+    expect(html).toContain(MESSAGES.zh.ownerTitleThis);
+    expect(html).not.toContain(MESSAGES.en.ownerTitleThis);
+  });
+
   it('page 4 is translated', () => {
     const html = render(<ForgeCredit />, 'zh');
     expect(html).toContain(MESSAGES.zh.forgeTitle);

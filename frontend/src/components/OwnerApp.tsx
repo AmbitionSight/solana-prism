@@ -15,7 +15,7 @@ import OwnerFix from './OwnerFix';
 import OwnerResult from './OwnerResult';
 import OwnerRetry from './OwnerRetry';
 import OwnerTxCard, { type OwnerTxPayload } from './OwnerTxCard';
-import Step1Title from './Step1Title';
+import OwnerTitle from './OwnerTitle';
 import Step2Code from './Step2Code';
 import VerifyPanel from './VerifyPanel';
 import WhyOwnership from './WhyOwnership';
@@ -36,17 +36,18 @@ import '../styles/animations.css';
  * different lesson.
  *
  * It is deliberately its own component rather than a parameterisation of `App`.
- * The two lessons share the flow's geometry, the narrated opening and the arrow
- * keys, but nothing about their *attacks* coincides: lesson one scans a pool of
- * vaults and calls `withdraw` with an address; lesson two forges an account with
- * a second program and calls `withdraw` with that account. Folding both into one
- * orchestrator would mean a component that branches on the lesson at every step
- * — a generic abstraction serving two things that are not the same shape. What
- * they genuinely share (the flow, the listing, the verify panel, the page
- * state machine) is already components and data, and is reused as such.
+ * The two lessons share the flow's geometry, the narrated opening's pacing and
+ * the arrow keys, but nothing about their *attacks* coincides: lesson one scans
+ * a pool of vaults and calls `withdraw` with an address; lesson two forges an
+ * account with a second program and calls `withdraw` with that account. Folding
+ * both into one orchestrator would mean a component that branches on the lesson
+ * at every step — a generic abstraction serving two things that are not the same
+ * shape. What they genuinely share (the flow, the listing, the verify panel, the
+ * page state machine) is already components and data, and is reused as such.
  *
- * The teaching pages are lesson two's own: `ForgeCredit`, `WhyOwnership`,
- * `OwnerFix` — none of which would read correctly with lesson one's signer prose.
+ * The teaching pages are lesson two's own: `OwnerTitle`, `ForgeCredit`,
+ * `WhyOwnership`, `OwnerFix` — none of which would read correctly with lesson
+ * one's signer prose.
  */
 
 /** The repaired build is attacked on the last page, as in lesson one. */
@@ -288,7 +289,7 @@ export default function OwnerApp({
         </div>
 
         <main className="stage">
-          {step === 1 && <Step1Title />}
+          {step === 1 && <OwnerTitle />}
           {step === 2 && (
             <Step2Code
               onRegionRects={(rects) => {

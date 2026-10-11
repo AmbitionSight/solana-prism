@@ -295,6 +295,15 @@ export interface Messages {
      lesson one's. The keys are grouped under one banner so the seam is visible:
      everything below is the ownership lesson, not the signer one. */
 
+  /* Lesson two's opening page. It stands in the same slot lesson one's title
+     does — the same fade, the same quiet, the same few seconds — but a reader
+     who reaches it has already had lesson one, so asking "what is a smart
+     contract?" again would be a lie about where they are. These two lines set
+     the new flaw against the old one instead: there, nobody was asked to sign;
+     here, nobody was asked who owns the account at all. */
+  ownerTitleLast: string;
+  ownerTitleThis: string;
+
   /* The six nodes of lesson two's flow. The stage *names* are shared (S0-S3 and
      S5 reuse the vocabulary above); only the sentences they lead with differ,
      because the bug they describe is a different one. */
@@ -579,6 +588,9 @@ export const MESSAGES: Record<Language, Messages> = {
     retryConclusion: 'The only difference between the two versions is what that node says.',
 
     /* Lesson two — the missing owner check */
+    ownerTitleLast: 'Last lesson: no one was asked to sign.',
+    ownerTitleThis: 'This lesson: no one is asked — whose account this is.',
+
     sayOwnerSetup: 'The protocol opens its vault, and writes its own address into it.',
     sayOwnerCall: 'Someone calls the contract, asking it to pay a credit.',
     sayOwnerHandOver: 'They hand over three accounts.',
@@ -820,6 +832,9 @@ export const MESSAGES: Record<Language, Messages> = {
     retryConclusion: '两版的差别，只有那一格里写的东西。',
 
     /* 第二课 —— 缺失的所有者检查 */
+    ownerTitleLast: '上一课：没有人被要求签名。',
+    ownerTitleThis: '这一课：没有人被问过 —— 这个账户，是谁的。',
+
     sayOwnerSetup: '协议建立金库，把自己的地址写进去。',
     sayOwnerCall: '有人调用合约，要它兑付一份凭证。',
     sayOwnerHandOver: '他交出了三个账户。',

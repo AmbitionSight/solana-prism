@@ -277,6 +277,37 @@
   }
 }
 
+/* ---------- Lesson two: its own opening question ---------- */
+
+/* The same fade, the same centred place, the same few seconds as lesson one's
+   title — but two lines rather than one, so the type steps down a size and the
+   lines stack. It reuses the `title-in-out` keyframes above and nothing else:
+   lesson one's rule is left exactly as it was. */
+.owner-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.owner-title__title {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-title);
+  line-height: 1.25;
+  text-align: center;
+  animation: title-in-out var(--step-duration, 3000ms) var(--ease-apple) both;
+}
+
+.owner-title__line {
+  display: block;
+}
+
+/* The past lesson recedes; the question this one asks carries the weight. */
+.owner-title__line--last {
+  color: var(--color-text-secondary);
+}
+
 /* ---------- Step 2: code card ---------- */
 
 .step2 {
