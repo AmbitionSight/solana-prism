@@ -1,0 +1,20 @@
+[package]
+name = "prism_owner_vulnerable"
+version = "0.1.0"
+description = "Lesson two's vulnerable build — the credit account's owner is never checked"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "prism_owner_vulnerable"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = "0.30.1"

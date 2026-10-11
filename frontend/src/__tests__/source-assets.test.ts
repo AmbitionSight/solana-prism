@@ -31,6 +31,12 @@ const PAIRS = [
     source: '../../../contract/programs/prism_vulnerable/src/lib.rs',
   },
   {
+    title:
+      'lessons/missing-owner/contract.rs mirrors contract/programs/prism_owner_vulnerable/src/lib.rs',
+    copy: '../../public/lessons/missing-owner/contract.rs',
+    source: '../../../contract/programs/prism_owner_vulnerable/src/lib.rs',
+  },
+  {
     title: 'prism_fixed.rs.txt mirrors contract/programs/prism_fixed/src/lib.rs',
     copy: '../../public/source/prism_fixed.rs.txt',
     source: '../../../contract/programs/prism_fixed/src/lib.rs',

@@ -75,6 +75,14 @@ export interface VerifyEvidence {
    */
   adminPubkey: string;
   /**
+   * The attacker's own program, when a lesson's attack needs one.
+   *
+   * Lesson two's forged credit has to be written by a program, so the lesson
+   * names the one the attacker deployed. Absent for a lesson whose attack needs
+   * no second program — the field is optional, so lesson one is untouched.
+   */
+  counterfeitProgramId?: string;
+  /**
    * The two numbers the *vulnerable* build's attack moves a vault between.
    * Not an observation: the source sets `vault.balance = 1000` and the call
    * withdraws 500, so a successful run produces this pair and the panel shows it

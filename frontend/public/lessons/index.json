@@ -3,5 +3,10 @@
     "id": "missing-signer",
     "title": "lessonMissingSignerTitle",
     "blurb": "lessonMissingSignerBlurb"
+  },
+  {
+    "id": "missing-owner",
+    "title": "lessonMissingOwnerTitle",
+    "blurb": "lessonMissingOwnerBlurb"
   }
 ]

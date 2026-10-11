@@ -2,6 +2,13 @@
 members = [
     "programs/prism_vulnerable",
     "programs/prism_fixed",
+    # Lesson two — a different vulnerability on the same stage: the account's
+    # owner is never checked. `prism_counterfeit` is the attacker's tool, not
+    # part of the protocol; it exists because a forged account has to be written
+    # by something, and on Solana that something must be a program.
+    "programs/prism_owner_vulnerable",
+    "programs/prism_owner_fixed",
+    "programs/prism_counterfeit",
 ]
 resolver = "2"
 

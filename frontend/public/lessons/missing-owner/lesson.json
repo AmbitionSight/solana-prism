@@ -1,0 +1,96 @@
+{
+  "id": "missing-owner",
+  "contractName": "prism_owner_vulnerable",
+  "layers": [
+    {
+      "id": "S0",
+      "nameKey": "stageSetup",
+      "sayKey": "sayOwnerSetup",
+      "code": "vault.authority = ctx.accounts.authority.key()",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 0, "y": -195 }
+    },
+    {
+      "id": "S1",
+      "nameKey": "stageInstruction",
+      "sayKey": "sayOwnerCall",
+      "code": "withdraw(ctx)",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": -220, "y": -110 }
+    },
+    {
+      "id": "S2",
+      "nameKey": "stageAccounts",
+      "sayKey": "sayOwnerHandOver",
+      "code": "vault · credit · recipient",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 220, "y": -90 }
+    },
+    {
+      "id": "S3",
+      "nameKey": "stageDeclaration",
+      "sayKey": "sayOwnerDeclaration",
+      "sayWhenFixed": "sayOwnerDeclarationFixed",
+      "code": "credit: UncheckedAccount<'info>",
+      "codeWhenFixed": "credit: Account<'info, Credit>",
+      "badgeKey": "badgeOwnerUnchecked",
+      "badgeFixedKey": "badgeOwnerRequired",
+      "isSecurityLayer": true,
+      "broken": true,
+      "scatter": { "x": -200, "y": 70 }
+    },
+    {
+      "id": "S4",
+      "nameKey": "stageDataRead",
+      "sayKey": "sayOwnerRead",
+      "code": "Credit::try_deserialize(&credit.data)",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 210, "y": 90 }
+    },
+    {
+      "id": "S5",
+      "nameKey": "stageStateChange",
+      "sayKey": "sayOwnerStateChange",
+      "code": "vault.lamports -= amount",
+      "isSecurityLayer": false,
+      "broken": false,
+      "scatter": { "x": 0, "y": 160 }
+    }
+  ],
+  "contract": {
+    "regions": [
+      { "stageId": "S0", "from": 31, "to": 31 },
+      { "stageId": "S1", "from": 45, "to": 45 },
+      { "stageId": "S4", "from": 48, "to": 49 },
+      { "stageId": "S5", "from": 54, "to": 55 },
+      { "stageId": "S2", "from": 82, "to": 85 },
+      { "stageId": "S3", "from": 86, "to": 86 }
+    ],
+    "excerpt": [
+      { "from": 29, "to": 33 },
+      { "from": 44, "to": 56 },
+      { "from": 82, "to": 89 }
+    ],
+    "marginNotes": [
+      { "line": 31, "key": "noteOwnerVaultAuthority", "match": "vault.authority =" },
+      { "line": 45, "key": "noteOwnerHandler", "match": "pub fn withdraw" },
+      { "line": 48, "key": "noteOwnerTrustsData", "match": "try_deserialize" },
+      { "line": 54, "key": "noteOwnerLamports", "match": "try_borrow_mut_lamports" },
+      { "line": 86, "key": "noteOwnerUnchecked", "match": "UncheckedAccount<'info>," }
+    ]
+  },
+  "verification": {
+    "vulnerableProgramId": "38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL",
+    "fixedProgramId": "BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93",
+    "attackTxSignature": "5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG",
+    "attackTxError": "InstructionError: [1, Custom(3007)]",
+    "adminPubkey": "DMkwnXZ6Gy7X8fkzSyBCdCuk3E2CFrwCmhV9A44qGU7T",
+    "counterfeitProgramId": "AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR",
+    "vaultBefore": 50000000,
+    "vaultAfter": 0
+  }
+}

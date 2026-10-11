@@ -154,6 +154,8 @@ const SQL = {
    * than on page 1 of the lesson.
    */
   lesson: '[data-testid="lesson-missing-signer"]',
+  /** Lesson two's card on the same list. The plan walks it after lesson one. */
+  lesson2: '[data-testid="lesson-missing-owner"]',
   /** The chrome control that leaves a lesson from any page. */
   exit: '[data-testid="exit-lesson"]',
   /** The end-of-lesson control, under the verdict on the retry page. */
@@ -473,6 +475,147 @@ const PLAN = [
       contains: 'home-again',
     },
     shot: 'home-returned',
+  },
+
+  // ============================================================
+  // Lesson two — the missing owner check.
+  //
+  // The same eight-page machine, its own pages and its own attack: a forged
+  // credit minted by `prism_counterfeit`, then `withdraw` on the vulnerable
+  // build (real lamports moved), and the same forged credit refused by the
+  // repaired build. Every wait is a predicate on the live page, as above.
+  // ============================================================
+  { wait: `__prism.has('${SQL.lesson2}')`, after: 400, shot: 'l2-home-entry' },
+  { wait: `__prism.has('${SQL.lesson2}')`, click: SQL.lesson2 },
+  { wait: `__prism.step() === 1`, after: 1300, shot: 'l2-step1-title' },
+  { wait: `__prism.step() === 2`, after: 2400, shot: 'l2-step2-code' },
+  // Lesson two's listing has its own six regions, swept in source order; the
+  // labels are all up when the mapping has finished.
+  {
+    wait: `(() => {
+      const labels = [...document.querySelectorAll('.code-block__label')];
+      return labels.length === 6
+        && labels.every((el) => Number(getComputedStyle(el).opacity) > 0.9);
+    })()`,
+    after: 500,
+    expect: {
+      expression: `[...document.querySelectorAll('.code-block__label')]
+        .filter((el) => Number(getComputedStyle(el).opacity) > 0.9).length + '/6 visible'`,
+      contains: '6/6 visible',
+    },
+    shot: 'l2-step2-mapping',
+  },
+  { wait: `__prism.mode() === 'flow'`, after: 2200, probe: 'tagCards', shot: 'l2-step3-flow' },
+  // Page 4 is the forge — the attacker's two credits side by side. No attack
+  // control lives on it.
+  { wait: `__prism.step() === 4 && !__prism.has('${SQL.execute}')`, after: 500, shot: 'l2-step4-forge' },
+  // Lesson two's forge page carries the flow plus two credit panes, so it is
+  // the tallest footer in the lesson — it must still fit without scrolling.
+  {
+    wait: `__prism.step() === 4`,
+    expect: {
+      expression: `(() => {
+        const d = document.documentElement;
+        return 'scrollY=' + window.scrollY + ' scrollable=' + (d.scrollHeight > window.innerHeight);
+      })()`,
+      contains: 'scrollY=0 scrollable=false',
+    },
+  },
+  { wait: `__prism.step() === 4`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`, after: 400, shot: 'l2-step5-ready' },
+  // The arrow keys must not scroll this lesson's pages either.
+  { wait: `__prism.step() === 5`, press: 'ArrowUp' },
+  { wait: `__prism.step() === 4`, press: 'ArrowDown' },
+  {
+    wait: `__prism.step() === 5 && __prism.has('${SQL.execute}')`,
+    after: 200,
+    expect: {
+      expression: `(() => {
+        const d = document.documentElement;
+        return 'scrollY=' + window.scrollY + ' scrollable=' + (d.scrollHeight > window.innerHeight);
+      })()`,
+      contains: 'scrollY=0 scrollable=false',
+    },
+  },
+
+  // --- the vulnerable build: forge the credit, then drain the vault for real.
+  { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'l2-step5-txcard' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 1450, shot: 'l2-step5-attack-dot' },
+  {
+    wait: `__prism.has('${SQL.result}')`,
+    after: 700,
+    probe: 'checkCards',
+    expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Attack Successful' },
+    shot: 'l2-step5-result-success',
+  },
+  { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
+  {
+    wait: `__prism.has('${SQL.verifyPanel}') && __prism.has('.verify__panel .verify__row')`,
+    after: 400,
+    expect: {
+      expression: `(() => {
+        const n = document.querySelectorAll('.verify__panel .verify__row').length;
+        return n > 0 ? 'panel-ok rows=' + n : 'PANEL-EMPTY';
+      })()`,
+      contains: 'panel-ok',
+    },
+    shot: 'l2-step5-verify-panel',
+  },
+  // The second lesson's copy, switched to Chinese. The badge is lesson two's own
+  // wording ("未检查所有者"), not lesson one's signer badge.
+  { wait: `__prism.has('${SQL.langZh}')`, click: SQL.langZh },
+  {
+    wait: `document.documentElement.lang === 'zh-CN'`,
+    after: 500,
+    expect: {
+      expression: `(() => {
+        const text = document.body.innerText;
+        return text.includes('执行攻击') && text.includes('未检查所有者')
+          ? 'l2-zh-ok'
+          : 'l2-zh-missing[' + (text.includes('执行攻击') ? '' : 'execute ') + (text.includes('未检查所有者') ? '' : 'badge') + ']';
+      })()`,
+      contains: 'l2-zh-ok',
+    },
+    shot: 'l2-zh-step5',
+  },
+  { wait: `__prism.has('${SQL.langEn}')`, click: SQL.langEn },
+  { wait: `document.documentElement.lang === 'en'`, after: 300 },
+
+  // --- page 6: why an account's data is not its identity.
+  { wait: `__prism.step() === 5`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 6`, after: 500, shot: 'l2-step6-why' },
+  // --- page 7: the fix, one declaration.
+  { wait: `__prism.step() === 6`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 7`, after: 500, shot: 'l2-step7-fix' },
+  // --- page 8: the same forged credit against the repaired build, refused.
+  { wait: `__prism.step() === 7`, press: 'ArrowDown' },
+  { wait: `__prism.step() === 8 && __prism.has('${SQL.execute}')`, after: 500, shot: 'l2-step8-retry' },
+  { wait: `__prism.has('${SQL.execute}')`, click: SQL.execute },
+  { wait: `__prism.has('${SQL.txCard}')`, after: 500, shot: 'l2-step8-txcard' },
+  { wait: `__prism.has('${SQL.dot}')`, after: 1550, shot: 'l2-step8-attack-blocked' },
+  {
+    wait: `__prism.has('${SQL.result}')`,
+    after: 700,
+    probe: 'checkCards',
+    expect: { expression: `__prism.text('${SQL.result}')`, contains: 'Transaction Rejected' },
+    shot: 'l2-step8-result-rejected',
+  },
+  { wait: `__prism.has('${SQL.verifyToggle}')`, click: SQL.verifyToggle },
+  {
+    wait: `__prism.has('${SQL.verifyPanel}')`,
+    after: 400,
+    expect: {
+      expression: `__prism.text('${SQL.verifyPanel}')`,
+      contains: 'Same call, fixed build',
+    },
+    shot: 'l2-step8-verify-panel',
+  },
+  { wait: `__prism.has('${SQL.doneHome}')`, click: SQL.doneHome },
+  {
+    wait: `__prism.has('${SQL.lesson2}') && !__prism.has('.app')`,
+    after: 400,
+    shot: 'l2-home-returned',
   },
 ];
 

@@ -47,6 +47,12 @@ export default function LayerCard({
   const say = isFixed && layer.sayWhenFixed ? t[layer.sayWhenFixed] : t[layer.sayKey];
   // The whole repair is one declaration, so stage 3 reads differently once fixed.
   const code = isFixed && layer.codeWhenFixed ? layer.codeWhenFixed : layer.code;
+  // The flaw's badge. A lesson may word it (lesson two's is a missing owner
+  // check, not a missing signature); when it does not, lesson one's wording is
+  // the default, so the signer lesson renders exactly as it always has.
+  const badgeKey =
+    (isFixed ? layer.badgeFixedKey : layer.badgeKey) ??
+    (isFixed ? 'badgeSignerRequired' : 'badgeNoSignerRequired');
 
   const style = {
     '--x': `${offsetX}px`,
@@ -85,11 +91,7 @@ export default function LayerCard({
               reader can map what they are learning onto every other document. */}
           {name.secondary && <span className="layer-card__name-latin"> {name.secondary}</span>}
         </span>
-        {isSecurityLayer && (
-          <span className="layer-card__badge">
-            {isFixed ? t.badgeSignerRequired : t.badgeNoSignerRequired}
-          </span>
-        )}
+        {isSecurityLayer && <span className="layer-card__badge">{t[badgeKey]}</span>}
       </span>
     </div>
   );

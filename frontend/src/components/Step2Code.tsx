@@ -40,7 +40,11 @@ interface Step2CodeProps {
  */
 export default function Step2Code({ onRegionRects }: Step2CodeProps) {
   const { language, t } = useLanguage();
-  const { layers, contract, verification } = useLesson();
+  const { layers, contract, verification, contractName } = useLesson();
+  // The crate name is lesson data (a lesson's listing is a different file), but
+  // a lesson that names none — every lesson before the field existed — reads as
+  // lesson one's own crate, so its page 2 is byte-for-byte what it always was.
+  const programName = contractName ?? 'prism_vulnerable';
   const blocks = codeBlocks(contract);
   const duration = AUTO_ADVANCE_MS[2] ?? 0;
   /** Scopes the measurement below to this listing, not the whole document. */
@@ -98,7 +102,7 @@ export default function Step2Code({ onRegionRects }: Step2CodeProps) {
   return (
     <section className="step2" style={style} data-testid="step2-code">
       <div className="contract-status" data-testid="contract-status">
-        <span className="contract-status__name">prism_vulnerable</span>
+        <span className="contract-status__name">{programName}</span>
         <span className="contract-status__id">{verification.vulnerableProgramId}</span>
         <span className="contract-status__live">{formatCluster(t.contractLive)}</span>
       </div>

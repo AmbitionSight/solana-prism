@@ -29,6 +29,14 @@ export const MARGIN_NOTE_KEYS = [
   'noteHandlerRequires',
   'noteTheBug',
   'noteStateChange',
+  // Lesson two's notes. The vocabulary is shared with lesson one — the loader
+  // validates a fetched note against this one list — so a new lesson's notes
+  // extend it rather than introducing a second registry.
+  'noteOwnerVaultAuthority',
+  'noteOwnerHandler',
+  'noteOwnerTrustsData',
+  'noteOwnerLamports',
+  'noteOwnerUnchecked',
 ] as const;
 
 export type MarginNoteKey = (typeof MARGIN_NOTE_KEYS)[number];

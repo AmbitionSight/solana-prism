@@ -63,6 +63,12 @@ export interface Messages {
   stageDeclaration: string;
   stageManualCheck: string;
   stageStateChange: string;
+  /**
+   * Lesson two's fifth node: the handler reads the credit's data and takes it at
+   * its word. Lesson one's nodes are the signer story; this one is where the
+   * owning program would have been asked — and is not.
+   */
+  stageDataRead: string;
 
   /* The sentence each stage card leads with — plain language saying what happens
      at that step, with the code line underneath as the evidence. These carry who
@@ -283,6 +289,104 @@ export interface Messages {
   retryTableResultVuln: string;
   retryTableResultFixed: string;
   retryConclusion: string;
+
+  /* ---- Lesson two: the missing owner check ----
+     A lesson cannot ship its own copy yet, so lesson two's prose lives here with
+     lesson one's. The keys are grouped under one banner so the seam is visible:
+     everything below is the ownership lesson, not the signer one. */
+
+  /* The six nodes of lesson two's flow. The stage *names* are shared (S0-S3 and
+     S5 reuse the vocabulary above); only the sentences they lead with differ,
+     because the bug they describe is a different one. */
+  sayOwnerSetup: string;
+  sayOwnerCall: string;
+  sayOwnerHandOver: string;
+  sayOwnerDeclaration: string;
+  sayOwnerDeclarationFixed: string;
+  sayOwnerRead: string;
+  sayOwnerStateChange: string;
+
+  /* The flaw's badge, for the same node whose badge lesson one words as a
+     signature requirement. */
+  badgeOwnerUnchecked: string;
+  badgeOwnerRequired: string;
+
+  /* Lesson two's margin notes — the vocabulary above stays shared; only the note
+     for a declaration whose *owner* is unchecked differs from the signer one. */
+  noteOwnerVaultAuthority: string;
+  noteOwnerHandler: string;
+  noteOwnerTrustsData: string;
+  noteOwnerLamports: string;
+  noteOwnerUnchecked: string;
+
+  /* The home page's entry for lesson two. */
+  lessonMissingOwnerTitle: string;
+  lessonMissingOwnerBlurb: string;
+
+  /* Page 4 — the forge: a program of the attacker's own, a struct also named
+     `Credit`, and a credit identical to the protocol's but for its owner. */
+  forgeTitle: string;
+  forgeLede: string;
+  forgeRealHeading: string;
+  forgeForgedHeading: string;
+  forgeDataLabel: string;
+  forgeOwnerLabel: string;
+  forgeOwnerProtocol: string;
+  forgeOwnerAttacker: string;
+  forgeConclusion: string;
+
+  /* Page 6 — why: data is not identity, and only the runtime can check owner. */
+  whyOwnerTitle: string;
+  whyOwnerLede: string;
+  whyOwnerTableHeading: string;
+  whyOwnerColAccount: string;
+  whyOwnerColData: string;
+  whyOwnerColOwner: string;
+  whyOwnerRowReal: string;
+  whyOwnerRowRealData: string;
+  whyOwnerRowForged: string;
+  whyOwnerRowForgedData: string;
+  whyOwnerConclusion: string;
+  whyOwnerNote: string;
+
+  /* Page 7 — the fix: one declaration, UncheckedAccount to Account. */
+  ownerFixTitle: string;
+  ownerFixLede: string;
+  ownerFixBody: string;
+  ownerFixBodyDeclaration: string;
+  ownerFixNote: string;
+
+  /* Page 8 — the same forged credit against the repaired build, refused. */
+  ownerRetryTitle: string;
+  ownerRetryNote: string;
+  ownerRetryTableHeading: string;
+  ownerRetryTableRuntimeLabel: string;
+  ownerRetryTableRuntimeVuln: string;
+  ownerRetryTableRuntimeFixed: string;
+  ownerRetryTableOwnerLabel: string;
+  ownerRetryTableOwnerVuln: string;
+  ownerRetryTableOwnerFixed: string;
+  ownerRetryTableResultLabel: string;
+  ownerRetryTableResultVuln: string;
+  ownerRetryTableResultFixed: string;
+  ownerRetryConclusion: string;
+
+  /* The transaction card for an ownership attack: the accounts are different
+     (a vault, a forged credit, a recipient), so the annotations are too. */
+  txNoteCreditForged: string;
+  txNoteRecipient: string;
+
+  /* The attack's payoff line — the body differs from lesson one's because the
+     attack's nature does: there, nobody signed; here, a real balance moved. */
+  resultOwnerSuccessBody: string;
+  resultOwnerRejectedBody: string;
+
+  /**
+   * The one sentence the vulnerable build's verdict adds. Lesson one's
+   * `chainNotLamports` says the balance was a number; here it is the opposite
+   * claim, and stating it is the point of the lesson: real lamports moved.
+   */
+  ownerChainLamportsMoved: string;
 }
 
 export type MessageKey = keyof Messages;
@@ -300,6 +404,7 @@ export const LAYER_NAME_KEYS = [
   'stageDeclaration',
   'stageManualCheck',
   'stageStateChange',
+  'stageDataRead',
 ] as const;
 
 export type LayerNameKey = (typeof LAYER_NAME_KEYS)[number];
@@ -327,6 +432,7 @@ export const MESSAGES: Record<Language, Messages> = {
     stageDeclaration: 'Account Declaration',
     stageManualCheck: 'Manual Check',
     stageStateChange: 'State Change',
+    stageDataRead: 'Data Read',
 
     sayCreateVault: 'An admin creates the vault — and writes their own address into it.',
     sayCall: 'Someone calls the contract, asking for 500.',
@@ -471,6 +577,88 @@ export const MESSAGES: Record<Language, Messages> = {
     retryTableResultVuln: 'attack succeeded',
     retryTableResultFixed: 'transaction refused',
     retryConclusion: 'The only difference between the two versions is what that node says.',
+
+    /* Lesson two — the missing owner check */
+    sayOwnerSetup: 'The protocol opens its vault, and writes its own address into it.',
+    sayOwnerCall: 'Someone calls the contract, asking it to pay a credit.',
+    sayOwnerHandOver: 'They hand over three accounts.',
+    sayOwnerDeclaration: 'The runtime checks the declaration — which asks for nothing.',
+    sayOwnerDeclarationFixed:
+      'The runtime checks the declaration — which demands this program own the account.',
+    sayOwnerRead: "The handler reads the credit's data, and takes it at its word.",
+    sayOwnerStateChange: 'The vault’s lamports move to the claimant.',
+
+    badgeOwnerUnchecked: 'Owner not required',
+    badgeOwnerRequired: 'Owner required',
+
+    noteOwnerVaultAuthority: 'The vault records who its authority is. This part is right.',
+    noteOwnerHandler: 'The handler. By the time it runs, the accounts are already trusted.',
+    noteOwnerTrustsData: 'A number read out of an account nothing has identified.',
+    noteOwnerLamports: 'Real lamports leave the vault here. This is the theft.',
+    noteOwnerUnchecked:
+      'The owner is never checked — not even that the account belongs to this program. This line is the whole bug.',
+
+    lessonMissingOwnerTitle: 'The account that was not ours',
+    lessonMissingOwnerBlurb:
+      'A withdraw handler trusts a credit because its bytes look right — without ever asking who owns the account those bytes came from.',
+
+    forgeTitle: 'He did not forge the data. He forged the account.',
+    forgeLede:
+      'An account’s data can only be written by the program that owns it — so the attacker deploys a program of his own. Name the struct Credit and the same eight-byte discriminator and the same layout fall out.',
+    forgeRealHeading: 'The protocol’s credit',
+    forgeForgedHeading: 'The attacker’s credit',
+    forgeDataLabel: 'data',
+    forgeOwnerLabel: 'owner',
+    forgeOwnerProtocol: 'the protocol’s program',
+    forgeOwnerAttacker: 'a program the attacker deployed',
+    forgeConclusion: 'Identical data. Different owner. That one field is the entire difference.',
+
+    whyOwnerTitle: 'An account’s data is not its identity.',
+    whyOwnerLede:
+      'Anyone can hand your program an account that looks exactly right. Only the owner field tells yours from theirs — and only the runtime can check it before your code runs.',
+    whyOwnerTableHeading: 'Two credits, read side by side',
+    whyOwnerColAccount: 'account',
+    whyOwnerColData: 'data',
+    whyOwnerColOwner: 'owner',
+    whyOwnerRowReal: 'the protocol’s',
+    whyOwnerRowRealData: 'Credit · amount 0.05',
+    whyOwnerRowForged: 'the attacker’s',
+    whyOwnerRowForgedData: 'Credit · amount 0.05',
+    whyOwnerConclusion:
+      'The two rows are identical but for the owner. The program compared nothing but the data, so it could not tell them apart.',
+    whyOwnerNote:
+      'Account<T> is how you ask the runtime to check the owner first. UncheckedAccount asks for nothing — it is the default you should never reach for, and the name is the warning.',
+
+    ownerFixTitle: 'Change one declaration.',
+    ownerFixLede: 'UncheckedAccount becomes Account. The runtime now checks the owner before the handler runs.',
+    ownerFixBody:
+      'The handler was never wrong — it read the credit and paid it out, which is its job. What was wrong is the declaration above it, which told the runtime to check nothing.',
+    ownerFixBodyDeclaration:
+      'With Account<Credit>, a credit owned by anyone else is refused at the door. The handler never sees it.',
+    ownerFixNote: 'Two builds, one declaration apart.',
+
+    ownerRetryTitle: 'Attack the fixed build.',
+    ownerRetryNote:
+      'The same forged credit, the same call. This time not one line of the handler runs — the runtime stopped it at the declaration.',
+    ownerRetryTableHeading: 'The two builds side by side',
+    ownerRetryTableRuntimeLabel: 'what the declaration demands',
+    ownerRetryTableRuntimeVuln: 'nothing',
+    ownerRetryTableRuntimeFixed: 'this program must own the account',
+    ownerRetryTableOwnerLabel: 'the credit’s owner',
+    ownerRetryTableOwnerVuln: 'the attacker’s program',
+    ownerRetryTableOwnerFixed: 'the attacker’s program',
+    ownerRetryTableResultLabel: 'result',
+    ownerRetryTableResultVuln: 'vault drained',
+    ownerRetryTableResultFixed: 'transaction refused',
+    ownerRetryConclusion: 'The two builds differ only in what that declaration demands.',
+
+    txNoteCreditForged: 'owned by the attacker’s program, not this one',
+    txNoteRecipient: 'the attacker — and the only signer',
+
+    resultOwnerSuccessBody: 'The vault is empty. The credit was never the protocol’s.',
+    resultOwnerRejectedBody: 'The account is not owned by this program. Refused.',
+
+    ownerChainLamportsMoved: 'The vault’s balance was real lamports — and they moved.',
   },
 
   zh: {
@@ -493,6 +681,7 @@ export const MESSAGES: Record<Language, Messages> = {
     stageDeclaration: '账户声明',
     stageManualCheck: '手工校验',
     stageStateChange: '状态变更',
+    stageDataRead: '读取数据',
 
     sayCreateVault: '管理员建立金库 —— 把自己的地址写了进去。',
     sayCall: '有人调用合约，要取 500。',
@@ -629,6 +818,88 @@ export const MESSAGES: Record<Language, Messages> = {
     retryTableResultVuln: '攻击成功',
     retryTableResultFixed: '交易被拒',
     retryConclusion: '两版的差别，只有那一格里写的东西。',
+
+    /* 第二课 —— 缺失的所有者检查 */
+    sayOwnerSetup: '协议建立金库，把自己的地址写进去。',
+    sayOwnerCall: '有人调用合约，要它兑付一份凭证。',
+    sayOwnerHandOver: '他交出了三个账户。',
+    sayOwnerDeclaration: '运行时代合约检查声明 —— 声明里什么都没要求。',
+    sayOwnerDeclarationFixed: '运行时代合约检查声明 —— 这个声明要求账户属于本程序。',
+    sayOwnerRead: '处理函数读取凭证里的数据，然后就信了它。',
+    sayOwnerStateChange: '金库的 lamport 转给了领取人。',
+
+    badgeOwnerUnchecked: '未检查所有者',
+    badgeOwnerRequired: '要求所有者',
+
+    noteOwnerVaultAuthority: '金库记下了自己的权限人是谁。这一步是对的。',
+    noteOwnerHandler: '处理函数。等它跑起来时，账户早就被当成可信的了。',
+    noteOwnerTrustsData: '从一个没有任何东西确认过身份的账户里读出来的数字。',
+    noteOwnerLamports: '真的 lamport 在这里离开金库。盗窃就发生在这里。',
+    noteOwnerUnchecked:
+      '所有者从未被检查 —— 连「这个账户属于本程序」都没查。这一行就是全部的漏洞。',
+
+    lessonMissingOwnerTitle: '不属于它的那个账户',
+    lessonMissingOwnerBlurb:
+      '一个提现处理函数，只因为字节看起来对，就信了一份凭证 —— 却从没问过这些字节来自哪个账户。',
+
+    forgeTitle: '他没有伪造数据，他伪造了整个账户。',
+    forgeLede:
+      '一个账户的数据只能由拥有它的程序写入 —— 所以攻击者只能部署一个自己的程序。把结构体命名为 Credit，同样的 8 字节判别符、同样的布局就都出来了。',
+    forgeRealHeading: '协议自己的凭证',
+    forgeForgedHeading: '攻击者的凭证',
+    forgeDataLabel: '数据',
+    forgeOwnerLabel: '所有者',
+    forgeOwnerProtocol: '协议自己的程序',
+    forgeOwnerAttacker: '攻击者部署的程序',
+    forgeConclusion: '数据一模一样。所有者不同。差别全在那一项。',
+
+    whyOwnerTitle: '账户的数据不等于它的身份。',
+    whyOwnerLede:
+      '任何人都可以递给你的程序一个看起来完全正确的账户。能把你的和别人的区分开的，只有 owner 这一项 —— 而且只有运行时能在你的代码跑起来之前检查它。',
+    whyOwnerTableHeading: '两份凭证，并排读一遍',
+    whyOwnerColAccount: '账户',
+    whyOwnerColData: '数据',
+    whyOwnerColOwner: '所有者',
+    whyOwnerRowReal: '协议那份',
+    whyOwnerRowRealData: 'Credit · 数额 0.05',
+    whyOwnerRowForged: '攻击者那份',
+    whyOwnerRowForgedData: 'Credit · 数额 0.05',
+    whyOwnerConclusion:
+      '两行除了所有者之外完全一样。程序只比对了数据，所以它根本分不出来。',
+    whyOwnerNote:
+      'Account<T> 就是你请运行时先检查所有者的方式。UncheckedAccount 什么都没要求 —— 那是一个你不该伸手去拿的默认值，名字本身就是警告。',
+
+    ownerFixTitle: '改一行声明。',
+    ownerFixLede:
+      'UncheckedAccount 变成 Account。运行时会在处理函数跑起来之前先检查所有者。',
+    ownerFixBody:
+      '处理函数从来没有错 —— 它读凭证、按凭证付款，这就是它的职责。错的是它上面那行声明，那行声明告诉运行时什么都不用查。',
+    ownerFixBodyDeclaration:
+      '用了 Account<Credit>，归属于别人的凭证在门口就被拒了。处理函数根本看不到它。',
+    ownerFixNote: '两个构建，只差一行声明。',
+
+    ownerRetryTitle: '打修复版。',
+    ownerRetryNote:
+      '同一份伪造凭证，同一个调用。这次处理函数一行都没有执行 —— 运行时在声明那一格就把它拦下了。',
+    ownerRetryTableHeading: '两个构建并排',
+    ownerRetryTableRuntimeLabel: '声明里要求什么',
+    ownerRetryTableRuntimeVuln: '什么都不要求',
+    ownerRetryTableRuntimeFixed: '这个账户必须属于本程序',
+    ownerRetryTableOwnerLabel: '凭证的所有者',
+    ownerRetryTableOwnerVuln: '攻击者的程序',
+    ownerRetryTableOwnerFixed: '攻击者的程序',
+    ownerRetryTableResultLabel: '结果',
+    ownerRetryTableResultVuln: '金库被掏空',
+    ownerRetryTableResultFixed: '交易被拒',
+    ownerRetryConclusion: '两个构建的差别，只在那行声明要求了什么。',
+
+    txNoteCreditForged: '归属于攻击者的程序，而不是本程序',
+    txNoteRecipient: '攻击者 —— 也是唯一的签名者',
+
+    resultOwnerSuccessBody: '金库空了。这份凭证从来就不是协议的。',
+    resultOwnerRejectedBody: '账户不属于本程序。拒绝。',
+
+    ownerChainLamportsMoved: '金库的余额是真实的 lamport —— 而且它们真的被转走了。',
   },
 };
 

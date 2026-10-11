@@ -54,6 +54,13 @@ export interface LessonContract {
 /** A whole lesson: what page 2 shows, what the flow draws, what the panel cites. */
 export interface Lesson {
   id: string;
+  /**
+   * The crate name the listing is built from, e.g. `prism_owner_vulnerable`.
+   * Shown verbatim in page 2's status bar, so it is an identifier, not copy —
+   * but it is still lesson data, because the name differs per lesson. Absent
+   * means lesson one's own name, which is what page 2 falls back to.
+   */
+  contractName?: string;
   layers: ContractLayer[];
   contract: LessonContract;
   verification: VerifyEvidence;
@@ -123,6 +130,17 @@ function parseLayer(raw: unknown, index: number): ContractLayer {
   if (raw.codeWhenFixed !== undefined && typeof raw.codeWhenFixed !== 'string') {
     return malformed(`layers[${index}].codeWhenFixed must be a string`);
   }
+  // The badge is optional, and both keys must be real catalogue entries when
+  // present — a lesson that words the flaw differently must not be able to name
+  // a sentence that does not exist.
+  if (raw.badgeKey !== undefined && !isMessageKey(raw.badgeKey)) {
+    return malformed(`layers[${index}].badgeKey "${String(raw.badgeKey)}" is not a catalogue key`);
+  }
+  if (raw.badgeFixedKey !== undefined && !isMessageKey(raw.badgeFixedKey)) {
+    return malformed(
+      `layers[${index}].badgeFixedKey "${String(raw.badgeFixedKey)}" is not a catalogue key`,
+    );
+  }
   if (typeof raw.isSecurityLayer !== 'boolean' || typeof raw.broken !== 'boolean') {
     return malformed(`layers[${index}] must carry boolean isSecurityLayer and broken`);
   }
@@ -163,6 +181,8 @@ function parseLayer(raw: unknown, index: number): ContractLayer {
     sayWhenFixed: raw.sayWhenFixed,
     code: raw.code,
     codeWhenFixed: raw.codeWhenFixed,
+    badgeKey: raw.badgeKey,
+    badgeFixedKey: raw.badgeFixedKey,
     compare,
     isSecurityLayer: raw.isSecurityLayer,
     broken: raw.broken,
@@ -256,12 +276,18 @@ function parseVerification(raw: unknown): VerifyEvidence {
   if (!isFiniteNumber(raw.vaultBefore) || !isFiniteNumber(raw.vaultAfter)) {
     return malformed('verification.vaultBefore and vaultAfter must be numbers');
   }
+  // Optional: only a lesson whose attack needs a second program (the attacker's
+  // own) names one. When present it must be a string, like every other id.
+  if (raw.counterfeitProgramId !== undefined && typeof raw.counterfeitProgramId !== 'string') {
+    return malformed('verification.counterfeitProgramId must be a string');
+  }
   return {
     vulnerableProgramId: raw.vulnerableProgramId as string,
     fixedProgramId: raw.fixedProgramId as string,
     attackTxSignature: raw.attackTxSignature as string,
     attackTxError: raw.attackTxError as string,
     adminPubkey: raw.adminPubkey as string,
+    counterfeitProgramId: raw.counterfeitProgramId as string | undefined,
     vaultBefore: raw.vaultBefore,
     vaultAfter: raw.vaultAfter,
   };
@@ -298,6 +324,7 @@ export function parseLesson(raw: unknown, contractText: string): Lesson {
 
   return {
     id: raw.id,
+    contractName: isNonEmptyString(raw.contractName) ? raw.contractName : undefined,
     layers,
     contract: {
       lines,

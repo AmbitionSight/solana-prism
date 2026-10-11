@@ -63,28 +63,25 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+/** What waiting on a submitted signature needs — one call, injected. */
+export interface StatusPort {
+  signatureStatus(signature: string): Promise<{ err: unknown } | null>;
+}
+
 /**
- * Submit the attack and report what the chain did with it.
+ * Wait for a submitted transaction to settle, and say what the chain did.
  *
- * `failed` means *this demo could not complete the attempt* — no blockhash, no
- * submission, no confirmation. It never means "the program refused", because
- * conflating those two would turn an RPC outage into a security claim.
+ * Split out of `runAttack` so a second lesson's attack can share the one rule
+ * that matters — a transaction the runtime rejected still has a signature, and
+ * is evidence rather than an error — without sharing lesson one's instruction.
  */
-export async function runAttack(
-  ports: AttackPorts,
-  params: AttackParams,
+export async function awaitOutcome(
+  ports: StatusPort,
+  signature: string,
   options: PollOptions = {},
 ): Promise<AttackOutcome> {
   const attempts = options.attempts ?? DEFAULT_ATTEMPTS;
   const delayMs = options.delayMs ?? DEFAULT_DELAY_MS;
-
-  let signature: string;
-  try {
-    const blockhash = await ports.latestBlockhash();
-    signature = await ports.sendWithdraw({ ...params, blockhash });
-  } catch (error) {
-    return { kind: 'failed', reason: describe(error) };
-  }
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     let status: { err: unknown } | null = null;
@@ -108,4 +105,27 @@ export async function runAttack(
     kind: 'failed',
     reason: `the transaction was not confirmed in time (${signature})`,
   };
+}
+
+/**
+ * Submit the attack and report what the chain did with it.
+ *
+ * `failed` means *this demo could not complete the attempt* — no blockhash, no
+ * submission, no confirmation. It never means "the program refused", because
+ * conflating those two would turn an RPC outage into a security claim.
+ */
+export async function runAttack(
+  ports: AttackPorts,
+  params: AttackParams,
+  options: PollOptions = {},
+): Promise<AttackOutcome> {
+  let signature: string;
+  try {
+    const blockhash = await ports.latestBlockhash();
+    signature = await ports.sendWithdraw({ ...params, blockhash });
+  } catch (error) {
+    return { kind: 'failed', reason: describe(error) };
+  }
+
+  return awaitOutcome(ports, signature, options);
 }

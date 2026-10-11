@@ -26,11 +26,19 @@ function readJson(relative: string): unknown {
   return JSON.parse(readUtf8(relative)) as unknown;
 }
 
-/** The one lesson this repository ships, assembled exactly as the shell does. */
+/** Lesson one, assembled exactly as the shell does. */
 export function shippedLesson(): Lesson {
   return parseLesson(
     readJson(`${PUBLIC}missing-signer/lesson.json`),
     readUtf8(`${PUBLIC}missing-signer/contract.rs`),
+  );
+}
+
+/** Lesson two, read the same way — the ownership lesson's own folder. */
+export function shippedOwnerLesson(): Lesson {
+  return parseLesson(
+    readJson(`${PUBLIC}missing-owner/lesson.json`),
+    readUtf8(`${PUBLIC}missing-owner/contract.rs`),
   );
 }
 

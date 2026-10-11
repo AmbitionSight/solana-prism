@@ -12,33 +12,38 @@
 
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">中文</a></p>
 
-Solana Prism is a security lesson for Solana smart contracts. It takes one
-`withdraw` instruction apart along the execution path the bug actually travels —
-five stages — and animates why a missing signer check lets an attacker drain a
-vault without ever holding the admin's key, and why the repair is one changed
-account declaration rather than one more line of checking.
+Solana Prism is a platform for Solana smart-contract security lessons. A lesson
+takes one vulnerability apart along the execution path the bug actually travels,
+and then runs it for real: the attack the reader watches is a transaction on
+testnet, and every claim the lesson makes has a signature behind it that an
+explorer can confirm.
 
-<p align="center">
-<img src="docs/screenshots/contact-sheet.png" alt="The six steps" width="900">
-</p>
+Two ideas hold the whole thing up.
 
-## What's inside
+**A lesson is data.** A lesson is a folder of static files — a catalogue entry,
+a JSON description of its stages and its evidence, and the contract verbatim.
+The app fetches that folder at runtime and renders it, and nothing below the
+shell imports lesson content, so the pages, the flow and the verify panel are
+driven entirely by what the folder says. What is *not* data is the vocabulary a
+lesson speaks and the instructions it sends: stage names, margin-note keys and
+the flaw's badge are one shared, typed list that a lesson extends when it needs
+a word the platform does not have, and each vulnerability brings its own
+instruction code. Both are set out under
+[Adding a lesson](#adding-a-lesson).
 
-- **The demo** — six interactive steps, from the title screen to on-chain
-  verification, in English and Chinese.
-- **The contract and its tests** — two real Anchor programs
-  (`prism_vulnerable` / `prism_fixed`) that differ by a single declaration, with
-  the attack stated as assertions in `tests/prism.ts`.
-- **The verification toolchain** — `tools/` holds a walkthrough harness that
-  asserts against the live page in headless Chrome, and a recorder.
+**Nothing is asserted that the chain has not confirmed.** The verdict under an
+attack is the cluster's answer rather than a local rule; the verify panel
+derives its wording from the evidence data rather than from a deployment flag;
+and the invariants that hold those properties up are mechanical checks, not
+care.
 
 ## Quick start
 
 ```bash
 cd frontend
 npm install
-npm run dev      # http://localhost:5173
-npm test
+npm run dev      # http://localhost:5173 — opens on the lesson list
+npm test         # the unit suite (30 files)
 npm run build    # tsc -b && vite build
 ```
 
@@ -46,14 +51,163 @@ Node **20.10.0 or newer** to run the app. Vite is pinned to 6.x (Vite 7 needs
 `^20.19.0 || >=22.12.0`). The scripts under `tools/` additionally need **Node
 >= 22**.
 
-## The lesson
+Lesson folders are fetched over HTTP, so the app needs the dev server (or the
+built `dist/`) rather than a `file://` URL.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph lesson["A lesson is a folder — fetched at runtime"]
+    index["lessons/index.json<br/>the catalogue"]
+    data["lessons/ID/lesson.json<br/>stages · contract structure · evidence"]
+    rs["lessons/ID/contract.rs<br/>the contract, verbatim"]
+  end
+
+  subgraph app["The app"]
+    shell["Shell<br/>the platform's only I/O"]
+    home["Home<br/>the lesson list"]
+    render["App · LessonContext<br/>the pages, shaped by lesson data"]
+  end
+
+  subgraph chain["The chain"]
+    decision["devnet · chainRun · devnetRun<br/>every decision, pure and tested"]
+    edge["solanaChain · wallet<br/>web3.js and Phantom, at the edge"]
+  end
+
+  index --> shell
+  data --> shell
+  rs --> shell
+  shell --> home
+  shell --> render
+  render --> decision
+  decision --> edge
+```
+
+The split is by **what can be tested without a browser**, and it runs top to
+bottom:
+
+| Layer | Responsibility | Where |
+|---|---|---|
+| Shell | the platform's only I/O — fetch the catalogue, fetch the chosen lesson, decide list-or-lesson | `components/Shell.tsx` |
+| Lesson format | the folder the app renders, and the JSON boundary: the guarantees TypeScript gives over an import are re-established at runtime | `public/lessons/`, `lib/lesson.ts` |
+| Render pipeline | page count and stage count come from the lesson's own arrays; the lesson reaches the tree as a prop and a context, never as an import | `App.tsx`, `lib/lessonContext.ts` |
+| Decision layer | the pool scan, the transaction's construction, what an outcome means — pure functions over injected I/O, so every branch is a unit test | `lib/devnet.ts`, `lib/chainRun.ts`, `lib/devnetRun.ts` |
+| Edge adapters | the only files that know about web3.js, or about Phantom | `lib/solanaChain.ts`, `lib/wallet.ts` |
+| Presentation | the components, and every user-visible string in two languages behind one typed catalogue | `components/`, `i18n/` |
+
+### The lesson folder
 
 ```
-1 Instruction          withdraw(ctx, amount: 500)          what was called
-2 Accounts             vault · authority                   who was handed over
-3 Account Declaration  authority: AccountInfo<'info>       what the program demands  ← the flaw
-4 Manual Check         require!(vault.authority == ...)    what the handler checks itself
-5 State Change         vault.balance -= amount             what gets written
+public/lessons/
+  index.json              the catalogue the home page reads
+  <id>/lesson.json        stages, the contract's structure, the on-chain evidence
+  <id>/contract.rs        the contract, verbatim
+```
+
+`lesson.json` carries the stage list, which lines of the contract become which
+stage, the margin notes keyed to those lines, and the evidence the verify panel
+speaks from. The renderer takes the number of stages from that array rather than
+assuming six, and takes each stage's scatter offsets and code lines from the
+data — which is what makes the format general rather than a shape one lesson
+happens to fit.
+
+JSON erases one guarantee TypeScript gave for free: that every `sayKey`,
+`nameKey` and note key names a real catalogue entry. `lib/lesson.ts` re-establishes
+it at runtime, so a key that is not in the message catalogue, or a contract
+region that runs off the end of `contract.rs`, is a `LessonError` the shell
+reports plainly — never a blank sentence on screen, and never a white page.
+
+### What opening a lesson does
+
+1. The shell fetches `lessons/index.json`; `Home` renders the catalogue, and
+   says so honestly while it is loading or if the fetch failed.
+2. Opening an entry fetches that lesson's folder, validates it, and hands the
+   assembled `Lesson` to `App`. An id that names no real lesson never becomes a
+   fetch.
+3. `App` provides it through `LessonContext`; every page below reads the stages,
+   the contract lines and the evidence from it.
+4. The chain layer never reads lesson data itself — program ids, the admin
+   address and the pool size arrive as arguments, so it can be exercised against
+   a fixture.
+
+## Features
+
+- **A lesson catalogue** — a landing page listing what the platform ships, and
+  the way back out of a lesson from every page.
+- **Lessons as data** — the whole content of a lesson is three files in a
+  folder; no component knows about any particular one.
+- **Real execution by default** — *Execute* sends a real testnet transaction
+  without asking the visitor to install anything.
+- **A wallet path, opt-in** — the same run can be made with the visitor's own
+  key; nothing about the default path requires one.
+- **A verify panel that cannot overclaim** — program ids, the attack
+  transaction, and the balances it moved, all linked to an explorer, all derived
+  from lesson data.
+- **Honest failure states** — an exhausted pool, a missing authority and an
+  unreachable RPC are each reported in the control's own words, never as an
+  animated drain that did not happen.
+- **Two languages** — behind one typed catalogue, so a key present in one
+  language and missing in the other is a compile error.
+
+### Executing for real
+
+*Execute* is signed by a dedicated demo keypair that ships in the frontend
+(`config/demoSigner.ts`). That is a deliberate, accepted trade-off: without it,
+a visitor with no wallet — almost everyone — could only watch an animation,
+which is exactly the thing this demo exists to argue against. The key is
+testnet-only, funded with a little testnet SOL for fees, and is never the pool's
+authority — the `authority` account passed to `withdraw` is the admin's public
+key, and nobody signs as the admin. Anyone who reads the bundle can spend its
+fee balance; that is the whole of the exposure, and the pool is refillable. **It
+must never be pointed at mainnet.**
+
+The verdict is the chain's (`lib/devnetRun.ts`), not a local rule: the animation
+decides only *when* a result may be shown, never *what* it is.
+
+## Adding a lesson
+
+The **content** of a lesson is three files and one catalogue entry:
+
+1. `public/lessons/<id>/contract.rs` — the contract, exactly as compiled.
+2. `public/lessons/<id>/lesson.json` — its stages, the line regions that become
+   them, the margin notes, and the on-chain evidence.
+3. An entry in `public/lessons/index.json` naming the id, and the catalogue keys
+   for its title and one-line description.
+
+Then add those catalogue keys in both languages to `i18n/messages.ts`. For a
+lesson that speaks the platform's existing vocabulary and makes a call the chain
+layer already knows, that is the whole of it — no component to touch, no
+registry, no build step.
+
+Two things are not content, and a lesson that needs one says so in code:
+
+- **A word the platform does not have.** Stage names (`i18n/messages.ts`),
+  margin-note keys (`lib/contractSource.ts`) and the flaw's badge
+  (`config/layers.ts` and the catalogue) are each one shared, typed list. A
+  lesson whose flaw is an unchecked owner rather than a missing signature, or
+  which reads its state through deserialisation rather than a manual check, adds
+  a key to those lists. Each list is a single source, so the type and the check
+  `lib/lesson.ts` runs against fetched JSON cannot drift apart.
+- **An instruction the platform does not have.** The chain layer is
+  per-vulnerability, not a plugin interface: a lesson brings the selectors, the
+  account lists and the address derivation for the calls it makes. That is
+  unavoidable — different vulnerabilities *are* different instructions — and it
+  is why the decision layer is pure functions over injected I/O, so a new
+  lesson's instructions can be tested the way the existing ones already are.
+
+## A worked example: "the signature nobody asked for"
+
+The lesson the platform ships with. A `withdraw` handler compares the caller
+against the stored admin, and never asks the runtime to check a signature.
+
+```
+0 Vault Setup          vault.authority = ctx.accounts.authority.key()   who the vault was told to trust
+1 Instruction          withdraw(ctx, amount: 500)                       what was called
+2 Accounts             vault · authority                                who was handed over
+3 Account Declaration  authority: AccountInfo<'info>                    what the program demands  ← the flaw
+4 Manual Check         require!(vault.authority == ...)                 what the handler checks itself
+5 State Change         vault.balance -= amount                          what gets written
 ```
 
 The flaw is in stage 3, **not** stage 4. On Solana you *declare* what an account
@@ -62,78 +216,48 @@ must be and the runtime enforces it before your handler runs: declaring
 address and it is accepted, while declaring `Signer<'info>` demands a signature
 and the same call is refused before stage 4 or 5 ever execute. Declared
 constraints are enforced for free; hand-written checks only if you remember to
-write them. That is the lesson.
+write them.
 
-These five stages are the split *this* attack path makes, not Solana's fixed
-execution model. A different vulnerability splits differently: overflow,
-precision and rounding crack in arithmetic; CPI abuse needs a cross-program
-invocation stage; an unverified PDA bump needs an address-derivation stage.
-**Stages are a property of the vulnerability, not of Solana.** The stage list is
-data (`config/layers.ts`) and the render pipeline takes its length from that
-array rather than assuming five.
+These six stages are the split *this* attack path makes, not Solana's fixed
+execution model — overflow cracks in arithmetic, CPI abuse needs an invocation
+stage, an unverified PDA bump needs an address-derivation stage. **Stages are a
+property of the vulnerability, not of Solana**, which is why the list is lesson
+data rather than code.
 
-## The six steps
+The lesson runs as eight pages: a title; the deployed contract listed with our
+own tokenizer, each region boxed and labelled with the stage it becomes; the
+boxes flying apart into the execution-order flow; the attacker filling the
+caller's slot with the admin's *public* address; the attack, run for real; why
+the mistake is so easy to make (the Solidity check it is copied from is
+correct); the one-line repair; and the same attack refused by the repaired
+build. All three of its programs are deployed on testnet and the attack has been
+run against them — see [Status](#status).
 
-1. **Title** — "What is a smart contract?" fades in and out.
-2. **Code** — the contract, highlighted by our own tokenizer. Each region is
-   boxed and labelled with the stage it becomes, swept in source order, so the
-   labels read **2, 3, 1, 4, 5**.
-3. **Decompose** — the boxes fan out into the five stages.
-4. **Stack** — they converge into execution order; stage 3 cracks (red dashed,
-   *No signature required*).
-5. **Attack** — pick *Vulnerable* or *Fixed* and execute. The transaction payload
-   appears first (the admin's **address** present, the **signature** absent), then
-   the dot drops: through stage 3 (*Attack Successful*), or stopped at it
-   (*Transaction Rejected*).
-6. **Verify** — the on-chain evidence behind the animation: the two program ids,
-   the attack transaction, the refusal the repaired build returns, and the vault
-   the attack consumed.
+## Verification
 
-The result is followed by a closing note: the repair is a declaration, not a line
-of logic, with a reference to an incident from the same family (Solend, August
-2021: an authorization check too weak, defeated by a lending market the attacker
-had created and owned, about $2M put at risk) and links to the Anchor Sealevel
-Attacks reference and the incident case file. Press **Replay** to run the whole
-thing again without reloading.
+`npm test` covers the geometry, the page machine, the keyframe generator, the
+Rust tokenizer, the lesson loader and its failure modes, the chain decisions,
+and the message catalogue. Three invariants are held by mechanical checks rather
+than by review:
 
-A recording of the full flow is in
-[`docs/screenshots/walkthrough.mp4`](docs/screenshots/walkthrough.mp4), generated
-by `tools/record.mjs`. It predates the closing note, so step 5 ends without it.
+1. **No animation coordinate is written in CSS** — offsets are computed in
+   `lib/geometry.ts` and the attack keyframes are generated at runtime; three
+   non-equivalent checks cover it, including one that reads the stylesheets *and
+   the generator's own source*.
+2. **Pages 3–8 share one set of DOM nodes** — the cards travel between layouts
+   instead of being re-created, proved empirically against a live page because
+   it cannot be proved by reading the source.
+3. **The provenance chain holds** — `lessons/<id>/contract.rs` is byte-for-byte
+   `public/source/prism_vulnerable.rs.txt`, which is pinned in turn to
+   `contract/`.
 
-## Layout
-
-```
-frontend/src/
-  lib/geometry.ts     every pixel coordinate in the demo, and the only place they exist
-  lib/keyframes.ts    the attack animations, generated from geometry
-  lib/steps.ts        the step state machine
-  lib/highlight.ts    hand-written Rust tokenizer
-  lib/code.ts         the step-2 listing; comments follow the language
-  i18n/               every user-visible string, both languages
-  config/layers.ts    the stage list — the demo is generated from this array
-  config/verification.ts  on-chain evidence, real values from testnet
-  components/         Step1Title, Step2Code, ContractLayers, LayerCard, TxCard,
-                      AttackDot, FixToggle, AttackResult, ClosingNote,
-                      VerifyPanel, LanguageToggle
-  styles/             global.css (tokens) · app.css · animations.css
-
-frontend/public/source/   byte-for-byte copies of contract/, linked from the closing note
-contract/            the Anchor programs the step-2 listing is taken from
-  programs/prism_vulnerable   authority declared as AccountInfo — the bug
-  programs/prism_fixed        authority declared as Signer — the one-line fix
-  tests/prism.ts              the attack, as assertions
-tools/               the walkthrough and recording scripts
-```
-
-Three invariants are held by mechanical checks: no animation coordinate is
-written in CSS, steps 3–5 share one set of DOM nodes, and the provenance copies
-match `contract/` byte for byte. Every guard has had a mutation injected into it
-to confirm it goes red; two of them originally would not. Full write-up in
-[`docs/verification.md`](docs/verification.md).
+Every guard has had a mutation injected into it to confirm it goes red; two of
+them originally would not. Full write-up, including the headless-Chrome harness
+and the recorder, in [`docs/verification.md`](docs/verification.md).
 
 ## Status
 
-**The front end is finished, and both programs are deployed and live on
+**The front end is finished, and the lesson's programs are deployed and live on
 testnet.** The attack has been run against them for real:
 
 | | |
@@ -143,18 +267,15 @@ testnet.** The attack has been run against them for real:
 | attack transaction | `2d4hd6Sn…tEEW` — **succeeded**, balance 1000 → 500 |
 | the same call, repaired | `4WqnSCg8…LvuF` — **refused**, `Custom(3010)`, balance unchanged |
 
-A pool of 30 vaults — plus one owned by the repaired build — is prepared
-on-chain, so a visitor with a wallet can run the attack themselves instead of
-watching an animation. `config/verification.ts` carries every value; the verify
-panel derives its wording from that data rather than from a flag, and so it is
-now claiming deployment because there is one.
+A pool of vaults — `PLATFORM.poolSize`, 200 — plus one owned by the repaired
+build, is prepared on-chain, so a visitor can run the attack themselves instead
+of watching an animation.
 
 Building Solana bytecode needs `cargo-build-sbf` and platform-tools, published
 for Linux and macOS only — there is no Windows build. This was built and
 deployed on a Linux box. That machine cannot resolve `*.solana.com` (this
 network's DNS poisons it), so the deploy ran through a reverse SSH tunnel to the
-host's HTTP proxy, against `https://api.testnet.solana.com`. See
-[`contract/README.md`](contract/README.md).
+host's HTTP proxy, against `https://api.testnet.solana.com`.
 
 ## More
 
@@ -162,3 +283,5 @@ host's HTTP proxy, against `https://api.testnet.solana.com`. See
 - The full plan: [`docs/solana-prism-plan.md`](docs/solana-prism-plan.md)
 - Front-end execution plan and decision record:
   [`docs/superpowers/plans/2026-10-10-solana-prism-frontend.md`](docs/superpowers/plans/2026-10-10-solana-prism-frontend.md)
+- The eight-page flow, drawn out, and the plan to build it:
+  [`docs/superpowers/plans/2026-10-11-flow-redesign.md`](docs/superpowers/plans/2026-10-11-flow-redesign.md)

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import App from '../App';
+import OwnerApp from './OwnerApp';
 import type { LessonIndexEntry } from '../config/lessons';
 import { fetchLesson, fetchLessonIndex, type Lesson } from '../lib/lesson';
 import { useLanguage } from '../i18n/language';
@@ -89,6 +90,13 @@ export default function Shell({
     openLessonId !== null && lessons?.some((entry) => entry.id === openLessonId) === true;
 
   if (known && lesson?.id === openLessonId) {
+    // A lesson is data, but the *pages* that read it are not: lesson two teaches
+    // ownership with its own components, so the shell dispatch is by id rather
+    // than a component that tries to serve both. The flow, the listing, the
+    // verify panel and the page machine are shared; the prose is not.
+    if (lesson.id === 'missing-owner') {
+      return <OwnerApp lesson={lesson} onExit={() => setOpenLessonId(null)} />;
+    }
     return <App lesson={lesson} onExit={() => setOpenLessonId(null)} />;
   }
 

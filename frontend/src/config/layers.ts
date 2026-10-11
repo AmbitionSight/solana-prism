@@ -81,6 +81,17 @@ export interface ContractLayer {
    */
   codeWhenFixed?: string;
   /**
+   * The flaw's badge, when a lesson words it differently from the default.
+   *
+   * Lesson one's flaw is a missing signer, so its badge reads "No signature
+   * required"; lesson two's is a missing owner check, so its badge says so. The
+   * *default* stays lesson one's wording, so a lesson that ships no badge keys —
+   * every lesson before this field existed — renders exactly as it did.
+   */
+  badgeKey?: MessageKey;
+  /** The same badge once the build is repaired. */
+  badgeFixedKey?: MessageKey;
+  /**
    * Present only on a stage that renders a comparison instead of a bare
    * sentence. This is the discriminator — the card branches on the data being
    * there, never on the stage's id.
