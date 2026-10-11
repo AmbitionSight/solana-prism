@@ -1,5 +1,7 @@
 <h1 align="center">Solana Prism</h1>
 
+<p align="center"><strong>每节课讲一个 Solana 漏洞 —— 沿着漏洞真实走过的执行路径把它拆开，然后在 testnet 上真的跑一遍。</strong></p>
+
 <p align="center">
 <img alt="Solana" src="https://img.shields.io/badge/Solana-24292F?style=flat-square&logo=solana&logoColor=white">
 <img alt="Anchor 0.30" src="https://img.shields.io/badge/Anchor-0.30-24292F?style=flat-square&logo=rust&logoColor=white">
@@ -12,13 +14,51 @@
 
 <p align="center"><a href="README.md">English</a> · <strong>中文</strong></p>
 
-Solana Prism 是一个讲 Solana 智能合约安全的课程平台。一节课沿着漏洞真实走过的执行路径把它拆开，然后真的跑一遍：读者看到的攻击是 testnet 上的一笔交易，课程说的每一句话背后都有一个可在浏览器上查到的签名。
+![Solana Prism —— 第一课，逐页](docs/screenshots/contact-sheet.png)
 
-整个东西立在两个想法上。
+*第一课，逐页。这份截图拼版和录制好的演示（`docs/screenshots/walkthrough.mp4`）都拍在第二课上线之前，所以两者都只有第一课。*
 
-**课是数据。** 一节课就是一个静态文件夹 —— 一条目录项、一份描述阶段与证据的 JSON、一份逐字的合约。应用在运行时抓取这个文件夹并渲染它，Shell 以下没有任何一层 import 课程内容，所以页面、流程图与验证面板完全由文件夹说了算。**不是**数据的，是一节课所用的词汇和它发出的指令：阶段名、页边注 key、漏洞徽章措辞是同一份共享的、带类型的清单，课程需要平台还没有的词时就去扩展它；而每个漏洞都带来自己的指令代码。两者都在[加一节课](#加一节课)里说明。
+## 这是什么
 
-**链没确认过的，一句都不说。** 攻击下方的结论是集群给的，不是本地规则算的；验证面板由证据数据推导措辞，不看部署开关；撑住这些性质的不变量是机械检查，不是自觉。
+Solana Prism 是一个讲 Solana 智能合约安全的课程平台。一节课挑一个漏洞，沿着漏洞真实走过的执行路径把合约拆开 —— 这次调用经过的每一个阶段，以及错误藏身的那一行。然后它真的跑一遍：读者看到的攻击是 testnet 上的一笔交易，课程说的每一句话背后都有一个能在浏览器上查到的签名。链没确认过的，一句都不说 —— 所以攻击下方的结论是集群给的，不是本地规则算的；验证面板说的是课程证据本身，而不是某个部署开关。
+
+平台目前装了两节课。
+
+## 两节课
+
+| 课程 | 漏洞 | 微妙在哪 |
+|---|---|---|
+| **没人要求过的那枚签名** | 本该是 `Signer<'info>` 的地方写了 `authority: AccountInfo<'info>`。 | `withdraw` 处理函数把调用者和存着的管理员作比较，却从没让运行时去校验签名 —— 声明 `AccountInfo` 等于什么都不索取，于是攻击者递上管理员的公开地址也能通过。 |
+| **不属于它的那个账户** —— 没人校验过的那个 owner | 本该是 `Account<'info, Credit>` 的地方写了 `credit: UncheckedAccount<'info>`。 | 处理函数只因为字节反序列化得对，就信了这份凭证，从没问过这些字节来自哪个账户。账户的数据不是它的身份 —— owner 才是。 |
+
+在 Solana 上，你*声明*一个账户必须是什么，运行时会在处理函数跑起来之前执行这些声明。声明出来的约束免费执行，手写的检查只有想起来写才有。
+
+## 链上证据
+
+两节课都部署在 **testnet** 上，两个攻击都对着部署上去的程序真跑过。下面每一个地址和签名都读自 `frontend/public/lessons/<id>/lesson.json`；两节课共用同一个管理员地址 `DMkwnXZ6Gy7X8fkzSyBCdCuk3E2CFrwCmhV9A44qGU7T`，那是 `initialize` 记录为金库 authority 的那对密钥的公钥。
+
+**第一课 —— 没人要求过的那枚签名**（`missing-signer`）
+
+| | |
+|---|---|
+| 有漏洞的程序 | [`7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2`](https://solscan.io/account/7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2?cluster=testnet) |
+| 修复后的程序 | [`9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq`](https://solscan.io/account/9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq?cluster=testnet) |
+| 攻击交易（真跑过一次） | [`2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW`](https://solscan.io/tx/2d4hd6SnxtriuegGRGRgM542Cr4qsGbkYQUgx3shR3fxdFSmUFRrGvM7L9zwK2CFBe1KTRafeyqD66nj2Mm4tEEW?cluster=testnet) |
+| 同一个调用打到修复版上 | `InstructionError: [0, Custom(3010)]` |
+| 攻击挪动的金库 | 一个计数器，`1000 → 500` |
+
+**第二课 —— 不属于它的那个账户**（`missing-owner`）
+
+| | |
+|---|---|
+| 有漏洞的程序 | [`38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL`](https://solscan.io/account/38hLgAJyNUnRiZvWVWAwTwt9cZMA6wzyPQm3QQDAdWJL?cluster=testnet) |
+| 修复后的程序 | [`BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93`](https://solscan.io/account/BC5AtnTTYDfhrhxfng7JPUfoVwvcnvPrzuQsE7HpQW93?cluster=testnet) |
+| 攻击者伪造的程序 | [`AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR`](https://solscan.io/account/AKW7vUPNvueeG31GV7gRCRtPQyvsmvat4RnzjPXjxiHR?cluster=testnet) |
+| 攻击交易（真跑过一次） | [`5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG`](https://solscan.io/tx/5odwAQjoHW5P3AZCtCByTnqZdJB7ZavvbSiTuegcGGJowuwbHhzbBFbcQJtEvPWsRxvaBRWXfhdmdVcm1mt48BRG?cluster=testnet) |
+| 同一个调用打到修复版上 | `InstructionError: [1, Custom(3007)]` |
+| 攻击挪动的金库 | lamports，`50,000,000 → 0` |
+
+两个金库不是同一种东西，README 不会含糊过去：第一课的金库装的是一个计数器，攻击把它从 1000 挪到 500。第二课的金库装的是 lamports，攻击把 0.05 SOL 全部挪了出去 —— 真金白银，只是发生在 testnet 上。
 
 ## 快速开始
 
@@ -26,15 +66,15 @@ Solana Prism 是一个讲 Solana 智能合约安全的课程平台。一节课�
 cd frontend
 npm install
 npm run dev      # http://localhost:5173 —— 打开是课程列表
-npm test         # 单元测试套件（30 个文件）
+npm test         # 单元测试套件（33 个文件，359 个测试）
 npm run build    # tsc -b && vite build
 ```
 
-Node **20.10.0 或更新版本**。Vite 锁在 6.x（Vite 7 需要 `^20.19.0 || >=22.12.0`）。`tools/` 里的脚本另需 **Node >= 22**。
+跑应用需要 **Node 20.10.0 或更新版本**。Vite 锁在 6.x（Vite 7 需要 `^20.19.0 || >=22.12.0`）。`tools/` 里的脚本另需 **Node >= 22**。
 
-课程文件夹是通过 HTTP 抓取的，所以要么跑开发服务器，要么用构建出来的 `dist/`，不能直接开 `file://`。
+课程文件夹是通过 HTTP 抓取的，所以要么跑开发服务器，要么用构建出来的 `dist/` —— 直接用 `file://` 打开是行不通的。
 
-## 架构
+## 工作原理
 
 ```mermaid
 flowchart TB
@@ -50,8 +90,8 @@ flowchart TB
     render["App · LessonContext<br/>页面形状由课程数据决定"]
   end
 
-  subgraph chain["链"]
-    decision["devnet · chainRun · devnetRun<br/>所有决策，纯函数、有测试"]
+  subgraph chain["链 —— testnet"]
+    decision["chainRun · devnetRun · ownerRun<br/>所有决策，纯函数、有测试"]
     edge["solanaChain · wallet<br/>web3.js 与 Phantom，只在边缘"]
   end
 
@@ -71,11 +111,13 @@ flowchart TB
 | Shell | 平台唯一做 I/O 的地方 —— 抓目录、抓选中的课程、决定「列表还是课内」 | `components/Shell.tsx` |
 | 课程格式 | 应用渲染的那个文件夹，以及 JSON 边界：import 时 TypeScript 免费给的那些保证，在这一层于运行时重新建立 | `public/lessons/`, `lib/lesson.ts` |
 | 渲染管线 | 页数与阶段数都从课程自己的数组取；课程以 prop 和 context 抵达组件树，从不以 import | `App.tsx`, `lib/lessonContext.ts` |
-| 决策层 | 池子扫描、交易构造、某个结果意味着什么 —— 对注入的 I/O 求值的纯函数，所以每个分支都是单元测试 | `lib/devnet.ts`, `lib/chainRun.ts`, `lib/devnetRun.ts` |
+| 决策层 | 池子扫描、交易构造、某个结果意味着什么 —— 对注入的 I/O 求值的纯函数，所以每个分支都是单元测试 | `lib/chainRun.ts`, `lib/devnetRun.ts`, `lib/ownerRun.ts` |
 | 边缘适配器 | 只有这两个文件知道 web3.js 和 Phantom | `lib/solanaChain.ts`, `lib/wallet.ts` |
 | 呈现 | 组件，以及两种语言的全部用户可见文案，收在一份带类型的目录后面 | `components/`, `i18n/` |
 
 ### 课程文件夹
+
+**课是数据。** 一节课就是一个静态文件夹，应用在运行时抓取并渲染它；Shell 以下没有任何一层 import 课程内容，所以页面、流程图与验证面板完全由文件夹说了算。
 
 ```
 public/lessons/
@@ -88,24 +130,7 @@ public/lessons/
 
 JSON 抹掉了 TypeScript 本来免费给的一条保证：每个 `sayKey`、`nameKey`、注记 key 都指向真实存在的目录条目。`lib/lesson.ts` 在运行时把它重新建立起来 —— 目录里没有的 key，或者越过 `contract.rs` 末尾的区域，都是 shell 老老实实报出来的 `LessonError`，绝不是屏幕上一句空白，更不是白屏。
 
-### 打开一节课发生了什么
-
-1. shell 抓 `lessons/index.json`；`Home` 渲染课程目录，并且在载入中或抓取失败时照实说明。
-2. 打开其中一条会去抓那节课的文件夹、校验它，并把拼装好的 `Lesson` 交给 `App`。指向不存在课程的 id 永远不会变成一次抓取。
-3. `App` 通过 `LessonContext` 把它提供下去；下面每一页都从它读取阶段、合约行和证据。
-4. 链那一层自己从不读课程数据 —— program id、管理员地址、池子大小都以参数传入，所以它能对着一个 fixture 被完整跑一遍。
-
-## 功能
-
-- **课程目录** —— 一个列出平台都装了什么的落地页，以及从每一页都能走出去的返回入口。
-- **课即数据** —— 一节课的全部内容就是文件夹里的三个文件；没有任何组件认得某一节课。
-- **默认就是真执行** —— 按*执行*就会发出真实的 testnet 交易，不要求访客装任何东西。
-- **钱包是可选路径** —— 同一次运行可以用访客自己的密钥做；默认路径不依赖它。
-- **不会夸大其词的面板** —— program id、攻击交易、被挪动的余额，全部外链到区块链浏览器，全部由课程数据推导。
-- **诚实的失败状态** —— 池子用尽、没有配置 authority、RPC 不应答，三种都各自用控件自己的话说明，绝不把一次没发生的掏空演成动画。
-- **两种语言** —— 收在一份带类型的目录后面，某种语言有、另一种没有的 key 是编译错误。
-
-### 真的打到链上
+## 真的打到链上
 
 *执行*由随前端一起发布的一对演示密钥签名（`config/demoSigner.ts`）。这是一个刻意的、被接受的取舍：没有它，不装钱包的访客 —— 也就是几乎所有人 —— 只能看动画，而那正是这个演示存在的意义所要反驳的东西。这把密钥只用于 testnet，里面有一点点 testnet SOL 付手续费，而且它**永远不是**金库池的 authority —— 传给 `withdraw` 的 `authority` 账户是管理员的公钥，没有人以管理员身份签名。任何读了打包产物的人都能花掉它的手续费余额，这就是全部的风险敞口，而金库池可以重新灌满。**它绝不能指向主网。**
 
@@ -126,53 +151,29 @@ JSON 抹掉了 TypeScript 本来免费给的一条保证：每个 `sayKey`、`na
 - **平台还没有的词。** 阶段名（`i18n/messages.ts`）、页边注 key（`lib/contractSource.ts`）、漏洞徽章的措辞（`config/layers.ts` 与文案目录）各是一份共享的、带类型的清单。一节课如果它的漏洞是 owner 未校验而不是缺签名，或者它靠反序列化而不是手写校验读取状态，就往这些清单里加一个 key。每份清单只有一个来源，所以类型和 `lib/lesson.ts` 对抓来的 JSON 跑的检查不会各说各话。
 - **平台还没有的指令。** 链那一层是按漏洞写的，不是一个插件接口：一节课带来它自己那几个调用的选择器、账户表和地址派生。这躲不掉 —— 不同漏洞*就是*不同的指令 —— 也正因如此，决策层是对注入的 I/O 求值的纯函数，新一课的指令能和现有的一样被测试。
 
-## 一个实例：没人要求过的那枚签名
+所以，课里出现的文案，仍然是 `i18n/messages.ts` 里带类型的内容；让一个新漏洞能跑起来的接线，也仍然是代码。文件夹给的是：这两样都不再按课重复 —— 新课只是往共享的清单里加 key 和指令，而不是新开一整页。
 
-平台自带的第一课。一个 `withdraw` 处理函数把调用者与记录在案的管理员作比较，却从没让运行时去校验签名。
+## 测试
 
-```
-0 Vault Setup          vault.authority = ctx.accounts.authority.key()   金库被告知该信任谁
-1 Instruction          withdraw(ctx, amount: 500)                       调用了什么
-2 Accounts             vault · authority                                交接进来哪些账户
-3 Account Declaration  authority: AccountInfo<'info>                    程序对账户的要求  ← 漏洞在此
-4 Manual Check         require!(vault.authority == ...)                 处理函数自己检查了什么
-5 State Change         vault.balance -= amount                          最终写入了什么
+```bash
+cd frontend && npx vitest run --reporter=dot
 ```
 
-漏洞在第 3 阶段，**不在**第 4 阶段。Solana 上你*声明*一个账户必须是什么，运行时会在处理函数跑起来之前执行这些声明：声明 `AccountInfo<'info>` 等于什么都不索取，攻击者递上管理员的地址也能通过；声明 `Signer<'info>` 则要求签名，同一个调用在第 4、5 阶段执行之前就被拒之门外。声明出来的约束免费执行，手写的检查只有想起来写才有。
+```
+Test Files  33 passed (33)
+     Tests  359 passed (359)
+```
 
-这六个阶段是*这条*攻击路径的切分，不是 Solana 的固定执行模型 —— 溢出裂在算术，CPI 越权需要一个跨程序调用阶段，PDA bump 未校验需要一个地址派生阶段。**阶段是漏洞的属性，不是 Solana 的属性**，所以这份清单是课程数据，不是代码。
+`docs/verification.md` 是这一节的长版本：套件守着哪些不变量、每个检查在什么层面抓违规，以及每个护栏是怎么被证伪的。
 
-这一课以八个页面呈现：标题；部署上去的合约用自写分词器列出，每个区域被框出并标注成它将变成的阶段；这些框飞散开、收拢成执行顺序的流程图；攻击者把管理员的*公开*地址填进调用者那一格；攻击，真实跑一次；这个错误为什么这么容易犯（它抄的那句 Solidity 校验是对的）；一行修复；以及同一个攻击被修复版拒绝。它的三个程序都部署在 testnet 上，攻击也真的跑过 —— 见[当前状态](#当前状态)。
+## 现状
 
-## 验证
+- **已部署到 testnet** —— 两节课，五个程序（每节课各有漏洞版与修复版，外加第二课需要的攻击者伪造程序）。两个攻击都对着线上程序真跑过。✅
+- **单元测试全绿** —— 33 个文件，359 个测试。✅
+- **尚未托管** —— 没有公开网址。本地用 `npm run dev` 跑。
+- **录制的演示早于第二课** —— `docs/screenshots/` 里只有第一课。
+- **没有 CI** —— 没有任何东西自动跑测试套件。
 
-`npm test` 覆盖几何、页面状态机、关键帧生成器、Rust 分词器、课程加载器及其失败路径、链上决策，以及文案目录。三条不变量由机械检查守着，不靠人看：
+## 许可证
 
-1. **动画坐标不写在 CSS 里** —— 偏移在 `lib/geometry.ts` 算好，攻击关键帧在运行时生成；三条互不等价的检查覆盖它，其中一条会去读样式表**和生成器自己的源码**。
-2. **第 3–8 页共用同一批 DOM 节点** —— 卡片是在布局之间*飞行*，不是被重建；这一条没法靠读源码证明，所以是对着活页面实证的。
-3. **溯源链条成立** —— `lessons/<id>/contract.rs` 与 `public/source/prism_vulnerable.rs.txt` 逐字节一致，而后者又被钉在 `contract/` 上。
-
-每道守卫都注入变异证伪过，其中两道最初不会失败。完整说明（含无头 Chrome 走查脚本与录屏工具）见 [`docs/verification.md`](docs/verification.md)。
-
-## 当前状态
-
-**前端已完成，这一课的程序也都已部署、正在 testnet 上运行。** 攻击是真实跑过的：
-
-| | |
-|---|---|
-| `prism_vulnerable` | `7SdcJctnNWx1CPrfJr5MR8jWgDLtW173FoYyCm8rP8U2` |
-| `prism_fixed` | `9CFbfwYirp1ZFfwA2fYKKaeVoYU9R3cKNBukvn8EayPq` |
-| 攻击交易 | `2d4hd6Sn…tEEW` —— **成功**，余额 1000 → 500 |
-| 同一笔调用，修复版 | `4WqnSCg8…LvuF` —— **被拒绝**，`Custom(3010)`，余额不变 |
-
-链上预备了 `PLATFORM.poolSize` 个 vault（200 个），外加一个归修复版所有，所以访客可以自己跑一次真实攻击，而不是看动画。
-
-合约编译需要 `cargo-build-sbf` 与 platform-tools，官方只发布 Linux 和 macOS 版本，Windows 无构建，因此构建与部署都在一台 Linux 机器上完成。那台机器解析不了 `*.solana.com`（本网络 DNS 被污染），所以部署是经一条 SSH 反向隧道借宿主机的 HTTP 代理、打到 `https://api.testnet.solana.com` 完成的。
-
-## 更多
-
-- 测试与守卫的完整说明：[`docs/verification.md`](docs/verification.md)
-- 完整计划：[`docs/solana-prism-plan.md`](docs/solana-prism-plan.md)
-- 前端执行计划与决策记录：[`docs/superpowers/plans/2026-10-10-solana-prism-frontend.md`](docs/superpowers/plans/2026-10-10-solana-prism-frontend.md)
-- 八页流程图与实现计划：[`docs/superpowers/plans/2026-10-11-flow-redesign.md`](docs/superpowers/plans/2026-10-11-flow-redesign.md)
+本仓库没有 `LICENSE` 文件。在补上一份之前，不授予任何授权。
